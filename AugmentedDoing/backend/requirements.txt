@@ -1,0 +1,19 @@
+# ── Core API ──
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+pyyaml==6.0.1
+pydantic==2.7.4
+python-multipart==0.0.9
+httpx==0.27.0
+
+# ── ML / Deep Learning ──
+torch>=2.2.0
+torchvision>=0.17.0
+transformers>=4.40.0
+Pillow>=10.0.0
+opencv-python-headless>=4.9.0
+numpy>=1.26.0
+
+# ── Orchestration (LangGraph) ──
+langgraph>=0.2.0
+langchain-core>=0.3.0

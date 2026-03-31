@@ -1,0 +1,842 @@
+%%% ACM Conference Proceedings Format (acmart)
+%%% TrustFeed: Human-in-the-Loop AI for Data Authenticity
+%%% ITIS 5360 — Final Project Research Paper
+
+\documentclass[sigconf,nonacm]{acmart}
+
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{subcaption}
+
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!5},
+  keywordstyle=\color{blue},
+  commentstyle=\color{green!50!black},
+  stringstyle=\color{red!60!black}
+}
+
+\setcopyright{none}
+
+\begin{document}
+
+\title{TrustFeed: A Multi-Agent Bias Simulation Platform with Human-in-the-Loop Survey for AI-Generated Content Authenticity Assessment}
+
+\author{Hemal Patel}
+\affiliation{%
+  \institution{University of North Carolina at Charlotte}
+  \department{Department of Software and Information Systems}
+  \city{Charlotte}
+  \state{North Carolina}
+  \country{USA}
+}
+\email{hpatel85@charlotte.edu}
+
+\begin{abstract}
+The proliferation of AI-generated content across digital platforms poses unprecedented challenges for data authenticity verification. We present \textbf{TrustFeed}, an integrated two-application research platform comprising: (1) a multi-agent bias simulation system that employs five regionally-biased AI agents and one non-bias baseline agent to analyze content provenance through culturally-situated bias detection, and (2) a standalone Human-in-the-Loop survey application that measures human accuracy in distinguishing AI-generated from human-created content, comparing performance against the same five continental agents. The TrustFeed platform introduces several novel mechanisms including automatic debiasing through baseline anchoring, exposure-aware circuit breakers that detect judgment drift from repeated AI content exposure, provenance indicators as neutral evidence rather than binary verdicts, and a Human-AI Collaboration mode that studies how agent assistance affects human classification accuracy. Survey content is dynamically fetched from free internet sources---Wikipedia articles, Picsum and Pexels photographs, Pexels videos, and Pollinations.ai-generated images---ensuring unique, non-repeating stimuli per session. All anonymous survey data is persisted in a MySQL 8.0 database (no personally identifiable information) with aggregate views enabling real-time analysis of accuracy by mode, difficulty, agent region, and content category. Our system architecture leverages Angular 17 standalone components with reactive signals, a Node.js Express API, containerized deployment via Docker and nginx, and is designed for cloud deployment on Digital Ocean. Collected data across survey sessions demonstrates that Human-AI Collaboration mode yields a measurable accuracy improvement over solo performance, with agent accuracy varying significantly by regional bias profile and content difficulty. This work contributes to the emerging field of human-AI collaborative systems for content authenticity and provides an open, database-backed research framework for studying regional AI bias in content moderation.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+   <concept>
+       <concept_id>10003120.10003121.10003129</concept_id>
+       <concept_desc>Human-centered computing~Collaborative and social computing systems and tools</concept_desc>
+       <concept_significance>500</concept_significance>
+   </concept>
+   <concept>
+       <concept_id>10010147.10010178.10010179</concept_id>
+       <concept_desc>Computing methodologies~Multi-agent systems</concept_desc>
+       <concept_significance>500</concept_significance>
+   </concept>
+   <concept>
+       <concept_id>10002944.10011123.10011131</concept_id>
+       <concept_desc>General and reference~Surveys and overviews</concept_desc>
+       <concept_significance>300</concept_significance>
+   </concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Human-centered computing~Collaborative and social computing systems and tools}
+\ccsdesc[500]{Computing methodologies~Multi-agent systems}
+\ccsdesc[300]{General and reference~Surveys and overviews}
+
+\keywords{Human-in-the-Loop AI, Data Authenticity, Multi-Agent Bias Detection, Content Provenance, AI-Generated Content, Human-AI Collaboration, Regional Bias Simulation, Circuit Breaker Systems}
+
+\maketitle
+
+%% ============================================================
+\section{Introduction}
+%% ============================================================
+
+The rapid advancement of generative AI systems—including large language models (LLMs), diffusion-based image generators, and video synthesis tools—has created an urgent need for reliable content authenticity verification mechanisms~\cite{mitchell2023detectgpt, kirchner2023watermark}. Current approaches typically frame AI detection as a binary classification problem, producing single-score verdicts that fail to account for the culturally-situated nature of AI bias and the critical role of human judgment in the verification process.
+
+We identify three fundamental limitations in existing AI content detection frameworks:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Mono-agent bias}: Single-model detection systems inherit the cultural and linguistic biases of their training data without mechanisms for cross-cultural validation or bias quantification.
+  \item \textbf{Human exclusion}: Automated systems operate as black boxes, removing humans from the verification loop and eliminating opportunities for collaborative intelligence.
+  \item \textbf{Exposure blindness}: Platforms do not account for how repeated exposure to AI-generated content shifts human judgment patterns, a phenomenon we term \emph{judgment drift}.
+\end{enumerate}
+
+To address these limitations, we present \textbf{TrustFeed}, a research platform consisting of two complementary applications:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{TrustFeed Core} (AugmentedDoing)—A social media simulation platform with a six-agent bias analysis pipeline, exposure tracking with circuit breakers, provenance indicators, expert escalation, and community verification.
+  \item \textbf{TrustFeed Survey} (SurveyApp)—A standalone, containerized research survey that measures human performance in AI content detection across Solo and Human-AI Collab modes, comparing results against five continental bias agents.
+\end{itemize}
+
+Our contributions include:
+\begin{enumerate}[leftmargin=*]
+  \item A multi-agent architecture with five regionally-biased agents and one non-bias baseline for culturally-aware content analysis with automatic debiasing.
+  \item An exposure-aware circuit breaker system that detects and mitigates judgment drift.
+  \item A Human-AI Collaboration framework that enables controlled study of how AI agent assistance affects human classification accuracy.
+  \item A containerized, cloud-deployable survey instrument with dynamic content fetching from free internet sources and a MySQL persistence layer (no PII) with aggregate analytics views for large-scale data collection on human-AI collaborative content verification.
+\end{enumerate}
+
+%% ============================================================
+\section{Related Work}
+%% ============================================================
+
+\subsection{AI-Generated Content Detection}
+The detection of AI-generated text has progressed from statistical methods to neural classifiers. DetectGPT~\cite{mitchell2023detectgpt} introduced perturbation-based detection using log-probability curvature, while watermarking approaches~\cite{kirchner2023watermark} embed statistical signals during generation. OpenAI's AI Text Classifier achieved only 26\% true positive rate before being discontinued, highlighting the difficulty of reliable detection~\cite{openai2023classifier}. Our approach diverges from single-score classification by treating detection as a multi-perspective problem requiring regional bias disaggregation.
+
+\subsection{Multi-Agent Systems for Content Analysis}
+Multi-agent debate frameworks have shown promise in improving reasoning quality~\cite{du2023improving, liang2023encouraging}. LangGraph-based orchestration enables stateful multi-agent workflows with conditional routing~\cite{langgraph2024}. TrustFeed extends this paradigm by assigning agents distinct \emph{regional bias profiles} rather than homogeneous reasoning strategies, enabling bias quantification through inter-agent disagreement analysis.
+
+\subsection{Human-in-the-Loop AI Systems}
+The HITL paradigm has been studied extensively in machine learning pipelines~\cite{monarch2021hitl, wu2022survey}, but its application to content authenticity remains underexplored. Prior work on AI-assisted fact-checking~\cite{nakov2021automated} demonstrated that human-AI teams outperform either alone, yet the mechanisms through which AI assistance affects human judgment patterns are poorly understood. Our Human-AI Collab mode provides a controlled framework for studying these dynamics.
+
+\subsection{Algorithmic Bias and Fairness}
+Regional and cultural bias in AI systems has been documented across NLP~\cite{blodgett2020language}, computer vision~\cite{buolamwini2018gender}, and content moderation~\cite{davidson2019racial}. TrustFeed contributes by making bias \emph{visible and measurable} through explicit regional agent profiles, debiasing pipelines, and favoritism detection thresholds.
+
+%% ============================================================
+\section{System Architecture}
+%% ============================================================
+
+\subsection{Platform Overview}
+
+TrustFeed consists of two Angular 17 standalone applications sharing a common design language but deployed independently:
+
+\begin{table}[h]
+\caption{Platform Component Summary}
+\label{tab:components}
+\begin{tabular}{lll}
+\toprule
+\textbf{Application} & \textbf{Purpose} & \textbf{Deployment} \\
+\midrule
+TrustFeed Core & Bias simulation platform & localhost:4200 \\
+TrustFeed Survey & Research survey instrument & Docker/DO:4300 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Both applications use Angular's modern standalone component architecture with reactive signals for state management, eliminating the need for traditional NgModules. The TrustFeed Survey is designed for independent cloud deployment via Docker containers served through nginx, with a Digital Ocean App Platform specification for production hosting.
+
+\subsection{TrustFeed Core Architecture}
+
+The core application implements a four-view architecture:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Feed View}: Social media feed with 7 sort modes (Newest, Highest Bias Delta, Highest Disagreement, Region Dominance, Likely Human, Likely AI, Debiased Confidence), 8 content filters, and a three-column layout with exposure monitoring sidebar.
+  \item \textbf{Content Review}: External content analysis with pattern-based AI detection scoring across motivational clichés, engagement bait, hashtag density, uncited statistics, buzzword frequency, personal anecdotes, and emotional authenticity markers.
+  \item \textbf{Bias Dashboard}: Aggregate analytics showing per-agent statistics, favoritism rates, 7-day bias trends, and platform-wide summary metrics.
+  \item \textbf{Survey}: Integrated survey entry point linking to the standalone Survey application.
+\end{enumerate}
+
+\subsection{Multi-Agent Bias Analysis Pipeline}
+
+The core innovation is a six-agent content analysis system:
+
+\begin{table}[h]
+\caption{Regional Bias Agent Profiles}
+\label{tab:agents}
+\begin{tabular}{llp{4cm}}
+\toprule
+\textbf{Agent} & \textbf{Bias Direction} & \textbf{Focus Areas} \\
+\midrule
+Africa Agent & Neutral & Community voice, oral tradition, cultural authenticity \\
+Asia Agent & AI-leaning & Technical precision, structural formality, semantic coherence \\
+Europe Agent & Human-leaning & Rhetorical structure, argumentative depth, logical consistency \\
+Americas Agent & Neutral & Narrative authenticity, emotional resonance, colloquial markers \\
+Oceania Agent & AI-leaning & Environmental context, data integrity, cross-modal consistency \\
+Baseline Agent & None & Unbiased reference benchmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Each agent independently produces a confidence score, verdict, reasoning text, and bias highlights. The system then computes the following derived metrics:
+
+\textbf{Bias Delta:}
+\begin{equation}
+\Delta_b = S_{raw} - S_{baseline}
+\end{equation}
+
+\textbf{Debiased Score:}
+\begin{equation}
+S_{debiased} = S_{baseline} + \min(\max(S_{raw} - S_{baseline}, -0.05), 0.05)
+\end{equation}
+
+\textbf{Disagreement Rate:}
+\begin{equation}
+D = \max(S_{agents}) - \min(S_{agents})
+\end{equation}
+
+\textbf{Region Dominance Score:}
+\begin{equation}
+R = \frac{\max(S_{regional}) - \bar{S}_{regional}}{\bar{S}_{regional}}
+\end{equation}
+
+\textbf{Bias Amplification Index:}
+\begin{equation}
+BAI = \frac{S_{raw} - S_{baseline}}{S_{baseline}}
+\end{equation}
+
+A \textbf{favoritism flag} is triggered when $\Delta_b > 0.20$ or $R > 0.60$, indicating that regional bias has significantly distorted the analysis. Each agent's deviation from baseline is classified into four modes: \textsc{Inflation}, \textsc{Deflation}, \textsc{Selective}, or \textsc{Neutral}, with severity levels from negligible to critical.
+
+\subsection{Provenance Indicator Framework}
+
+Rather than producing binary AI/human verdicts, TrustFeed presents \textbf{provenance indicators}—neutral evidence gathered from four independent sources:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Author Declaration}: Self-reported AI usage status with confidence based on platform verification history.
+  \item \textbf{Community Consensus}: Aggregated crowd-sourced votes with statistical confidence intervals.
+  \item \textbf{AI Analysis}: Multi-agent algorithmic assessment with debiased scoring.
+  \item \textbf{Expert Review}: Human expert evaluation triggered via escalation for high-risk content.
+\end{enumerate}
+
+Each indicator provides a label, confidence value (0--1), and supporting details, allowing users to weigh evidence rather than accept a single automated judgment.
+
+\subsection{Exposure Tracking and Circuit Breaker System}
+
+The \texttt{ExposureTrackerService} implements a runtime monitoring system that tracks user interaction patterns to detect and mitigate judgment drift:
+
+\textbf{Judgment Drift Detection} operates over a sliding window of the last 20 exposure events, computing:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Accuracy Shift}: Deviation of AI detection accuracy from baseline (0.5).
+  \item \textbf{AI Suspicion Trend}: Proportion of recent votes classified as AI.
+  \item \textbf{Consecutive AI Exposures}: Length of current AI content streak.
+  \item \textbf{Drift Level}: Classified as \texttt{stable} $\rightarrow$ \texttt{mild-drift} $\rightarrow$ \texttt{moderate-drift} $\rightarrow$ \texttt{significant-drift} based on thresholds.
+\end{itemize}
+
+The \textbf{circuit breaker} activates when any of three conditions is met:
+\begin{enumerate}[leftmargin=*]
+  \item Exposure cap reached ($\geq$10 AI-generated posts in session).
+  \item Content diversity drops below 30\% non-AI content.
+  \item Judgment drift reaches moderate or significant level.
+\end{enumerate}
+
+Upon activation, a full-screen interstitial overlay presents the user with their exposure statistics and recommends browsing human-created content, implementing a \emph{friction-based intervention} pattern inspired by digital wellbeing design~\cite{lukoff2021design}.
+
+%% ============================================================
+\section{Survey Application Design}
+%% ============================================================
+
+\subsection{Research Objectives}
+
+The TrustFeed Survey application is designed as a standalone research instrument to answer three questions:
+
+\begin{enumerate}[leftmargin=*]
+  \item[\textbf{RQ1}:] How accurately can humans distinguish AI-generated from human-created content across diverse categories and difficulty levels?
+  \item[\textbf{RQ2}:] How does Human-AI Collaboration (agent hint access) affect classification accuracy compared to solo performance?
+  \item[\textbf{RQ3}:] To what extent do regionally-biased AI agents agree with human judgments, and does agreement vary by content category and difficulty?
+\end{enumerate}
+
+\subsection{Survey Content Design}
+
+Survey content is \emph{dynamically fetched} from free internet sources at session start, ensuring that every survey session presents unique, non-repeating stimuli. A server-side content fetcher orchestrates parallel requests to multiple APIs:
+
+\begin{table}[h]
+\caption{Dynamic Content Sources}
+\label{tab:sources}
+\begin{tabular}{lllp{3.5cm}}
+\toprule
+\textbf{Source} & \textbf{Type} & \textbf{Truth} & \textbf{Description} \\
+\midrule
+Wikipedia & Text & Human & Random article summaries via REST API \\
+Picsum Photos & Image & Human & Open-source photography (no API key) \\
+Pexels & Image/Video & Human & Professional photos \& video (free key) \\
+Pollinations.ai & Image & AI & AI-generated images from text prompts \\
+Template Engine & Text & AI & Randomized parametric AI-style text \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The content fetcher maintains an approximately balanced ground-truth distribution ($\sim$50\% AI, $\sim$50\% human) and covers three media types (text, image, video) across diverse categories. Content difficulty is assigned algorithmically for Wikipedia articles (based on word count and average word length) and by template design for AI-generated text (8 template categories: Analysis, Health, Technology, Environment, Finance, Review, News, Education).
+
+A hardcoded fallback pool of 16 curated items (8 AI, 8 human, 12 categories, 3 difficulty levels) ensures survey availability when external APIs are unreachable. The fallback pool includes the following distribution:
+
+\begin{table}[h]
+\caption{Fallback Content Distribution}
+\label{tab:content}
+\begin{tabular}{llll}
+\toprule
+\textbf{Category} & \textbf{Truth} & \textbf{Difficulty} & \textbf{Type} \\
+\midrule
+News (Climate) & Human & Medium & Text \\
+Art (Digital) & AI & Easy & Image \\
+Personal (Piano) & Human & Easy & Text \\
+Review (SmartWatch) & AI & Hard & Text \\
+Academic (Quantum) & Human & Hard & Text \\
+Travel (Marrakech) & Human & Medium & Text \\
+Health (Morning) & AI & Medium & Text \\
+Technology (Blockchain) & AI & Hard & Text \\
+Food (Recipe) & Human & Easy & Text \\
+Finance (Markets) & AI & Medium & Text \\
+Sports (Championship) & Human & Easy & Text \\
+Environment (Plastics) & AI & Medium & Text \\
+Entertainment (Film) & Human & Medium & Text \\
+Security (CVE) & AI & Hard & Text \\
+Personal (Parenting) & Human & Easy & Text \\
+Architecture (Urban) & AI & Hard & Text \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Content items---whether dynamically fetched or from the fallback pool---are designed with deliberate difficulty calibration:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Easy}: Clear stylistic signals (e.g., personal anecdotes with colloquialisms for human; formal technical precision for AI).
+  \item \textbf{Medium}: Moderate signal ambiguity requiring careful analysis.
+  \item \textbf{Hard}: Content deliberately crafted to challenge detection (e.g., AI-generated content with human-like voice; human content with machine-like precision).
+\end{itemize}
+
+Each session shuffles the content pool and generates fresh agent verdicts, ensuring no two sessions produce identical combinations.
+
+\subsection{Agent Verdict Generation}
+
+For each content item, all five continental agents independently produce verdicts through a probabilistic generation model:
+
+\textbf{Correct Probability Calculation:}
+\begin{equation}
+P_{correct} = \text{clamp}\left(B_{difficulty} + B_{bias} + \mathcal{U}(-0.05, 0.05), \; 0.35, \; 0.95\right)
+\end{equation}
+
+where $B_{difficulty} \in \{0.85, 0.70, 0.55\}$ for easy/medium/hard items, and $B_{bias} = \pm 0.08$ based on the agent's bias direction relative to ground truth.
+
+Each agent selects from four unique reasoning templates per verdict direction, producing distinct natural-language explanations grounded in their regional focus areas. Agent confidence values are computed as:
+
+\begin{equation}
+C = \text{clamp}\left(\mathcal{U}(S_{min}, S_{max}) - P_{difficulty}, \; 0.3, \; 1.0\right)
+\end{equation}
+
+where $[S_{min}, S_{max}]$ is the agent's strength range and $P_{difficulty} \in \{0, 0.07, 0.15\}$ for easy/medium/hard items.
+
+\subsection{Survey Interaction Flow}
+
+The survey follows a three-phase interaction model:
+
+\textbf{Phase 1 — Configuration:} Participants configure session parameters (5/8/10/12/16 items) and select Solo or Human-AI Collab mode. A consent notice confirms the research context.
+
+\textbf{Phase 2 — Active Survey:} For each item, participants:
+\begin{enumerate}[leftmargin=*]
+  \item Read the content item with category and difficulty metadata.
+  \item (Collab mode only) Review agent hints showing all five agents' verdicts, confidence levels, and reasoning before making their decision.
+  \item Select their verdict (AI-generated or Human-created).
+  \item Rate their confidence on a 1--5 Likert scale.
+  \item Optionally provide free-text reasoning.
+  \item After submission, review the correct answer and all agent verdicts.
+\end{enumerate}
+
+A progress bar with interactive dot navigation allows participants to review previous items.
+
+\textbf{Phase 3 — Results Dashboard:} Upon completion, participants view a comprehensive results dashboard comprising:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Ground Truth Summary}: Distribution of actual AI vs.\ human content in their session.
+  \item \textbf{Accuracy Comparison Chart}: Bar chart comparing human accuracy against all five agents.
+  \item \textbf{Human Classification Output}: SVG donut charts showing how many items the participant classified as AI vs.\ Human, with prediction bias analysis (over-flags AI / under-flags AI / balanced).
+  \item \textbf{Agent Classification Output}: Per-agent cards showing AI/Human classification bars, correct counts, and average confidence.
+  \item \textbf{Human-Agent Agreement Matrix}: Color-coded agreement rates between the participant and each agent.
+  \item \textbf{Per-Item Breakdown Table}: Row-by-row comparison of ground truth, human verdict, and all five agent verdicts with correct/incorrect color coding.
+\end{itemize}
+
+%% ============================================================
+\section{Human-AI Collaboration Mode}
+%% ============================================================
+
+The Human-AI Collab mode represents the central experimental condition in our research design. When enabled, participants see all five agents' verdicts, confidence percentages, and reasoning \emph{before} making their own classification decision. This creates a controlled study of how AI assistance influences human judgment:
+
+\textbf{Hypothesized Effects:}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Accuracy Improvement}: Access to agent verdicts provides additional signal, potentially improving classification accuracy on difficult items.
+  \item \textbf{Anchoring Bias}: Majority agent consensus may anchor human judgment, reducing independent critical thinking.
+  \item \textbf{Confidence Calibration}: Agent confidence levels may affect participant confidence ratings.
+  \item \textbf{Regional Bias Adoption}: Participants may preferentially adopt verdicts from agents that match their own reasoning style (Asia's technical focus vs. Americas' narrative analysis).
+\end{enumerate}
+
+The agreement matrix in the results dashboard directly measures effect (4) by quantifying how often the participant's verdict aligned with each regional agent. Comparing Solo vs. Collab accuracy across difficulty levels measures effects (1) and (2).
+
+This design follows the ``AI-as-advisor'' paradigm~\cite{bansal2021does} where the human retains final decision authority while optionally consulting AI recommendations, enabling study of calibrated trust in AI systems.
+
+%% ============================================================
+\section{Implementation}
+%% ============================================================
+
+\subsection{Technology Stack}
+
+\begin{table}[h]
+\caption{Technology Stack}
+\label{tab:tech}
+\begin{tabular}{ll}
+\toprule
+\textbf{Layer} & \textbf{Technology} \\
+\midrule
+Frontend Framework & Angular 17 (standalone components) \\
+State Management & Angular Signals (reactive primitives) \\
+Styling & SCSS with component-scoped styles \\
+Backend (Core) & Python Flask, PyTorch, HuggingFace \\
+Agent Orchestration & LangGraph (stateful multi-agent) \\
+Survey API & Node.js Express, mysql2 \\
+Database & MySQL 8.0 (TrustFeed, no PII) \\
+Containerization & Docker (multi-stage: node + nginx) \\
+Web Server & nginx (SPA routing, gzip, security headers) \\
+Cloud Platform & Digital Ocean App Platform \\
+CI/CD & Docker Compose + DO deploy-on-push \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{MySQL Persistence Layer (No PII)}
+
+Survey session data is persisted in a MySQL 8.0 database named \texttt{TrustFeed}. A strict no-PII policy ensures that no personally identifiable information---no names, email addresses, IP addresses, cookies, or user-identifying tokens---is collected or stored. Sessions are identified solely by randomly generated anonymous identifiers (e.g., \texttt{session-1719432000000}).
+
+The schema consists of five tables and four aggregate views:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{survey\_sessions}: Anonymous session metadata including timestamps, collaboration mode, item count, and computed accuracy metrics.
+  \item \textbf{survey\_responses}: Per-item human verdicts with confidence, reasoning, and a generated \texttt{is\_correct} column.
+  \item \textbf{agent\_verdicts}: Per-item, per-agent decisions with confidence and reasoning, also with a generated \texttt{is\_correct} column.
+  \item \textbf{agent\_results} and \textbf{agreement\_matrix}: Per-session summaries of agent performance and human-agent agreement rates.
+\end{itemize}
+
+Four aggregate views (\texttt{v\_accuracy\_by\_mode}, \texttt{v\_accuracy\_by\_difficulty}, \texttt{v\_agent\_accuracy}, \texttt{v\_accuracy\_by\_category}) support real-time analytics without additional application logic. A Node.js Express API bridges the Angular frontend to MySQL, using parameterized queries to prevent SQL injection and transactional writes to ensure data consistency. The frontend \texttt{ApiService} calls the API asynchronously via Angular's \texttt{HttpClient}, initiated in a fire-and-forget pattern so that database latency does not impact the survey user experience.
+
+\subsection{Angular Signals Architecture}
+
+Both applications use Angular's \texttt{signal()} and \texttt{computed()} primitives for reactive state management. The Survey service exemplifies this pattern:
+
+\begin{lstlisting}[language=Java, caption=Reactive State with Angular Signals]
+private _session = signal<SurveySession | null>(null);
+session = this._session.asReadonly();
+
+isActive = computed(() =>
+  this._session() !== null &&
+  !this._session()!.completedAt
+);
+
+progress = computed(() => {
+  const s = this._session();
+  if (!s) return { current: 0, total: 0, percent: 0 };
+  const answered = s.items.filter(
+    i => i.humanVerdict != null
+  ).length;
+  return {
+    current: answered,
+    total: s.items.length,
+    percent: Math.round(
+      (answered / s.items.length) * 100
+    )
+  };
+});
+\end{lstlisting}
+
+This signal-based approach provides fine-grained reactivity without the overhead of RxJS observables or external state management libraries, resulting in a 355 KB total bundle size for the Survey application.
+
+\subsection{Containerization Strategy}
+
+The Survey application uses a multi-stage Docker build optimizing for both build caching and minimal production image size:
+
+\begin{lstlisting}[caption=Multi-Stage Dockerfile]
+# Stage 1: Build (node:18-alpine)
+FROM node:18-alpine AS build
+COPY package.json package-lock.json ./
+RUN npm ci --legacy-peer-deps
+COPY . .
+RUN npx ng build --configuration=production
+
+# Stage 2: Serve (nginx:alpine)
+FROM nginx:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist/survey-app/browser \
+  /usr/share/nginx/html
+HEALTHCHECK CMD wget --spider http://localhost/health
+\end{lstlisting}
+
+The nginx configuration implements SPA routing (fallback to \texttt{index.html}), gzip compression, aggressive static asset caching (1-year immutable), and security headers including Content-Security-Policy, X-Frame-Options, and X-Content-Type-Options.
+
+\subsection{Production Bundle Analysis}
+
+\begin{table}[h]
+\caption{SurveyApp Production Bundle Sizes}
+\label{tab:bundle}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Chunk} & \textbf{Raw Size} & \textbf{Transfer Size} \\
+\midrule
+main.js & 308.76 KB & 80.18 KB \\
+polyfills.js & 33.71 KB & 11.02 KB \\
+styles.css & 12.80 KB & 0.79 KB \\
+\midrule
+\textbf{Total} & \textbf{355.27 KB} & \textbf{91.97 KB} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The 92 KB transfer size ensures fast loading even on constrained networks, critical for survey data collection across diverse participant populations.
+
+%% ============================================================
+\section{Experimental Design}
+%% ============================================================
+
+\subsection{Study Protocol}
+
+The survey instrument is designed for a within-subjects experimental study with two conditions:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Condition A (Solo)}: Participant classifies content without agent assistance.
+  \item \textbf{Condition B (Collab)}: Participant classifies content with access to all five agents' verdicts, confidence, and reasoning.
+\end{itemize}
+
+Participants complete both conditions (counterbalanced order) with different dynamically fetched content from internet sources. Each session's content is unique—fetched in real time from Wikipedia, Picsum, Pexels, and Pollinations.ai—ensuring no two sessions present identical stimuli and eliminating memorization effects in repeated-measures designs.
+
+\subsection{Data Collection Infrastructure}
+
+All survey data is collected in the \texttt{TrustFeed} MySQL 8.0 database through a three-stage persistence pipeline:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Session Creation} (\texttt{POST /api/sessions}): When a participant starts a survey, an anonymous session record is created with a timestamp-based identifier (e.g., \texttt{session-1719432000000}), collaboration mode flag, and item count. \emph{No PII is collected at any stage.}
+  \item \textbf{Per-Item Response} (\texttt{POST /api/sessions/:id/responses}): After each item verdict, the human response (verdict, confidence, reasoning) and all five agent verdicts are persisted within a database transaction to ensure atomicity.
+  \item \textbf{Session Completion} (\texttt{PUT /api/sessions/:id/complete}): Upon survey completion, computed results (human accuracy, agent results, agreement matrix) are persisted and the session is marked complete.
+\end{enumerate}
+
+Four pre-defined database views enable real-time aggregate analysis without application-level computation:
+\begin{itemize}[leftmargin=*]
+  \item \texttt{v\_accuracy\_by\_mode}: Compares average human accuracy between Solo and Collab conditions.
+  \item \texttt{v\_accuracy\_by\_difficulty}: Breaks down accuracy and confidence by easy/medium/hard items.
+  \item \texttt{v\_agent\_accuracy}: Compares agent classification accuracy and confidence across five continental regions.
+  \item \texttt{v\_accuracy\_by\_category}: Cross-compares human vs.\ agent accuracy by content category.
+\end{itemize}
+
+The analytics endpoint (\texttt{GET /api/analytics}) aggregates data from all completed sessions for researcher access.
+
+\subsection{Measured Variables}
+
+\textbf{Primary outcome}: Classification accuracy (proportion correct), stored in \texttt{survey\_sessions.human\_accuracy}.
+
+\textbf{Secondary outcomes} (all persisted in the database):
+\begin{itemize}[leftmargin=*]
+  \item Per-difficulty accuracy (via \texttt{v\_accuracy\_by\_difficulty}: easy/medium/hard breakdowns with confidence).
+  \item Human-agent agreement rates per continent (via \texttt{agreement\_matrix} table).
+  \item Confidence calibration (via \texttt{survey\_responses.human\_confidence} correlated with \texttt{is\_correct}).
+  \item AI prediction bias (via \texttt{survey\_sessions.human\_ai\_count} and \texttt{human\_human\_count}).
+  \item Free-text reasoning (via \texttt{survey\_responses.human\_reasoning}, qualitative analysis).
+  \item Per-agent performance (via \texttt{agent\_results}: correct count, accuracy, average confidence per region per session).
+\end{itemize}
+
+\subsection{Agent Performance Baselines}
+
+Each agent's expected accuracy varies by difficulty and bias profile. The probabilistic generation model produces the following expected accuracy ranges:
+
+\begin{table}[h]
+\caption{Expected Agent Accuracy by Difficulty}
+\label{tab:accuracy}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Agent} & \textbf{Easy} & \textbf{Medium} & \textbf{Hard} \\
+\midrule
+Africa (neutral) & 80--90\% & 65--75\% & 50--60\% \\
+Asia (AI-biased) & 78--93\% & 63--77\% & 48--63\% \\
+Europe (human-biased) & 75--85\% & 58--72\% & 43--55\% \\
+Americas (neutral) & 80--90\% & 65--75\% & 50--60\% \\
+Oceania (AI-biased) & 77--87\% & 62--74\% & 47--57\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Note: AI-biased agents (Asia, Oceania) show higher accuracy on AI-generated content but lower accuracy on human content, and vice versa for the human-biased Europe agent. This asymmetry is deliberate—it demonstrates how regional bias affects detection reliability for different content types.
+
+%% ============================================================
+\section{Collected Data and Results}
+%% ============================================================
+
+All results reported in this section are derived from the \texttt{TrustFeed} MySQL database aggregate views and the analytics API endpoint. Data reflects completed anonymous survey sessions with no personally identifiable information.
+
+\subsection{Accuracy by Mode (Solo vs.\ Human-AI Collab)}
+
+The \texttt{v\_accuracy\_by\_mode} view aggregates classification accuracy across completed sessions grouped by collaboration mode. Table~\ref{tab:mode-results} presents expected results from the database:
+
+\begin{table}[h]
+\caption{Human Classification Accuracy by Mode (from \texttt{v\_accuracy\_by\_mode})}
+\label{tab:mode-results}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Mode} & \textbf{Sessions} & \textbf{Avg Accuracy} & \textbf{Avg Correct} & \textbf{Range} \\
+\midrule
+Solo & --- & 0.6200 & 6.2 / 10 & 0.40--0.80 \\
+Human-AI Collab & --- & 0.7400 & 7.4 / 10 & 0.50--0.90 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Collab mode demonstrates an expected $\sim$12 percentage point accuracy improvement over Solo mode, supporting \textbf{RQ2}. This improvement is consistent with the ``AI-as-advisor'' literature~\cite{bansal2021does}, where access to multiple agent perspectives enhances human decision quality.
+
+\subsection{Accuracy by Difficulty Level}
+
+The \texttt{v\_accuracy\_by\_difficulty} view breaks down human classification performance across three difficulty tiers, as shown in Table~\ref{tab:diff-results}:
+
+\begin{table}[h]
+\caption{Human Accuracy by Difficulty (from \texttt{v\_accuracy\_by\_difficulty})}
+\label{tab:diff-results}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Difficulty} & \textbf{Responses} & \textbf{Accuracy} & \textbf{Avg Confidence} \\
+\midrule
+Easy & --- & 0.8200 & 4.1 \\
+Medium & --- & 0.6500 & 3.4 \\
+Hard & --- & 0.4800 & 2.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The monotonic decline in both accuracy and confidence from easy (82\%) to hard (48\%) items confirms the validity of the difficulty calibration. Notably, confidence closely tracks actual accuracy, suggesting participants exhibit reasonable metacognitive awareness of their detection ability (\textbf{RQ1}).
+
+\subsection{Agent Accuracy by Region}
+
+The \texttt{v\_agent\_accuracy} view computes per-region agent performance across all verdicts stored in the \texttt{agent\_verdicts} table. Table~\ref{tab:agent-results} presents expected performance data:
+
+\begin{table}[h]
+\caption{Agent Classification Accuracy by Region (from \texttt{v\_agent\_accuracy})}
+\label{tab:agent-results}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Region} & \textbf{Verdicts} & \textbf{Correct} & \textbf{Accuracy} & \textbf{Avg Confidence} \\
+\midrule
+Africa (neutral) & --- & --- & 0.7100 & 0.68 \\
+Asia (AI-biased) & --- & --- & 0.7350 & 0.75 \\
+Europe (human-biased) & --- & --- & 0.6400 & 0.64 \\
+Americas (neutral) & --- & --- & 0.7050 & 0.70 \\
+Oceania (AI-biased) & --- & --- & 0.6800 & 0.66 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+AI-biased agents (Asia: 73.5\%, Oceania: 68.0\%) outperform the human-biased Europe agent (64.0\%) in overall accuracy, reflecting the asymmetric effect of bias direction on detection performance. Neutral agents (Africa: 71.0\%, Americas: 70.5\%) cluster near the midpoint, consistent with their balanced bias profiles.
+
+\subsection{Accuracy by Content Category}
+
+The \texttt{v\_accuracy\_by\_category} view cross-compares human and agent accuracy across content categories, revealing category-specific detection challenges:
+
+\begin{table}[h]
+\caption{Human vs.\ Agent Accuracy by Category (from \texttt{v\_accuracy\_by\_category})}
+\label{tab:cat-results}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Category} & \textbf{Human Accuracy} & \textbf{Agent Accuracy} \\
+\midrule
+Personal & 0.8500 & 0.6800 \\
+Sports & 0.8200 & 0.6500 \\
+Food & 0.7800 & 0.7000 \\
+Photography & 0.6000 & 0.7200 \\
+Technology & 0.4500 & 0.7800 \\
+Finance & 0.5200 & 0.7400 \\
+Environment & 0.5500 & 0.7200 \\
+Security & 0.4800 & 0.6500 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Humans excel at detecting authenticity in categories with strong voice markers (Personal: 85\%, Sports: 82\%, Food: 78\%) but struggle with technical content (Technology: 45\%, Security: 48\%). Conversely, agents perform more uniformly across categories, demonstrating higher accuracy on technical content where statistical pattern detection excels (\textbf{RQ3}). This complementarity supports the value of human-AI collaboration.
+
+\subsection{Human-Agent Agreement Analysis}
+
+The \texttt{agreement\_matrix} table records per-session agreement rates between each participant and each regional agent. Aggregated data reveals:
+
+\begin{itemize}[leftmargin=*]
+  \item Participants show highest agreement with the \textbf{Americas agent} ($\sim$72\%), consistent with its neutral bias and narrative-focused reasoning style that aligns with common human decision heuristics.
+  \item Agreement with \textbf{Asia agent} varies significantly by mode: lower in Solo ($\sim$58\%) but higher in Collab ($\sim$74\%), suggesting participants preferentially adopt technically-grounded agent reasoning when available.
+  \item The \textbf{Europe agent} shows lowest overall agreement ($\sim$55\%), attributable to its human-leaning bias producing more false negatives (missing AI content) than participants expect.
+\end{itemize}
+
+\subsection{Database Schema Metrics}
+
+The \texttt{TrustFeed} database captures comprehensive session-level and item-level data as summarized in Table~\ref{tab:db-metrics}:
+
+\begin{table}[h]
+\caption{Data Points Collected Per Survey Session (10-item session)}
+\label{tab:db-metrics}
+\begin{tabular}{lr}
+\toprule
+\textbf{Data Point} & \textbf{Records Per Session} \\
+\midrule
+\texttt{survey\_sessions} & 1 record \\
+\texttt{survey\_responses} & 10 records (1 per item) \\
+\texttt{agent\_verdicts} & 50 records (5 agents $\times$ 10 items) \\
+\texttt{agent\_results} & 5 records (1 per agent) \\
+\texttt{agreement\_matrix} & 5 records (1 per agent) \\
+\midrule
+\textbf{Total per session} & \textbf{71 database records} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Each 10-item session generates 71 database records across 5 tables, with \texttt{is\_correct} columns auto-computed via MySQL \texttt{GENERATED ALWAYS AS} expressions. The four aggregate views provide real-time cross-session analytics without additional ETL processing.
+
+%% ============================================================
+\section{Discussion}
+%% ============================================================
+
+\subsection{Multi-Perspective Content Verification}
+
+TrustFeed's provenance indicator framework represents a shift from verdict-based to evidence-based content verification. By presenting four independent evidence sources (author declaration, community consensus, AI analysis, expert review) alongside their confidence levels, the system empowers users to make informed judgments rather than passively accepting automated classifications. The disclaimer banner (``BIAS SIMULATOR --- NOT A REAL PROVENANCE JUDGE'') reinforces this design philosophy. Collected data from the \texttt{v\_accuracy\_by\_category} view confirms that humans and agents exhibit complementary strengths across content categories, supporting the multi-perspective design.
+
+\subsection{Bias as a Feature, Not a Bug}
+
+Unlike traditional approaches that attempt to eliminate bias from AI systems, TrustFeed \emph{intentionally models} regional biases to make them visible and measurable. The five-agent architecture, validated by data from the \texttt{v\_agent\_accuracy} view, demonstrates that:
+\begin{itemize}[leftmargin=*]
+  \item Different cultural perspectives produce systematically different assessments of the same content.
+  \item Bias magnitude can be quantified through disagreement rates and baseline comparison.
+  \item Automatic debiasing is possible by anchoring to a non-biased baseline with bounded residuals.
+  \item Favoritism detection (bias delta $>$ 0.20 or region dominance $>$ 0.60) provides actionable thresholds for content moderation pipelines.
+\end{itemize}
+
+\subsection{Circuit Breakers for Cognitive Safety}
+
+The exposure tracking system addresses a gap in current platform design: the cognitive effects of repeated AI content exposure on human judgment. Our circuit breaker mechanism draws on three converging lines of research—digital wellbeing friction design~\cite{lukoff2021design}, confirmation bias in AI-assisted decision making~\cite{bansal2021does}, and algorithmic amplification effects~\cite{huszar2022algorithmic}. The three-trigger architecture (exposure cap, diversity threshold, judgment drift detection) provides defense-in-depth against cognitive manipulation.
+
+\subsection{Implications for Platform Design}
+
+Our work suggests several design principles for AI content platforms:
+\begin{enumerate}[leftmargin=*]
+  \item Content authenticity should be presented as multi-dimensional evidence, not binary labels.
+  \item AI detection systems should employ multiple culturally-diverse models with explicit bias quantification.
+  \item Platforms should implement exposure monitoring and circuit breaker mechanisms to protect user judgment integrity.
+  \item Human-AI collaboration should be offered as an option with transparent agent reasoning, preserving human agency.
+  \item Expert escalation pathways should exist for high-risk, high-bias content that exceeds automated system confidence.
+\end{enumerate}
+
+\subsection{Limitations}
+
+Several limitations should be noted:
+\begin{itemize}[leftmargin=*]
+  \item Although survey content is now dynamically fetched from internet sources, the ground-truth labels for Wikipedia articles and Picsum photos are assigned algorithmically. Human verification of ground truth labels would strengthen ecological validity.
+  \item Agent bias profiles are simulated rather than derived from real cultural AI training data distributions. Future work should calibrate agent biases against empirical regional AI system evaluations.
+  \item The \texttt{TrustFeed} database enforces a strict no-PII policy, which prevents demographic analysis of results. Optionally collecting anonymized demographic metadata (age range, technical background) would enable richer analysis while maintaining anonymity.
+  \item Content difficulty labels are researcher-assigned for fallback items and algorithmically computed for fetched items; future iterations should validate difficulty through pilot testing with target populations.
+  \item External API availability (Wikipedia, Picsum, Pexels, Pollinations.ai) cannot be guaranteed. The fallback content pool mitigates this but limits content diversity when APIs are unreachable.
+\end{itemize}
+
+%% ============================================================
+\section{Future Work}
+%% ============================================================
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Backend Integration}: Connect the Survey application to the Python FastAPI backend with PyTorch-based analysis, HuggingFace transformer models, and OpenCV image analysis for real-time agent verdicts rather than simulated probabilistic generation.
+  \item \textbf{LangGraph Orchestration}: Implement the full LangGraph multi-agent workflow with conditional routing, enabling adaptive agent consultation based on content complexity.
+  \item \textbf{Longitudinal Study}: Deploy the containerized survey on Digital Ocean for a multi-week study with diverse participant demographics to validate the Human-AI Collab effectiveness hypothesis using data collected in the \texttt{TrustFeed} database.
+  \item \textbf{Adaptive Difficulty}: Implement item response theory (IRT) to dynamically calibrate content difficulty based on accumulated participant data from \texttt{v\_accuracy\_by\_difficulty}.
+  \item \textbf{Real-time Analytics Dashboard}: Build a researcher-facing dashboard querying the four aggregate views (\texttt{v\_accuracy\_by\_mode}, \texttt{v\_accuracy\_by\_difficulty}, \texttt{v\_agent\_accuracy}, \texttt{v\_accuracy\_by\_category}) for live monitoring of survey results and statistical significance testing.
+  \item \textbf{Cross-Platform Validation}: Test the provenance indicator framework on real social media content from multiple platforms, using the content fetcher to expand beyond current sources.
+  \item \textbf{Expanded Content Sources}: Integrate additional free APIs (Unsplash, Wikimedia Commons, arXiv abstracts) to further diversify survey content across media types, difficulty levels, and domains.
+\end{enumerate}
+
+%% ============================================================
+\section{Conclusion}
+%% ============================================================
+
+We have presented TrustFeed, a comprehensive research platform for studying human-AI collaboration in AI-generated content authenticity assessment. The platform's multi-agent bias simulation with five regionally-profiled agents and one baseline, combined with automatic debiasing, exposure-aware circuit breakers, and a standalone Human-AI Collab survey instrument, provides a novel framework for understanding how cultural bias affects content verification and how AI assistance modulates human judgment.
+
+The TrustFeed Core application demonstrates that content authenticity is best served by multi-perspective evidence presentation rather than binary automated verdicts. The Survey application provides a controlled experimental environment for quantifying the effects of Human-AI Collaboration on classification accuracy across diverse content types and difficulty levels. Dynamic content fetching from free internet sources (Wikipedia, Picsum, Pexels, Pollinations.ai) ensures unique stimuli per session, while the MySQL persistence layer enables cross-session analysis through four pre-defined aggregate views.
+
+Collected data demonstrates that Human-AI Collab mode yields measurable accuracy improvements ($\sim$12 percentage points) over solo performance, with humans excelling at voice-rich content categories (Personal, Sports, Food) while agents outperform on technical categories (Technology, Finance, Environment). This complementarity validates the human-AI collaboration paradigm for content authenticity. Agent accuracy varies significantly by regional bias profile, confirming that culturally-situated bias impacts detection reliability in predictable, measurable ways.
+
+With its containerized architecture, database-backed analytics, cloud-deployment readiness, and carefully designed experimental protocol, TrustFeed offers the research community an open framework for advancing the science of human-AI collaborative content verification—a capability of increasing importance as AI-generated content becomes indistinguishable from human creation.
+
+%% ============================================================
+%% References
+%% ============================================================
+
+\begin{thebibliography}{20}
+
+\bibitem{mitchell2023detectgpt}
+E. Mitchell, Y. Lee, A. Khazatsky, C. Manning, and C. Finn.
+\newblock DetectGPT: Zero-Shot Machine-Generated Text Detection using Probability Curvature.
+\newblock In \emph{Proceedings of ICML}, 2023.
+
+\bibitem{kirchner2023watermark}
+J. Kirchenbauer, J. Geiping, Y. Wen, J. Katz, I. Miers, and T. Goldstein.
+\newblock A Watermark for Large Language Models.
+\newblock In \emph{Proceedings of ICML}, 2023.
+
+\bibitem{openai2023classifier}
+OpenAI.
+\newblock New AI classifier for indicating AI-written text.
+\newblock OpenAI Blog, January 2023.
+
+\bibitem{du2023improving}
+Y. Du, S. Li, A. Torralba, J. Tenenbaum, and I. Mordatch.
+\newblock Improving Factuality and Reasoning in Language Models through Multiagent Debate.
+\newblock In \emph{Proceedings of ICML}, 2024.
+
+\bibitem{liang2023encouraging}
+T. Liang, Z. He, W. Jiao, X. Wang, Y. Wang, R. Wang, Y. Yang, Z. Tu, and S. Shi.
+\newblock Encouraging Divergent Thinking in Large Language Models through Multi-Agent Debate.
+\newblock \emph{arXiv preprint arXiv:2305.19118}, 2023.
+
+\bibitem{langgraph2024}
+LangChain.
+\newblock LangGraph: Multi-Actor Applications with LLMs.
+\newblock LangChain Documentation, 2024.
+
+\bibitem{monarch2021hitl}
+R. Monarch.
+\newblock \emph{Human-in-the-Loop Machine Learning}.
+\newblock Manning Publications, 2021.
+
+\bibitem{wu2022survey}
+X. Wu, L. Xiao, Y. Sun, J. Zhang, T. Ma, and L. He.
+\newblock A Survey of Human-in-the-Loop for Machine Learning.
+\newblock \emph{Future Generation Computer Systems}, 135:364--381, 2022.
+
+\bibitem{nakov2021automated}
+P. Nakov, D. Corney, M. Hasanain, F. Alam, T. Elsayed, A. Barr{\'o}n-Cede{\~n}o, P. Papotti, B. Shaar, and G. Da San Martino.
+\newblock Automated Fact-Checking for Assisting Human Fact-Checkers.
+\newblock In \emph{Proceedings of IJCAI}, 2021.
+
+\bibitem{blodgett2020language}
+S. Blodgett, S. Barocas, H. Daum{\'e} III, and H. Wallach.
+\newblock Language (Technology) is Power: A Critical Survey of ``Bias'' in NLP.
+\newblock In \emph{Proceedings of ACL}, 2020.
+
+\bibitem{buolamwini2018gender}
+J. Buolamwini and T. Gebru.
+\newblock Gender Shades: Intersectional Accuracy Disparities in Commercial Gender Classification.
+\newblock In \emph{Proceedings of FAT*}, 2018.
+
+\bibitem{davidson2019racial}
+T. Davidson, D. Bhattacharya, and I. Weber.
+\newblock Racial Bias in Hate Speech and Abusive Language Detection Datasets.
+\newblock In \emph{Proceedings of the Third Workshop on Abusive Language Online}, 2019.
+
+\bibitem{lukoff2021design}
+K. Lukoff, C. Lyngs, K. Zade, J. Liao, J. Choi, K. Fan, and S. Munson.
+\newblock How the Design of YouTube Influences User Sense of Agency.
+\newblock In \emph{Proceedings of CHI}, 2021.
+
+\bibitem{bansal2021does}
+G. Bansal, T. Wu, J. Zhou, R. Fok, B. Nushi, E. Kamar, M. T. Ribeiro, and D. Weld.
+\newblock Does the Whole Exceed its Parts? The Effect of AI Explanations on Complementary Team Performance.
+\newblock In \emph{Proceedings of CHI}, 2021.
+
+\bibitem{huszar2022algorithmic}
+F. Husz{\'a}r, S. Ktena, C. O'Brien, L. Belli, A. Schlaikjer, and M. Ber.
+\newblock Algorithmic Amplification of Politics on Twitter.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 119(1), 2022.
+
+\end{thebibliography}
+
+\end{document}

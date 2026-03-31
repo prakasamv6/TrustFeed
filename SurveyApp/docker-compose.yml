@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # ─── MySQL Database (TrustFeed — NO PII stored) ───
+  db:
+    image: mysql:8.0
+    container_name: trustfeed-db
+    environment:
+      MYSQL_ROOT_PASSWORD: trustfeed_root
+      MYSQL_DATABASE: TrustFeed
+      MYSQL_USER: trustfeed
+      MYSQL_PASSWORD: trustfeed_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "trustfeed", "-ptrustfeed_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─── Express API Server ───
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: trustfeed-api
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: trustfeed
+      DB_PASSWORD: trustfeed_pass
+      DB_NAME: TrustFeed
+      API_PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Angular Frontend (nginx) ───
+  survey-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trustfeed-survey
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mysql_data:

@@ -1,0 +1,32 @@
+# Region definitions for the 5 bias agents
+
+regions:
+  - name: Africa
+    agent: AfricaBiasAgent
+    bias_weight: 0.20
+    description: "Simulates provenance bias favoring African origin content"
+
+  - name: Asia
+    agent: AsiaBiasAgent
+    bias_weight: 0.20
+    description: "Simulates provenance bias favoring Asian origin content"
+
+  - name: Europe
+    agent: EuropeBiasAgent
+    bias_weight: 0.20
+    description: "Simulates provenance bias favoring European origin content"
+
+  - name: Americas
+    agent: AmericasBiasAgent
+    bias_weight: 0.20
+    description: "Simulates provenance bias favoring Americas origin content"
+
+  - name: Oceania
+    agent: OceaniaBiasAgent
+    bias_weight: 0.20
+    description: "Simulates provenance bias favoring Oceanian origin content"
+
+baseline:
+  name: NonBiasBaseline
+  agent: NonBiasBaselineAgent
+  description: "Unbiased baseline agent with no regional preference"

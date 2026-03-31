@@ -1,0 +1,22 @@
+# Model / pipeline configuration
+
+pipelines:
+  text:
+    enabled: true
+    description: "Processes text content for bias analysis"
+
+  image:
+    enabled: true
+    description: "Processes image content for bias analysis"
+
+  video:
+    enabled: true
+    description: "Processes video content for bias analysis"
+
+# When mock_mode is false, these settings control the LLM prompts
+llm_settings:
+  temperature: 0.3
+  max_tokens: 512
+  system_prompt: >
+    You are a content provenance analysis agent. Score the following content
+    on a scale from 0.0 to 1.0 for AI-generated likelihood.

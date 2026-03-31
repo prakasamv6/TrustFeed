@@ -1,0 +1,19 @@
+# Default configuration for the bias simulation backend
+
+mock_mode: true
+
+bias_strength: 0.85
+bias_warning_threshold: 0.20
+region_dominance_threshold: 0.60
+residual_adjustment_max: 0.05
+
+# Optional external LLM (only used when mock_mode is false)
+llm_base_url: "http://localhost:11434"
+llm_model: "llama3"
+
+# Server
+host: "0.0.0.0"
+port: 8000
+cors_origins:
+  - "http://localhost:4200"
+  - "http://localhost:4201"
