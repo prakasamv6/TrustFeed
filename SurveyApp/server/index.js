@@ -78,7 +78,7 @@ function sanitizeString(str, maxLen = 500) {
 
 // ─── MySQL Connection Pool ───
 
-const pool = mysql.createPool({
+const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306', 10),
   user: process.env.DB_USER || 'trustfeed',
@@ -88,7 +88,14 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   connectTimeout: 10000,
-});
+};
+
+// Digital Ocean Managed MySQL requires SSL
+if (process.env.DB_SSL === 'true') {
+  dbConfig.ssl = { rejectUnauthorized: true };
+}
+
+const pool = mysql.createPool(dbConfig);
 
 // ─── Health Check ───
 

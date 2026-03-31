@@ -72,7 +72,7 @@ app = FastAPI(
     description="BIAS SIMULATOR - NOT A REAL PROVENANCE JUDGE",
 )
 
-cors_origins = CFG.get("cors_origins", ["http://localhost:4200"])
+cors_origins = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else CFG.get("cors_origins", ["http://localhost:4200"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,

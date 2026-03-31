@@ -1,4 +1,4 @@
 export const environment = {
-  apiBase: 'http://localhost:8000',
+  apiBase: window.location.origin + '/api',
   mockMode: true,
 };

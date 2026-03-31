@@ -1,0 +1,47 @@
+# ─────────────────────────────────────────────────────────
+# Digital Ocean App Platform — TrustFeed Core
+# Deploy: doctl apps create --spec .do/app.yaml
+# ─────────────────────────────────────────────────────────
+
+name: trustfeed-core
+region: nyc
+
+services:
+  # ─── Angular Frontend (nginx) ───
+  - name: core-frontend
+    dockerfile_path: Dockerfile
+    github:
+      repo: <your-github-username>/trustfeed-core
+      branch: main
+      deploy_on_push: true
+    http_port: 80
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 10
+      period_seconds: 30
+
+  # ─── FastAPI Backend ───
+  - name: core-api
+    dockerfile_path: backend/Dockerfile
+    github:
+      repo: <your-github-username>/trustfeed-core
+      branch: main
+      deploy_on_push: true
+    http_port: 8000
+    instance_count: 1
+    instance_size_slug: basic-xs
+    routes:
+      - path: /api
+    envs:
+      - key: MOCK_MODE
+        value: "true"
+      - key: CORS_ORIGINS
+        value: "${APP_URL}"
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 15
+      period_seconds: 30
