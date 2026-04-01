@@ -14,6 +14,7 @@ import yaml
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 # ── Load config ──────────────────────────────────────────────────────────────
@@ -66,6 +67,8 @@ repo = AnalysisRepository()
 from storage.repository import StoredAnalysis  # noqa: E402
 
 # ── FastAPI app ──────────────────────────────────────────────────────────────
+API_PREFIX = os.getenv("API_PREFIX", "")  # Set to "/api" on DO App Platform
+
 app = FastAPI(
     title="TrustFeed Bias Simulation API",
     version="1.0.0",
@@ -143,9 +146,11 @@ class AnalyzeResponse(BaseModel):
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
+# Use API_PREFIX so routes work behind DO App Platform's preserve_path_prefix
+router = APIRouter(prefix=API_PREFIX)
 
 
-@app.get("/health")
+@router.get("/health")
 def health():
     langgraph_available = False
     try:
@@ -169,7 +174,7 @@ def health():
     }
 
 
-@app.post("/analyze", response_model=AnalyzeResponse)
+@router.post("/analyze", response_model=AnalyzeResponse)
 def analyze(req: AnalyzeRequest):
     # ── Run the full LangGraph orchestration pipeline ──
     state = AnalysisState(
@@ -249,7 +254,7 @@ def analyze(req: AnalyzeRequest):
     )
 
 
-@app.get("/analysis/{post_id}", response_model=AnalyzeResponse)
+@router.get("/analysis/{post_id}", response_model=AnalyzeResponse)
 def get_analysis(post_id: str):
     stored = repo.get(post_id)
     if not stored:
@@ -285,7 +290,7 @@ def get_analysis(post_id: str):
     )
 
 
-@app.get("/reports/{post_id}")
+@router.get("/reports/{post_id}")
 def get_report(post_id: str):
     stored = repo.get(post_id)
     if not stored:
@@ -299,7 +304,7 @@ def get_report(post_id: str):
 # ── Dashboard endpoints ─────────────────────────────────────────────────────
 
 
-@app.get("/dashboard/summary")
+@router.get("/dashboard/summary")
 def dashboard_summary():
     all_analyses = repo.get_all()
     total = len(all_analyses)
@@ -329,7 +334,7 @@ def dashboard_summary():
     }
 
 
-@app.get("/dashboard/agent-stats")
+@router.get("/dashboard/agent-stats")
 def dashboard_agent_stats():
     all_analyses = repo.get_all()
     agent_names = [
@@ -355,7 +360,7 @@ def dashboard_agent_stats():
     return stats
 
 
-@app.get("/dashboard/trends")
+@router.get("/dashboard/trends")
 def dashboard_trends():
     all_analyses = repo.get_all()
     now = datetime.now(timezone.utc)
@@ -383,6 +388,9 @@ def dashboard_trends():
 
 
 # ── Startup ──────────────────────────────────────────────────────────────────
+
+# Register the router with all API routes
+app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn

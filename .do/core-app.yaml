@@ -1,20 +1,20 @@
 # ─────────────────────────────────────────────────────────
-# Digital Ocean App Platform — TrustFeed Survey
-# Deploy with:  doctl apps update <APP_ID> --spec .do/app.yaml
+# Digital Ocean App Platform — TrustFeed Core (AugmentedDoing)
+# Deploy with:  doctl apps create --spec .do/core-app.yaml
 # ─────────────────────────────────────────────────────────
 
-name: trustfeed-survey
+name: trustfeed-core
 region: nyc
 
 services:
-  # ─── Survey Angular Frontend (nginx) ───
-  - name: survey-frontend
-    dockerfile_path: SurveyApp/Dockerfile
+  # ─── Core Angular Frontend (nginx) ───
+  - name: core-frontend
+    dockerfile_path: AugmentedDoing/Dockerfile
     github:
       repo: prakasamv6/TrustFeed
       branch: main
       deploy_on_push: true
-    source_dir: SurveyApp
+    source_dir: AugmentedDoing
     http_port: 80
     instance_count: 1
     instance_size_slug: basic-xxs
@@ -25,15 +25,15 @@ services:
       initial_delay_seconds: 10
       period_seconds: 30
 
-  # ─── Survey Express API Server ───
-  - name: survey-api
-    dockerfile_path: SurveyApp/server/Dockerfile
+  # ─── Core FastAPI Backend (mock mode) ───
+  - name: core-api
+    dockerfile_path: AugmentedDoing/backend/Dockerfile
     github:
       repo: prakasamv6/TrustFeed
       branch: main
       deploy_on_push: true
-    source_dir: SurveyApp/server
-    http_port: 3000
+    source_dir: AugmentedDoing/backend
+    http_port: 8000
     instance_count: 1
     instance_size_slug: basic-xxs
     routes:
@@ -44,23 +44,9 @@ services:
       initial_delay_seconds: 15
       period_seconds: 30
     envs:
-      - key: DB_HOST
-        type: SECRET
-        value: "REPLACE_AFTER_DB_CREATION"
-      - key: DB_PORT
-        value: "25060"
-      - key: DB_USER
-        type: SECRET
-        value: "REPLACE_AFTER_DB_CREATION"
-      - key: DB_PASSWORD
-        type: SECRET
-        value: "REPLACE_AFTER_DB_CREATION"
-      - key: DB_NAME
-        value: "TrustFeed"
-      - key: DB_SSL
+      - key: MOCK_MODE
         value: "true"
-      - key: API_PORT
-        value: "3000"
-      - key: PEXELS_API_KEY
-        type: SECRET
-        value: "REPLACE_WITH_YOUR_KEY"
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: API_PREFIX
+        value: "/api"
