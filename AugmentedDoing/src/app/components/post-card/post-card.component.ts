@@ -41,10 +41,12 @@ import { ReportExportComponent } from '../report-export/report-export.component'
         <span class="bias-deducted">Deducted: {{ post.biasResult!.deductedBiasAmount | number:'1.3-3' }}</span>
       </div>
 
-      <!-- Post Header -->
+      <!-- Post Header — social media style with notification + menu -->
       <header class="post-header">
         <div class="author-section">
-          <img [src]="post.author.avatarUrl" [alt]="post.author.name" class="avatar" />
+          <div class="avatar-ring" [class.ai-ring]="post.isAiGenerated" [class.human-ring]="!post.isAiGenerated">
+            <img [src]="post.author.avatarUrl" [alt]="post.author.name" class="avatar" />
+          </div>
           <div class="author-info">
             <div class="author-name-row">
               <span class="author-name">{{ post.author.name }}</span>
@@ -55,12 +57,46 @@ import { ReportExportComponent } from '../report-export/report-export.component'
             <span class="author-username">&#64;{{ post.author.username }} · {{ post.createdAt | date:'shortTime' }} · {{ post.contentType }}</span>
           </div>
         </div>
+        <div class="post-header-actions">
+          <button class="notify-bell-btn" [class.active]="notifyEnabled()" (click)="toggleNotify()" title="Get notified about AI analysis updates">
+            {{ notifyEnabled() ? '🔔' : '🔕' }}
+          </button>
+          <div class="more-menu-wrap">
+            <button class="more-btn" (click)="toggleMoreMenu()">⋯</button>
+            <div class="more-menu-backdrop" *ngIf="showMoreMenu()" (click)="showMoreMenu.set(false)"></div>
+            <div class="more-dropdown" *ngIf="showMoreMenu()">
+              <button class="dropdown-item" (click)="reportAsAi()">
+                <span class="dropdown-icon">🤖</span> Flag as AI-Generated
+              </button>
+              <button class="dropdown-item" (click)="reportAsHuman()">
+                <span class="dropdown-icon">👤</span> Flag as Human-Made
+              </button>
+              <button class="dropdown-item" (click)="toggleNotify(); showMoreMenu.set(false)">
+                <span class="dropdown-icon">{{ notifyEnabled() ? '🔕' : '🔔' }}</span>
+                {{ notifyEnabled() ? 'Mute Notifications' : 'Get AI Notifications' }}
+              </button>
+              <button class="dropdown-item report-item" (click)="showMoreMenu.set(false)">
+                <span class="dropdown-icon">🚩</span> Report Misleading Content
+              </button>
+            </div>
+          </div>
+        </div>
       </header>
 
       <!-- Post Content -->
       <div class="post-content">
         <p class="content-text">{{ post.content }}</p>
         <img *ngIf="post.imageUrl" [src]="post.imageUrl" alt="Post image" class="post-image" />
+      </div>
+
+      <!-- Social-media-style AI Likelihood Indicator — like Instagram "Sponsored" / TikTok "Ad" label -->
+      <div class="ai-likelihood-strip" [class]="'likelihood-' + getAiLikelihood()">
+        <span class="lk-icon">{{ getAiLikelihood() === 'ai' ? '🤖' : getAiLikelihood() === 'human' ? '👤' : '⚠️' }}</span>
+        <span class="lk-label">
+          {{ getAiLikelihood() === 'ai' ? 'Looks AI-Generated' : getAiLikelihood() === 'human' ? 'Looks Human-Made' : 'Disputed · Mixed Signals' }}
+        </span>
+        <span class="lk-votes">{{ post.aiGeneratedFeedback.flaggedAsAi + post.aiGeneratedFeedback.flaggedAsHuman }} votes</span>
+        <span class="lk-pill" [style.background]="confidence.color">{{ confidence.level }}</span>
       </div>
 
       <!-- Provenance Indicators — neutral evidence about content origin (proposal §Idea) -->
@@ -232,19 +268,24 @@ import { ReportExportComponent } from '../report-export/report-export.component'
         </div>
       </div>
 
-      <!-- Post Actions -->
+      <!-- Post Actions — Instagram / Facebook style -->
       <footer class="post-footer">
-        <button class="action-btn like-btn" (click)="likePost()">
-          <span class="action-icon">❤️</span>
-          <span class="action-count">{{ post.likes }}</span>
-        </button>
-        <button class="action-btn comment-btn">
-          <span class="action-icon">💬</span>
-          <span class="action-count">{{ post.comments.length }}</span>
-        </button>
-        <button class="action-btn share-btn">
-          <span class="action-icon">🔗</span>
-          <span class="action-text">Share</span>
+        <div class="footer-left">
+          <button class="action-btn like-btn" (click)="likePost()">
+            <span class="action-icon">❤️</span>
+            <span class="action-count">{{ post.likes }}</span>
+          </button>
+          <button class="action-btn comment-btn">
+            <span class="action-icon">💬</span>
+            <span class="action-count">{{ post.comments.length }}</span>
+          </button>
+          <button class="action-btn share-btn">
+            <span class="action-icon">🔗</span>
+            <span class="action-text">Share</span>
+          </button>
+        </div>
+        <button class="action-btn bookmark-btn" title="Save post">
+          <span class="action-icon">🔖</span>
         </button>
       </footer>
     </article>
@@ -308,6 +349,9 @@ import { ReportExportComponent } from '../report-export/report-export.component'
 
     .post-header {
       padding: 1.25rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .author-section {
@@ -320,7 +364,24 @@ import { ReportExportComponent } from '../report-export/report-export.component'
       width: 48px;
       height: 48px;
       border-radius: 50%;
-      border: 2px solid rgba(255, 255, 255, 0.1);
+      display: block;
+    }
+
+    .avatar-ring {
+      flex-shrink: 0;
+      padding: 3px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &.ai-ring {
+        background: linear-gradient(135deg, #e91e63, #9c27b0, #00d9ff);
+      }
+
+      &.human-ring {
+        background: linear-gradient(135deg, #4caf50, #8bc34a);
+      }
     }
 
     .author-info {
@@ -516,8 +577,14 @@ import { ReportExportComponent } from '../report-export/report-export.component'
     .post-footer {
       padding: 1rem 1.5rem;
       display: flex;
-      gap: 1.5rem;
+      justify-content: space-between;
+      align-items: center;
       border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .footer-left {
+      display: flex;
+      gap: 1.5rem;
     }
 
     .action-btn {
@@ -734,6 +801,144 @@ import { ReportExportComponent } from '../report-export/report-export.component'
     .flagged-delta { font-size: 0.62rem; color: #ff9800; }
     .flagged-explanation { margin: 0.2rem 0 0; font-size: 0.62rem; color: #8892b0; line-height: 1.4; }
 
+    /* Social media header actions */
+    .post-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .notify-bell-btn {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0.4rem;
+      border-radius: 50%;
+      transition: all 0.3s;
+      opacity: 0.5;
+      &:hover { opacity: 1; background: rgba(255,255,255,0.05); }
+      &.active { opacity: 1; animation: bellRing 0.5s ease; }
+    }
+
+    @keyframes bellRing {
+      0%,100% { transform: rotate(0); }
+      25% { transform: rotate(15deg); }
+      75% { transform: rotate(-15deg); }
+    }
+
+    .more-menu-wrap {
+      position: relative;
+    }
+
+    .more-btn {
+      background: none;
+      border: none;
+      color: #8892b0;
+      font-size: 1.4rem;
+      cursor: pointer;
+      padding: 0.4rem 0.6rem;
+      border-radius: 50%;
+      transition: all 0.3s;
+      letter-spacing: 2px;
+      line-height: 1;
+      &:hover { background: rgba(255,255,255,0.05); color: #ccd6f6; }
+    }
+
+    .more-menu-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 99;
+    }
+
+    .more-dropdown {
+      position: absolute;
+      right: 0;
+      top: 100%;
+      background: #252538;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 0.5rem 0;
+      min-width: 230px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+      z-index: 100;
+      animation: dropdownSlide 0.2s ease;
+    }
+
+    @keyframes dropdownSlide {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0.65rem 1rem;
+      background: none;
+      border: none;
+      color: #ccd6f6;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-align: left;
+      &:hover { background: rgba(255,255,255,0.05); }
+      &.report-item { color: #f44336; }
+    }
+
+    .dropdown-icon { font-size: 1rem; }
+
+    /* AI Likelihood Indicator Strip — social media style label (like Instagram Sponsored) */
+    .ai-likelihood-strip {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.8rem;
+
+      .lk-icon { font-size: 1.1rem; }
+
+      .lk-label {
+        font-weight: 600;
+        flex: 1;
+      }
+
+      .lk-votes {
+        font-size: 0.7rem;
+        color: #8892b0;
+      }
+
+      .lk-pill {
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        color: white;
+      }
+
+      &.likelihood-ai {
+        background: linear-gradient(135deg, rgba(233,30,99,0.08), rgba(156,39,176,0.06));
+        .lk-label { color: #e91e63; }
+      }
+
+      &.likelihood-human {
+        background: linear-gradient(135deg, rgba(76,175,80,0.08), rgba(139,195,74,0.06));
+        .lk-label { color: #4caf50; }
+      }
+
+      &.likelihood-disputed {
+        background: linear-gradient(135deg, rgba(255,152,0,0.08), rgba(255,235,59,0.06));
+        .lk-label { color: #ff9800; }
+      }
+    }
+
+    .bookmark-btn {
+      margin-left: auto;
+      &:hover { color: #ffb74d !important; }
+    }
+
     @media (max-width: 480px) {
       .vote-section {
         flex-direction: column;
@@ -759,6 +964,8 @@ export class PostCardComponent implements OnInit {
   private exposureTracker = inject(ExposureTrackerService);
   showDetails = signal(false);
   showAgents = signal(false);
+  showMoreMenu = signal(false);
+  notifyEnabled = signal(false);
 
   private regionFlags: Record<string, string> = {
     'Africa': '🌍', 'Asia': '🌏', 'Europe': '🇪🇺', 'Americas': '🌎', 'Oceania': '🏝️'
@@ -817,6 +1024,33 @@ export class PostCardComponent implements OnInit {
   voteHuman(): void {
     this.postService.voteOnAiStatus(this.post.id, 'human');
     this.exposureTracker.recordVote(this.post.id, 'human');
+  }
+
+  getAiLikelihood(): 'ai' | 'human' | 'disputed' {
+    const total = this.post.aiGeneratedFeedback.flaggedAsAi + this.post.aiGeneratedFeedback.flaggedAsHuman;
+    if (total === 0) return this.post.isAiGenerated ? 'ai' : 'human';
+    const aiRatio = this.post.aiGeneratedFeedback.flaggedAsAi / total;
+    if (aiRatio >= 0.6) return 'ai';
+    if (aiRatio <= 0.4) return 'human';
+    return 'disputed';
+  }
+
+  toggleNotify(): void {
+    this.notifyEnabled.update(v => !v);
+  }
+
+  toggleMoreMenu(): void {
+    this.showMoreMenu.update(v => !v);
+  }
+
+  reportAsAi(): void {
+    this.voteAi();
+    this.showMoreMenu.set(false);
+  }
+
+  reportAsHuman(): void {
+    this.voteHuman();
+    this.showMoreMenu.set(false);
   }
 
   likePost(): void {
