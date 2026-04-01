@@ -9,7 +9,7 @@ region: nyc
 services:
   # ─── Angular Frontend (nginx) ───
   - name: core-frontend
-    dockerfile_path: Dockerfile
+    dockerfile_path: AugmentedDoing/Dockerfile
     github:
       repo: prakasamv6/TrustFeed
       branch: main
@@ -27,7 +27,7 @@ services:
 
   # ─── FastAPI Backend ───
   - name: core-api
-    dockerfile_path: Dockerfile
+    dockerfile_path: AugmentedDoing/backend/Dockerfile
     github:
       repo: prakasamv6/TrustFeed
       branch: main

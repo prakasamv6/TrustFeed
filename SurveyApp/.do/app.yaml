@@ -13,7 +13,7 @@ region: nyc
 services:
   # ─── Angular Frontend (nginx) ───
   - name: survey-frontend
-    dockerfile_path: Dockerfile
+    dockerfile_path: SurveyApp/Dockerfile
     github:
       repo: prakasamv6/TrustFeed
       branch: main
@@ -31,12 +31,12 @@ services:
 
   # ─── Express API Server ───
   - name: survey-api
-    dockerfile_path: server/Dockerfile
+    dockerfile_path: SurveyApp/server/Dockerfile
     github:
       repo: prakasamv6/TrustFeed
       branch: main
       deploy_on_push: true
-    source_dir: SurveyApp
+    source_dir: SurveyApp/server
     http_port: 3000
     instance_count: 1
     instance_size_slug: basic-xxs
