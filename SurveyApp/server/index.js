@@ -7,12 +7,36 @@
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const mysql = require('mysql2/promise');
 const { fetchUniqueContent } = require('./content-fetcher');
 
 const app = express();
-app.use(cors());
+
+// ─── Helmet: Sets many security headers (XSS, HSTS, noSniff, etc.) ───
+app.use(helmet({
+  contentSecurityPolicy: false, // CSP managed by nginx in production
+  crossOriginEmbedderPolicy: false,
+}));
+
+// ─── CORS: Restrict to known origins ───
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:4200,https://trustfeed-survey-ealep.ondigitalocean.app').split(',');
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT'],
+  allowedHeaders: ['Content-Type'],
+  maxAge: 86400,
+}));
+
 app.use(express.json({ limit: '1mb' }));
+
+// ─── Disable x-powered-by to hide tech stack ───
+app.disable('x-powered-by');
 
 // ─── Simple In-Memory Rate Limiter (per IP, no PII stored) ───
 
@@ -73,8 +97,60 @@ function isValidDifficulty(d) {
 
 function sanitizeString(str, maxLen = 500) {
   if (typeof str !== 'string') return '';
-  return str.slice(0, maxLen).replace(/[<>]/g, '');
+  return str
+    .slice(0, maxLen)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
 }
+
+// ─── SQL Injection Pattern Detector ───
+// Defense-in-depth: parameterized queries are the primary defense,
+// this is an additional guardrail that rejects obviously malicious input.
+const SQL_INJECTION_PATTERNS = [
+  /(\b(UNION|SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|EXEC|EXECUTE)\b.*\b(FROM|INTO|TABLE|SET|WHERE)\b)/i,
+  /(--|#|\/\*|\*\/|;)\s*(DROP|ALTER|DELETE|UPDATE|INSERT|SELECT)/i,
+  /('\s*(OR|AND)\s*'?\d*\s*=\s*\d*)/i,
+  /('\s*(OR|AND)\s*'[^']*'=')/i,
+];
+
+function containsSqlInjection(str) {
+  if (typeof str !== 'string') return false;
+  return SQL_INJECTION_PATTERNS.some(p => p.test(str));
+}
+
+// ─── Request-level SQLi / XSS guard middleware ───
+function inputGuard(req, res, next) {
+  const body = JSON.stringify(req.body || {});
+  const query = JSON.stringify(req.query || {});
+  const params = JSON.stringify(req.params || {});
+  const allInput = body + query + params;
+
+  // Check for SQL injection patterns
+  if (containsSqlInjection(allInput)) {
+    console.warn('SECURITY: Blocked potential SQL injection from', req.ip, req.path);
+    return res.status(400).json({
+      error: 'Invalid input',
+      message: 'Your request contained characters that aren\'t allowed.',
+    });
+  }
+
+  // Check for XSS script injection
+  if (/<script[\s>]/i.test(allInput) || /javascript:/i.test(allInput) || /on\w+\s*=/i.test(allInput)) {
+    console.warn('SECURITY: Blocked potential XSS from', req.ip, req.path);
+    return res.status(400).json({
+      error: 'Invalid input',
+      message: 'Your request contained characters that aren\'t allowed.',
+    });
+  }
+
+  next();
+}
+
+app.use(inputGuard);
 
 // ─── MySQL Connection Pool ───
 

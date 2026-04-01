@@ -6,16 +6,19 @@ Run with:  uvicorn app:app --reload
 from __future__ import annotations
 
 import os
+import re
 import statistics
+import time
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 # ── Load config ──────────────────────────────────────────────────────────────
 _cfg_dir = Path(__file__).parent / "config"
@@ -80,9 +83,56 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
+
+
+# ── Rate Limiting Middleware (DDoS protection) ───────────────────────────────
+
+_rate_limit_store: dict[str, list[float]] = defaultdict(list)
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMIT_MAX = 30  # requests per window
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+
+    # Clean old entries
+    _rate_limit_store[client_ip] = [
+        t for t in _rate_limit_store[client_ip] if now - t < RATE_LIMIT_WINDOW
+    ]
+
+    if len(_rate_limit_store[client_ip]) >= RATE_LIMIT_MAX:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too many requests. Please wait before trying again."},
+        )
+
+    _rate_limit_store[client_ip].append(now)
+    response = await call_next(request)
+    return response
+
+
+# ── Security: SQL Injection & XSS pattern detection ─────────────────────────
+
+_SQLI_PATTERNS = [
+    re.compile(r"(\b(UNION|SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|EXEC)\b.*\b(FROM|INTO|TABLE|SET|WHERE)\b)", re.I),
+    re.compile(r"(--|#|/\*|\*/|;)\s*(DROP|ALTER|DELETE|UPDATE|INSERT|SELECT)", re.I),
+    re.compile(r"('\s*(OR|AND)\s*'?\d*\s*=\s*\d*)", re.I),
+]
+_XSS_PATTERNS = [
+    re.compile(r"<script[\s>]", re.I),
+    re.compile(r"javascript:", re.I),
+    re.compile(r"on\w+\s*=", re.I),
+]
+
+
+def _contains_malicious_input(text: str) -> bool:
+    """Defense-in-depth check for SQLi/XSS patterns in free-text input."""
+    return any(p.search(text) for p in _SQLI_PATTERNS + _XSS_PATTERNS)
 
 
 # ── Pydantic models ─────────────────────────────────────────────────────────
@@ -92,6 +142,61 @@ class AnalyzeRequest(BaseModel):
     content: str = ""
     mediaUrl: str | None = None
     localFilePath: str | None = None
+
+    @field_validator("postId")
+    @classmethod
+    def validate_post_id(cls, v: str) -> str:
+        if not v or len(v) > 128:
+            raise ValueError("postId must be 1-128 characters")
+        if _contains_malicious_input(v):
+            raise ValueError("Invalid characters in postId")
+        return v
+
+    @field_validator("contentType")
+    @classmethod
+    def validate_content_type(cls, v: str) -> str:
+        allowed = {"text", "image", "video"}
+        if v.lower() not in allowed:
+            raise ValueError(f"contentType must be one of: {allowed}")
+        return v.lower()
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        if len(v) > 50_000:
+            raise ValueError("content must be under 50,000 characters")
+        if _contains_malicious_input(v):
+            raise ValueError("Content contains disallowed patterns")
+        return v
+
+    @field_validator("mediaUrl")
+    @classmethod
+    def validate_media_url(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if len(v) > 2048:
+            raise ValueError("mediaUrl is too long")
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("mediaUrl must be an HTTP(S) URL")
+        if _contains_malicious_input(v):
+            raise ValueError("mediaUrl contains disallowed patterns")
+        return v
+
+    @field_validator("localFilePath")
+    @classmethod
+    def validate_local_file_path(cls, v: str | None) -> str | None:
+        """Block path traversal attacks (e.g. ../../etc/passwd)."""
+        if v is None:
+            return v
+        # Block path traversal sequences
+        if ".." in v or v.startswith("/") or "~" in v:
+            raise ValueError("Path traversal is not allowed")
+        # Only allow safe file extensions
+        allowed_ext = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".webm", ".mov"}
+        ext = Path(v).suffix.lower()
+        if ext not in allowed_ext:
+            raise ValueError(f"File extension '{ext}' is not allowed")
+        return v
 
 
 class BiasResultResponse(BaseModel):
