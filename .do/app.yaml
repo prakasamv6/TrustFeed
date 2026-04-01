@@ -42,9 +42,10 @@ services:
     instance_size_slug: basic-xxs
     routes:
       - path: /api
+        preserve_path_prefix: true
     health_check:
       http_path: /api/health
-      initial_delay_seconds: 10
+      initial_delay_seconds: 15
       period_seconds: 30
     envs:
       - key: DB_HOST
@@ -67,7 +68,3 @@ services:
       - key: PEXELS_API_KEY
         type: SECRET
         value: "REPLACE_WITH_YOUR_KEY"
-    health_check:
-      http_path: /api/health
-      initial_delay_seconds: 15
-      period_seconds: 30
