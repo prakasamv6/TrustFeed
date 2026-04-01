@@ -342,6 +342,92 @@ export class SurveyService {
     this._session.set({ ...s, currentIndex: index });
   }
 
+  // ─── Region-Specific Media for Agent Analysis ───
+
+  private readonly regionMedia: Record<Continent, { images: string[]; videos: { url: string; poster: string }[] }> = {
+    'Africa': {
+      images: [
+        'https://image.pollinations.ai/prompt/African%20savanna%20sunset%20with%20acacia%20trees?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/traditional%20African%20marketplace%20vibrant%20colors?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/African%20wildlife%20elephants%20at%20waterhole?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/African%20city%20skyline%20modern%20architecture?width=400&height=300&nologo=true',
+        'https://picsum.photos/seed/africa1/400/300',
+        'https://picsum.photos/seed/africa2/400/300',
+      ],
+      videos: [
+        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', poster: 'https://picsum.photos/seed/afvid1/400/300' },
+        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4', poster: 'https://picsum.photos/seed/afvid2/400/300' },
+      ],
+    },
+    'Asia': {
+      images: [
+        'https://image.pollinations.ai/prompt/Japanese%20zen%20garden%20with%20cherry%20blossoms?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/bustling%20Asian%20night%20market%20neon%20lights?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/ancient%20Chinese%20temple%20in%20mountain%20mist?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/futuristic%20Tokyo%20cityscape%20at%20night?width=400&height=300&nologo=true',
+        'https://picsum.photos/seed/asia1/400/300',
+        'https://picsum.photos/seed/asia2/400/300',
+      ],
+      videos: [
+        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', poster: 'https://picsum.photos/seed/asvid1/400/300' },
+        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', poster: 'https://picsum.photos/seed/asvid2/400/300' },
+      ],
+    },
+    'Europe': {
+      images: [
+        'https://image.pollinations.ai/prompt/Parisian%20cafe%20street%20scene%20warm%20light?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/medieval%20European%20castle%20on%20hilltop?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/Scandinavian%20fjord%20landscape%20dramatic%20cliffs?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/European%20art%20museum%20classical%20paintings?width=400&height=300&nologo=true',
+        'https://picsum.photos/seed/europe1/400/300',
+        'https://picsum.photos/seed/europe2/400/300',
+      ],
+      videos: [
+        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4', poster: 'https://picsum.photos/seed/euvid1/400/300' },
+        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4', poster: 'https://picsum.photos/seed/euvid2/400/300' },
+      ],
+    },
+    'Americas': {
+      images: [
+        'https://image.pollinations.ai/prompt/New%20York%20City%20Times%20Square%20neon%20night?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/South%20American%20rainforest%20Amazon%20river?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/American%20Southwest%20desert%20Grand%20Canyon?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/Latin%20American%20carnival%20colorful%20celebration?width=400&height=300&nologo=true',
+        'https://picsum.photos/seed/americas1/400/300',
+        'https://picsum.photos/seed/americas2/400/300',
+      ],
+      videos: [
+        { url: 'https://www.w3schools.com/html/mov_bbb.mp4', poster: 'https://picsum.photos/seed/amvid1/400/300' },
+        { url: 'https://www.w3schools.com/html/movie.mp4', poster: 'https://picsum.photos/seed/amvid2/400/300' },
+      ],
+    },
+    'Oceania': {
+      images: [
+        'https://image.pollinations.ai/prompt/Great%20Barrier%20Reef%20underwater%20coral?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/Australian%20outback%20red%20desert%20landscape?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/New%20Zealand%20mountains%20Lord%20of%20Rings%20landscape?width=400&height=300&nologo=true',
+        'https://image.pollinations.ai/prompt/Pacific%20island%20tropical%20beach%20turquoise%20water?width=400&height=300&nologo=true',
+        'https://picsum.photos/seed/oceania1/400/300',
+        'https://picsum.photos/seed/oceania2/400/300',
+      ],
+      videos: [
+        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', poster: 'https://picsum.photos/seed/ocvid1/400/300' },
+        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', poster: 'https://picsum.photos/seed/ocvid2/400/300' },
+      ],
+    },
+  };
+
+  private getRegionMedia(region: Continent): { analysisImageUrl: string; analysisVideoUrl?: string; analysisMediaType: 'image' | 'video' } {
+    const media = this.regionMedia[region];
+    // ~30% chance of video, ~70% image
+    if (Math.random() < 0.3 && media.videos.length > 0) {
+      const vid = media.videos[Math.floor(Math.random() * media.videos.length)];
+      return { analysisImageUrl: vid.poster, analysisVideoUrl: vid.url, analysisMediaType: 'video' };
+    }
+    const img = media.images[Math.floor(Math.random() * media.images.length)];
+    return { analysisImageUrl: img, analysisMediaType: 'image' };
+  }
+
   // ─── Private Methods ───
 
   private generateUniqueAgentVerdicts(
@@ -366,12 +452,17 @@ export class SurveyService {
       const templates = personality.reasoningTemplates[verdict];
       const reasoning = templates[Math.floor(Math.random() * templates.length)];
 
+      const media = this.getRegionMedia(region);
+
       return {
         agentName: `${region} Bias Agent`,
         region,
         verdict,
         confidence: Math.round(confidence * 100) / 100,
         reasoning,
+        analysisImageUrl: media.analysisImageUrl,
+        analysisVideoUrl: media.analysisVideoUrl,
+        analysisMediaType: media.analysisMediaType,
       };
     });
   }

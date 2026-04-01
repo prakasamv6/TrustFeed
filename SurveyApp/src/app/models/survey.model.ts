@@ -8,6 +8,10 @@ export interface AgentVerdict {
   verdict: 'ai' | 'human';
   confidence: number;       // 0-1
   reasoning: string;
+  /** Unique media this agent analyzed from its regional perspective */
+  analysisImageUrl?: string;
+  analysisVideoUrl?: string;
+  analysisMediaType?: 'image' | 'video';
 }
 
 export interface SurveyItem {

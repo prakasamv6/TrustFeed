@@ -12,7 +12,6 @@ import { Router } from '@angular/router';
         <div class="consent-header">
           <span class="header-icon">📜</span>
           <h1>Informed Consent — Waiver of Written Documentation</h1>
-          <p class="irb-badge">IRB-Aligned Research Protocol</p>
         </div>
 
         <div class="consent-body">

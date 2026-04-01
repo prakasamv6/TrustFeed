@@ -21,7 +21,7 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
         <div class="landing-description">
           <div class="research-badge">
             <span class="rb-icon">🔬</span>
-            <span>IRB-Aligned Research Protocol</span>
+            <span>Research Protocol</span>
           </div>
           <p>
             This survey is part of a research study on <strong>Human-AI Collaboration</strong> for data authenticity.

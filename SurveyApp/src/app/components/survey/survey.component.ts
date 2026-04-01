@@ -22,7 +22,7 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
         <div class="landing-description">
           <div class="research-badge">
             <span class="rb-icon">🔬</span>
-            <span>IRB-Aligned Research Protocol</span>
+            <span>Research Protocol</span>
           </div>
           <p>
             This survey is part of a research study on <strong>Human-AI Collaboration</strong> for data authenticity.
@@ -166,6 +166,10 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
                 <span class="hint-region">{{ av.region }}</span>
                 <span class="hint-verdict" [class]="'v-' + av.verdict">{{ av.verdict | uppercase }}</span>
                 <span class="hint-conf">{{ av.confidence * 100 | number:'1.0-0' }}%</span>
+              </div>
+              <div class="hint-media" *ngIf="av.analysisImageUrl || av.analysisVideoUrl">
+                <video *ngIf="av.analysisMediaType === 'video' && av.analysisVideoUrl" [src]="av.analysisVideoUrl" [poster]="av.analysisImageUrl" controls muted class="agent-media-video"></video>
+                <img *ngIf="av.analysisMediaType === 'image' && av.analysisImageUrl" [src]="av.analysisImageUrl" alt="Agent analysis media" class="agent-media-img" loading="lazy" />
               </div>
               <p class="hint-reasoning">{{ av.reasoning }}</p>
             </div>
