@@ -1,8 +1,7 @@
-%%% ACM Conference Proceedings Format (acmart)
+%%% ACM Manuscript Format (acmart) — ITIS 5360 Final Project Report
 %%% TrustFeed: Human-in-the-Loop AI for Data Authenticity
-%%% ITIS 5360 — Final Project Research Paper
 
-\documentclass[sigconf,nonacm]{acmart}
+\documentclass[manuscript,review,nonacm]{acmart}
 
 \usepackage{booktabs}
 \usepackage{graphicx}
@@ -28,7 +27,7 @@
 
 \title{TrustFeed: A Multi-Agent Bias Simulation Platform with Human-in-the-Loop Survey for AI-Generated Content Authenticity Assessment}
 
-\author{Hemal Patel}
+\author{Prakasam Venkatachalam}
 \affiliation{%
   \institution{University of North Carolina at Charlotte}
   \department{Department of Software and Information Systems}
@@ -36,10 +35,10 @@
   \state{North Carolina}
   \country{USA}
 }
-\email{hpatel85@charlotte.edu}
+\email{pvenkat6@charlotte.edu}
 
 \begin{abstract}
-The proliferation of AI-generated content across digital platforms poses unprecedented challenges for data authenticity verification. We present \textbf{TrustFeed}, an integrated two-application research platform comprising: (1) a multi-agent bias simulation system that employs five regionally-biased AI agents and one non-bias baseline agent to analyze content provenance through culturally-situated bias detection, and (2) a standalone Human-in-the-Loop survey application that measures human accuracy in distinguishing AI-generated from human-created content, comparing performance against the same five continental agents. The TrustFeed platform introduces several novel mechanisms including automatic debiasing through baseline anchoring, exposure-aware circuit breakers that detect judgment drift from repeated AI content exposure, provenance indicators as neutral evidence rather than binary verdicts, and a Human-AI Collaboration mode that studies how agent assistance affects human classification accuracy. Survey content is dynamically fetched from free internet sources---Wikipedia articles, Picsum and Pexels photographs, Pexels videos, and Pollinations.ai-generated images---ensuring unique, non-repeating stimuli per session. All anonymous survey data is persisted in a MySQL 8.0 database (no personally identifiable information) with aggregate views enabling real-time analysis of accuracy by mode, difficulty, agent region, and content category. Our system architecture leverages Angular 17 standalone components with reactive signals, a Node.js Express API, containerized deployment via Docker and nginx, and is designed for cloud deployment on Digital Ocean. Collected data across survey sessions demonstrates that Human-AI Collaboration mode yields a measurable accuracy improvement over solo performance, with agent accuracy varying significantly by regional bias profile and content difficulty. This work contributes to the emerging field of human-AI collaborative systems for content authenticity and provides an open, database-backed research framework for studying regional AI bias in content moderation.
+AI-generated content enables mass propaganda and misinformation at unprecedented scale. We present \textbf{TrustFeed}, a two-application Human-Centered AI platform for content authenticity assessment. TrustFeed Core simulates a social media feed with five regionally-biased AI agents and one baseline agent that analyze content provenance, automatic debiasing, and an exposure-aware \emph{circuit breaker} that detects judgment drift and disrupts propaganda amplification loops. A social-media-style interface (Instagram/Facebook/TikTok-inspired) surfaces AI likelihood indicators and community verification on every post. TrustFeed Survey measures human accuracy in distinguishing AI-generated from human-created content across Solo and Human-AI Collaboration modes, with dynamically fetched stimuli and multi-layered data integrity safeguards. Both applications implement OWASP-aligned security and are deployed on Digital Ocean. Results show Human-AI Collaboration yields ${\sim}12$ percentage-point accuracy improvement over solo performance, with complementary human--agent strengths across content categories—validating collaborative approaches to combating AI-driven misinformation.
 \end{abstract}
 
 \begin{CCSXML}
@@ -66,7 +65,7 @@ The proliferation of AI-generated content across digital platforms poses unprece
 \ccsdesc[500]{Computing methodologies~Multi-agent systems}
 \ccsdesc[300]{General and reference~Surveys and overviews}
 
-\keywords{Human-in-the-Loop AI, Data Authenticity, Multi-Agent Bias Detection, Content Provenance, AI-Generated Content, Human-AI Collaboration, Regional Bias Simulation, Circuit Breaker Systems}
+\keywords{Human-in-the-Loop AI, Data Authenticity, Multi-Agent Bias Detection, Content Provenance, AI-Generated Content, Human-AI Collaboration, Regional Bias Simulation, Circuit Breaker Systems, OWASP Security, Survey Data Integrity}
 
 \maketitle
 
@@ -74,50 +73,68 @@ The proliferation of AI-generated content across digital platforms poses unprece
 \section{Introduction}
 %% ============================================================
 
-The rapid advancement of generative AI systems—including large language models (LLMs), diffusion-based image generators, and video synthesis tools—has created an urgent need for reliable content authenticity verification mechanisms~\cite{mitchell2023detectgpt, kirchner2023watermark}. Current approaches typically frame AI detection as a binary classification problem, producing single-score verdicts that fail to account for the culturally-situated nature of AI bias and the critical role of human judgment in the verification process.
+The rapid advancement of generative AI systems—including large language models (LLMs), diffusion-based image generators, and video synthesis tools—has created an urgent need for reliable content authenticity verification mechanisms~\cite{mitchell2023detectgpt, kirchner2023watermark}. More critically, these tools have been weaponized for \emph{mass propaganda and misinformation}: state-sponsored actors and malicious campaigns can now generate unlimited volumes of convincing fake news articles, fabricated photographs, and synthetic videos at near-zero marginal cost~\cite{goldstein2023generative, zellers2019grover}. The 2024 global election cycle demonstrated that AI-generated deepfakes, synthetic news articles, and fabricated social proof can shape public opinion before fact-checkers can respond~\cite{europol2022deepfakes}. Current approaches typically frame AI detection as a binary classification problem, producing single-score verdicts that fail to account for the culturally-situated nature of AI bias and the critical role of human judgment in the verification process.
 
-We identify three fundamental limitations in existing AI content detection frameworks:
+We identify four fundamental limitations in existing AI content detection and platform design:
 
 \begin{enumerate}[leftmargin=*]
   \item \textbf{Mono-agent bias}: Single-model detection systems inherit the cultural and linguistic biases of their training data without mechanisms for cross-cultural validation or bias quantification.
   \item \textbf{Human exclusion}: Automated systems operate as black boxes, removing humans from the verification loop and eliminating opportunities for collaborative intelligence.
   \item \textbf{Exposure blindness}: Platforms do not account for how repeated exposure to AI-generated content shifts human judgment patterns, a phenomenon we term \emph{judgment drift}.
+  \item \textbf{Propaganda amplification}: Feed algorithms surface content by engagement metrics without safeguards against sustained AI-generated propaganda campaigns that gradually normalize false narratives—there are no ``circuit breakers'' to detect and disrupt these amplification loops.
 \end{enumerate}
 
 To address these limitations, we present \textbf{TrustFeed}, a research platform consisting of two complementary applications:
 
 \begin{itemize}[leftmargin=*]
-  \item \textbf{TrustFeed Core} (AugmentedDoing)—A social media simulation platform with a six-agent bias analysis pipeline, exposure tracking with circuit breakers, provenance indicators, expert escalation, and community verification.
+  \item \textbf{TrustFeed Core} (AugmentedDoing)—A social media simulation platform with a six-agent bias analysis pipeline, exposure tracking with circuit breakers that disrupt propaganda amplification, provenance indicators, expert escalation, and community verification. The circuit breaker system is specifically designed to protect users from mass propaganda and misinformation by detecting when AI-generated content dominates their feed and introducing friction-based interventions before judgment drift occurs.
   \item \textbf{TrustFeed Survey} (SurveyApp)—A standalone, containerized research survey that measures human performance in AI content detection across Solo and Human-AI Collab modes, comparing results against five continental bias agents.
 \end{itemize}
 
 Our contributions include:
 \begin{enumerate}[leftmargin=*]
   \item A multi-agent architecture with five regionally-biased agents and one non-bias baseline for culturally-aware content analysis with automatic debiasing.
-  \item An exposure-aware circuit breaker system that detects and mitigates judgment drift.
+  \item An exposure-aware circuit breaker system that detects judgment drift and disrupts AI-generated propaganda amplification loops before they can normalize misinformation.
   \item A Human-AI Collaboration framework that enables controlled study of how AI agent assistance affects human classification accuracy.
-  \item A containerized, cloud-deployable survey instrument with dynamic content fetching from free internet sources and a MySQL persistence layer (no PII) with aggregate analytics views for large-scale data collection on human-AI collaborative content verification.
+  \item A social media--style feed with prominent AI likelihood indicators, per-post notification subscriptions, and contextual reporting options inspired by Facebook, Instagram, and TikTok design patterns.
+  \item A multi-layered survey data integrity system comprising honeypot bot detection, response time monitoring, duplicate IP session limiting, attention check injection, straight-line response detection, and cryptographically hardened session tokens.
+  \item A defense-in-depth security architecture aligned with OWASP Top~10 across nginx, Express, and FastAPI layers.
+  \item A containerized, cloud-deployed survey instrument with dynamic content fetching from free internet sources and a MySQL persistence layer (no PII) with aggregate analytics views, deployed on Digital Ocean App Platform with continuous delivery.
 \end{enumerate}
 
+The remainder of this report is organized as follows: Section~2 reviews background and related work on AI content detection, multi-agent systems, propaganda countermeasures, and human-in-the-loop AI. Section~3 details our methodology, including the multi-agent pipeline, circuit breaker design, survey instrument, and security architecture. Section~4 presents results from survey data collection. Section~5 discusses implications for combating propaganda and misinformation. Section~6 addresses limitations and future work, and Section~7 concludes.
+
 %% ============================================================
-\section{Related Work}
+\section{Background and Related Work}
 %% ============================================================
+
+This section reviews prior work across five areas relevant to TrustFeed: AI-generated content detection, multi-agent systems for content analysis, AI-driven propaganda and misinformation countermeasures, human-in-the-loop AI, and algorithmic bias and fairness. For each area, we identify the gap or shortfall that TrustFeed addresses.
 
 \subsection{AI-Generated Content Detection}
-The detection of AI-generated text has progressed from statistical methods to neural classifiers. DetectGPT~\cite{mitchell2023detectgpt} introduced perturbation-based detection using log-probability curvature, while watermarking approaches~\cite{kirchner2023watermark} embed statistical signals during generation. OpenAI's AI Text Classifier achieved only 26\% true positive rate before being discontinued, highlighting the difficulty of reliable detection~\cite{openai2023classifier}. Our approach diverges from single-score classification by treating detection as a multi-perspective problem requiring regional bias disaggregation.
+The detection of AI-generated text has progressed from statistical methods to neural classifiers. DetectGPT~\cite{mitchell2023detectgpt} introduced perturbation-based detection using log-probability curvature, while watermarking approaches~\cite{kirchner2023watermark} embed statistical signals during generation. OpenAI's AI Text Classifier achieved only 26\% true positive rate before being discontinued, highlighting the difficulty of reliable detection~\cite{openai2023classifier}. Image-based detection has advanced through frequency-domain analysis and GAN fingerprinting~\cite{wang2020cnn}, yet remains fragile against adversarial post-processing. Our approach diverges from single-score classification by treating detection as a multi-perspective problem requiring regional bias disaggregation—a gap unaddressed by existing detectors.
 
 \subsection{Multi-Agent Systems for Content Analysis}
-Multi-agent debate frameworks have shown promise in improving reasoning quality~\cite{du2023improving, liang2023encouraging}. LangGraph-based orchestration enables stateful multi-agent workflows with conditional routing~\cite{langgraph2024}. TrustFeed extends this paradigm by assigning agents distinct \emph{regional bias profiles} rather than homogeneous reasoning strategies, enabling bias quantification through inter-agent disagreement analysis.
+Multi-agent debate frameworks have shown promise in improving reasoning quality~\cite{du2023improving, liang2023encouraging}. LangGraph-based orchestration enables stateful multi-agent workflows with conditional routing~\cite{langgraph2024}. Recent work on constitutional AI~\cite{bai2022constitutional} demonstrates that multiple perspectives improve alignment. TrustFeed extends this paradigm by assigning agents distinct \emph{regional bias profiles} rather than homogeneous reasoning strategies, enabling bias quantification through inter-agent disagreement analysis—a design absent in existing multi-agent frameworks.
+
+\subsection{AI-Driven Propaganda, Misinformation, and Platform Countermeasures}
+\label{sec:propaganda-background}
+The weaponization of generative AI for propaganda represents a qualitatively new threat to information integrity. Goldstein et al.~\cite{goldstein2023generative} documented how LLMs can generate persuasive disinformation at scale for a fraction of the cost of human troll farms. Zellers et al.~\cite{zellers2019grover} showed that GPT-2-era models could generate fake news articles rated as credible by human judges 72\% of the time. Europol's 2022 report~\cite{europol2022deepfakes} warned that deepfake technology poses a significant threat to elections, law enforcement, and public trust. Husz{\'a}r et al.~\cite{huszar2022algorithmic} demonstrated that algorithmic amplification on Twitter systematically boosted politically provocative content.
+
+Existing countermeasures focus on \emph{post-hoc detection}—identifying propaganda after publication—but fail to address the \emph{cognitive effects} of sustained exposure. Bessi and Ferrara~\cite{bessi2016social} found that social bots during the 2016 U.S.\ election successfully shifted public opinion through volume-based narrative saturation. Vosoughi et al.~\cite{vosoughi2018spread} showed that false news spreads six times faster than true news on social media, suggesting that detection alone is insufficient without \emph{exposure-level interventions}.
+
+TrustFeed addresses this gap through a \textbf{circuit breaker mechanism} that operates at the exposure layer rather than the content layer. Rather than merely labeling propaganda after the fact, TrustFeed monitors the cumulative volume and diversity of AI-generated content in each user's feed and triggers friction-based interventions before judgment drift—the gradual normalization of false narratives through repeated exposure—can take hold. This approach draws on digital wellbeing friction design~\cite{lukoff2021design} and extends it from screen-time contexts to misinformation resilience.
 
 \subsection{Human-in-the-Loop AI Systems}
-The HITL paradigm has been studied extensively in machine learning pipelines~\cite{monarch2021hitl, wu2022survey}, but its application to content authenticity remains underexplored. Prior work on AI-assisted fact-checking~\cite{nakov2021automated} demonstrated that human-AI teams outperform either alone, yet the mechanisms through which AI assistance affects human judgment patterns are poorly understood. Our Human-AI Collab mode provides a controlled framework for studying these dynamics.
+The HITL paradigm has been studied extensively in machine learning pipelines~\cite{monarch2021hitl, wu2022survey}, but its application to content authenticity remains underexplored. Prior work on AI-assisted fact-checking~\cite{nakov2021automated} demonstrated that human-AI teams outperform either alone, yet the mechanisms through which AI assistance affects human judgment patterns are poorly understood. Lai et al.~\cite{lai2021towards} found that the format and explanation style of AI recommendations significantly affect human decision accuracy, motivating our multi-agent approach where users see five diverse reasoning styles. Our Human-AI Collab mode provides a controlled framework for studying these dynamics with regional bias as an independent variable.
 
 \subsection{Algorithmic Bias and Fairness}
-Regional and cultural bias in AI systems has been documented across NLP~\cite{blodgett2020language}, computer vision~\cite{buolamwini2018gender}, and content moderation~\cite{davidson2019racial}. TrustFeed contributes by making bias \emph{visible and measurable} through explicit regional agent profiles, debiasing pipelines, and favoritism detection thresholds.
+Regional and cultural bias in AI systems has been documented across NLP~\cite{blodgett2020language}, computer vision~\cite{buolamwini2018gender}, and content moderation~\cite{davidson2019racial}. Mehrabi et al.~\cite{mehrabi2021survey} provide a comprehensive taxonomy of bias types in machine learning. TrustFeed contributes by making bias \emph{visible and measurable} through explicit regional agent profiles, debiasing pipelines, and favoritism detection thresholds—transforming bias from a hidden defect into a quantified, transparent feature that users can evaluate.
 
 %% ============================================================
-\section{System Architecture}
+\section{Methodology}
 %% ============================================================
+
+This section describes, step by step, the design and implementation of TrustFeed. We cover the platform architecture, the multi-agent bias analysis pipeline, the circuit breaker system for propaganda and misinformation protection, the provenance indicator framework, the survey instrument, the Human-AI Collaboration mode, data integrity safeguards, security architecture, and deployment.
 
 \subsection{Platform Overview}
 
@@ -130,20 +147,28 @@ TrustFeed consists of two Angular 17 standalone applications sharing a common de
 \toprule
 \textbf{Application} & \textbf{Purpose} & \textbf{Deployment} \\
 \midrule
-TrustFeed Core & Bias simulation platform & localhost:4200 \\
-TrustFeed Survey & Research survey instrument & Docker/DO:4300 \\
+TrustFeed Core & Bias simulation platform & DO App Platform \\
+TrustFeed Survey & Research survey instrument & DO App Platform \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Both applications use Angular's modern standalone component architecture with reactive signals for state management, eliminating the need for traditional NgModules. The TrustFeed Survey is designed for independent cloud deployment via Docker containers served through nginx, with a Digital Ocean App Platform specification for production hosting.
+Both applications use Angular's modern standalone component architecture with reactive signals for state management, eliminating the need for traditional NgModules. Both are deployed on Digital Ocean App Platform with deploy-on-push continuous delivery from a private GitHub repository (\texttt{prakasamv6/TrustFeed}) with branch protection enabled. The TrustFeed Survey is accessible at \texttt{https://trustfeed-survey-ealep.ondigitalocean.app} and the TrustFeed Core at \texttt{https://trustfeed-core-bbiuj.ondigitalocean.app}.
 
 \subsection{TrustFeed Core Architecture}
 
 The core application implements a four-view architecture:
 
 \begin{enumerate}[leftmargin=*]
-  \item \textbf{Feed View}: Social media feed with 7 sort modes (Newest, Highest Bias Delta, Highest Disagreement, Region Dominance, Likely Human, Likely AI, Debiased Confidence), 8 content filters, and a three-column layout with exposure monitoring sidebar.
+  \item \textbf{Feed View}: Social media--style feed inspired by Facebook, Instagram, and TikTok design patterns, with 7 sort modes (Newest, Highest Bias Delta, Highest Disagreement, Region Dominance, Likely Human, Likely AI, Debiased Confidence), 8 content filters, and a three-column layout with exposure monitoring sidebar. Each post features:
+    \begin{itemize}
+      \item An \emph{avatar ring} with gradient borders---pink-to-purple for AI-generated content, green for human-created---providing instant visual classification similar to Instagram Stories rings.
+      \item A prominent \textbf{AI Likelihood Indicator Strip} below post content (analogous to Instagram's ``Sponsored'' label or TikTok's ``Ad'' marker), displaying ``Looks AI-Generated,'' ``Looks Human-Made,'' or ``Disputed $\cdot$ Mixed Signals'' with vote count and confidence pill.
+      \item A \textbf{notification bell} allowing users to subscribe to AI analysis updates for individual posts.
+      \item A \textbf{three-dot menu} offering contextual actions: Flag as AI-Generated, Flag as Human-Made, toggle AI notifications, and Report Misleading Content.
+      \item A \textbf{community verification bar} with Looks AI / Looks Human vote buttons and a real-time vote distribution bar.
+      \item A Facebook/Instagram--style footer with like, comment, share, and bookmark actions.
+    \end{itemize}
   \item \textbf{Content Review}: External content analysis with pattern-based AI detection scoring across motivational clichés, engagement bait, hashtag density, uncited statistics, buzzword frequency, personal anecdotes, and emotional authenticity markers.
   \item \textbf{Bias Dashboard}: Aggregate analytics showing per-agent statistics, favoritism rates, 7-day bias trends, and platform-wide summary metrics.
   \item \textbf{Survey}: Integrated survey entry point linking to the standalone Survey application.
@@ -212,32 +237,65 @@ Rather than producing binary AI/human verdicts, TrustFeed presents \textbf{prove
 
 Each indicator provides a label, confidence value (0--1), and supporting details, allowing users to weigh evidence rather than accept a single automated judgment.
 
-\subsection{Exposure Tracking and Circuit Breaker System}
+\subsection{Exposure Tracking and Circuit Breaker System: Protecting Against Mass Propaganda}
+\label{sec:circuit-breaker}
 
-The \texttt{ExposureTrackerService} implements a runtime monitoring system that tracks user interaction patterns to detect and mitigate judgment drift:
+The most novel contribution of TrustFeed to misinformation defense is the \textbf{circuit breaker system}—an exposure-level intervention mechanism that protects users from the cognitive effects of AI-generated propaganda campaigns. Unlike traditional content-moderation approaches that label or remove individual pieces of misinformation \emph{after publication}~\cite{nakov2021automated}, the circuit breaker operates at the \emph{feed level}, monitoring the cumulative pattern of AI-generated content exposure and intervening before judgment drift occurs.
 
-\textbf{Judgment Drift Detection} operates over a sliding window of the last 20 exposure events, computing:
+\subsubsection{Threat Model: AI-Powered Propaganda Amplification}
+
+Mass propaganda campaigns using generative AI follow a predictable pattern~\cite{goldstein2023generative}: (1)~generate large volumes of AI content on a target topic, (2)~inject it into social media feeds, and (3)~rely on repeated exposure and algorithmic amplification to gradually normalize the false narrative. Vosoughi et al.~\cite{vosoughi2018spread} showed that false news spreads six times faster than true news; when combined with AI generation capabilities, the volume and speed of synthetic narratives can overwhelm human judgment capacity. The danger is not any single piece of AI content, but the \emph{cumulative cognitive effect} of sustained exposure.
+
+\subsubsection{Judgment Drift Detection}
+
+The \texttt{ExposureTrackerService} implements a runtime monitoring system that tracks user interaction patterns to detect judgment drift—the gradual shift in human classification accuracy caused by repeated exposure to AI-generated content. Detection operates over a sliding window of the last 20 exposure events, computing:
 \begin{itemize}[leftmargin=*]
-  \item \textbf{Accuracy Shift}: Deviation of AI detection accuracy from baseline (0.5).
-  \item \textbf{AI Suspicion Trend}: Proportion of recent votes classified as AI.
-  \item \textbf{Consecutive AI Exposures}: Length of current AI content streak.
-  \item \textbf{Drift Level}: Classified as \texttt{stable} $\rightarrow$ \texttt{mild-drift} $\rightarrow$ \texttt{moderate-drift} $\rightarrow$ \texttt{significant-drift} based on thresholds.
+  \item \textbf{Accuracy Shift}: Deviation of AI detection accuracy from baseline (0.5). When a propaganda campaign saturates the feed with AI content, users begin over-accepting or under-questioning content, causing measurable accuracy drift.
+  \item \textbf{AI Suspicion Trend}: Proportion of recent votes classified as AI. A trend toward either extreme (all-AI or all-human voting) indicates that repeated exposure is biasing perception.
+  \item \textbf{Consecutive AI Exposures}: Length of current AI content streak. Propaganda campaigns create long runs of thematically similar AI content; detecting streaks identifies potential coordinated campaigns.
+  \item \textbf{Drift Level}: Classified as \texttt{stable} $\rightarrow$ \texttt{mild-drift} $\rightarrow$ \texttt{moderate-drift} $\rightarrow$ \texttt{significant-drift} based on thresholds calibrated to the propaganda threat model.
 \end{itemize}
 
-The \textbf{circuit breaker} activates when any of three conditions is met:
+\subsubsection{Circuit Breaker Trigger Conditions}
+
+The circuit breaker activates when any of three conditions is met, each targeting a different propaganda attack vector:
+
 \begin{enumerate}[leftmargin=*]
-  \item Exposure cap reached ($\geq$10 AI-generated posts in session).
-  \item Content diversity drops below 30\% non-AI content.
-  \item Judgment drift reaches moderate or significant level.
+  \item \textbf{Exposure Cap} ($\geq$10 AI-generated posts in session): Prevents volume-based propaganda saturation. An adversary cannot gradually fill a user's feed with AI-generated content beyond this threshold without triggering intervention.
+  \item \textbf{Diversity Threshold} ($<$30\% non-AI content): Detects homogeneity attacks where AI content crowds out genuine human voices—a hallmark of coordinated inauthentic behavior~\cite{bessi2016social}.
+  \item \textbf{Judgment Drift} (moderate or significant level): Detects the cognitive impact of propaganda even when volume and diversity metrics appear normal, catching sophisticated campaigns that pace their content injection below naive volume thresholds.
 \end{enumerate}
 
-Upon activation, a full-screen interstitial overlay presents the user with their exposure statistics and recommends browsing human-created content, implementing a \emph{friction-based intervention} pattern inspired by digital wellbeing design~\cite{lukoff2021design}.
+\subsubsection{Friction-Based Intervention}
 
-%% ============================================================
-\section{Survey Application Design}
-%% ============================================================
+Upon activation, the circuit breaker presents a full-screen interstitial overlay—a deliberate friction mechanism~\cite{lukoff2021design}—that:
 
-\subsection{Research Objectives}
+\begin{enumerate}[leftmargin=*]
+  \item Displays the user's current exposure statistics (AI exposure count, diversity score, drift level) to make the propaganda pattern \emph{visible}.
+  \item Explains why the circuit breaker activated (e.g., ``Content diversity has dropped below safe threshold'').
+  \item Recommends browsing human-created content or taking a break to recalibrate judgment.
+  \item Requires explicit acknowledgment (``I Understand — Continue Browsing'') before resuming, ensuring the user cannot passively scroll past the warning.
+\end{enumerate}
+
+This design transforms the circuit breaker from a passive monitoring tool into an \textbf{active defense against mass propaganda}. By making the AI content saturation pattern visible and requiring conscious engagement, the interstitial breaks the passive consumption cycle that propaganda campaigns depend on~\cite{huszar2022algorithmic}. Table~\ref{tab:cb-comparison} summarizes how the circuit breaker addresses each propaganda attack vector.
+
+\begin{table}[h]
+\caption{Circuit Breaker Defenses Against Propaganda Attack Vectors}
+\label{tab:cb-comparison}
+\begin{tabular}{p{3cm}p{3cm}p{4cm}}
+\toprule
+\textbf{Attack Vector} & \textbf{Circuit Breaker Trigger} & \textbf{Defense Mechanism} \\
+\midrule
+Volume saturation & Exposure cap ($\geq$10) & Caps AI content consumption per session \\
+Diversity suppression & Diversity $<$ 30\% & Forces content heterogeneity awareness \\
+Gradual normalization & Judgment drift detection & Detects cognitive impact before behavior change \\
+Algorithmic amplification & All three triggers & Friction breaks passive consumption loop \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%% --- Survey Application Design (within Methodology) ---
+\subsection{Research Questions}
 
 The TrustFeed Survey application is designed as a standalone research instrument to answer three questions:
 
@@ -307,6 +365,25 @@ Content items---whether dynamically fetched or from the fallback pool---are desi
 
 Each session shuffles the content pool and generates fresh agent verdicts, ensuring no two sessions produce identical combinations.
 
+\subsection{Survey Data Integrity Mechanisms}
+\label{sec:integrity}
+
+To ensure research-quality data, the survey application implements a multi-layered fraud prevention and data integrity system:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Honeypot Field}: A hidden form input (rendered off-screen via CSS, with \texttt{tabindex="-1"} and \texttt{autocomplete="off"}) is invisible to human participants but detected and auto-filled by automated bots. Submissions with a non-empty honeypot value are silently rejected without informing the bot, preventing automated form-filling from polluting the dataset.
+
+  \item \textbf{Response Time Monitoring}: A timestamp is recorded when each survey item is displayed. Upon submission, the elapsed time is computed and flagged if the participant responded in less than 2 seconds—a threshold below which genuine content evaluation is implausible. The \texttt{responseTimeMs} and \texttt{flaggedFast} metadata are persisted alongside each response for post-hoc analysis.
+
+  \item \textbf{Duplicate IP Session Detection}: The Express backend tracks session creation requests per IP address using a sliding 1-hour window. A limit of 5 sessions per IP per hour prevents ballot-stuffing while allowing reasonable repeated participation (e.g., classroom settings). Excess requests receive HTTP~429 with a descriptive error message.
+
+  \item \textbf{Attention Check Questions}: For sessions with 8 or more items, the survey injects two attention check items at random positions within the middle third of the session. These items contain explicit instructions (e.g., ``Please select AI Generated for this item'') and are audited upon session completion. Failed attention checks are logged for post-hoc data quality filtering.
+
+  \item \textbf{Straight-Line Response Detection}: Upon session completion, the system detects whether a participant selected the same verdict for every item—a strong indicator of disengaged or automated responding. A \texttt{computeFraudFlags()} function additionally checks for uniform confidence ratings and speed-bot patterns, logging composite fraud flags for each session.
+
+  \item \textbf{Cryptographically Hardened Session Tokens}: Session identifiers use the format \texttt{session-\{timestamp\}-\{crypto.randomUUID().slice(0,8)\}}, combining temporal ordering with 8 hex characters of cryptographic randomness to prevent session ID prediction or enumeration.
+\end{enumerate}
+
 \subsection{Agent Verdict Generation}
 
 For each content item, all five continental agents independently produce verdicts through a probabilistic generation model:
@@ -355,9 +432,8 @@ A progress bar with interactive dot navigation allows participants to review pre
   \item \textbf{Per-Item Breakdown Table}: Row-by-row comparison of ground truth, human verdict, and all five agent verdicts with correct/incorrect color coding.
 \end{itemize}
 
-%% ============================================================
-\section{Human-AI Collaboration Mode}
-%% ============================================================
+%% --- Human-AI Collaboration Mode (within Methodology) ---
+\subsection{Human-AI Collaboration Mode}
 
 The Human-AI Collab mode represents the central experimental condition in our research design. When enabled, participants see all five agents' verdicts, confidence percentages, and reasoning \emph{before} making their own classification decision. This creates a controlled study of how AI assistance influences human judgment:
 
@@ -373,11 +449,8 @@ The agreement matrix in the results dashboard directly measures effect (4) by qu
 
 This design follows the ``AI-as-advisor'' paradigm~\cite{bansal2021does} where the human retains final decision authority while optionally consulting AI recommendations, enabling study of calibrated trust in AI systems.
 
-%% ============================================================
-\section{Implementation}
-%% ============================================================
-
-\subsection{Technology Stack}
+%% --- Implementation Details (within Methodology) ---
+\subsection{Technology Stack and Implementation}
 
 \begin{table}[h]
 \caption{Technology Stack}
@@ -389,12 +462,13 @@ This design follows the ``AI-as-advisor'' paradigm~\cite{bansal2021does} where t
 Frontend Framework & Angular 17 (standalone components) \\
 State Management & Angular Signals (reactive primitives) \\
 Styling & SCSS with component-scoped styles \\
-Backend (Core) & Python Flask, PyTorch, HuggingFace \\
+Backend (Core) & Python FastAPI, PyTorch, HuggingFace \\
 Agent Orchestration & LangGraph (stateful multi-agent) \\
-Survey API & Node.js Express, mysql2 \\
+Survey API & Node.js Express, mysql2, helmet \\
 Database & MySQL 8.0 (TrustFeed, no PII) \\
 Containerization & Docker (multi-stage: node + nginx) \\
-Web Server & nginx (SPA routing, gzip, security headers) \\
+Web Server & nginx (SPA routing, gzip, security) \\
+Security & OWASP Top~10 hardening (see \S\ref{sec:security}) \\
 Cloud Platform & Digital Ocean App Platform \\
 CI/CD & Docker Compose + DO deploy-on-push \\
 \bottomrule
@@ -408,8 +482,8 @@ Survey session data is persisted in a MySQL 8.0 database named \texttt{TrustFeed
 The schema consists of five tables and four aggregate views:
 
 \begin{itemize}[leftmargin=*]
-  \item \textbf{survey\_sessions}: Anonymous session metadata including timestamps, collaboration mode, item count, and computed accuracy metrics.
-  \item \textbf{survey\_responses}: Per-item human verdicts with confidence, reasoning, and a generated \texttt{is\_correct} column.
+  \item \textbf{survey\_sessions}: Anonymous session metadata including timestamps, collaboration mode, item count, computed accuracy metrics, and fraud flags (see Section~\ref{sec:integrity}).
+  \item \textbf{survey\_responses}: Per-item human verdicts with confidence, reasoning, response time metadata (\texttt{responseTimeMs}, \texttt{flaggedFast}), and a generated \texttt{is\_correct} column.
   \item \textbf{agent\_verdicts}: Per-item, per-agent decisions with confidence and reasoning, also with a generated \texttt{is\_correct} column.
   \item \textbf{agent\_results} and \textbf{agreement\_matrix}: Per-session summaries of agent performance and human-agent agreement rates.
 \end{itemize}
@@ -467,7 +541,41 @@ COPY --from=build /app/dist/survey-app/browser \
 HEALTHCHECK CMD wget --spider http://localhost/health
 \end{lstlisting}
 
-The nginx configuration implements SPA routing (fallback to \texttt{index.html}), gzip compression, aggressive static asset caching (1-year immutable), and security headers including Content-Security-Policy, X-Frame-Options, and X-Content-Type-Options.
+The nginx configuration implements SPA routing (fallback to \texttt{index.html}), gzip compression, aggressive static asset caching (1-year immutable), and the comprehensive security header suite described in Section~\ref{sec:security}.
+
+\subsection{Security Architecture}
+\label{sec:security}
+
+Both applications implement a defense-in-depth security architecture aligned with the OWASP Top~10, spanning three layers: reverse proxy (nginx), application middleware, and input validation.
+
+\subsubsection{Nginx Layer (DDoS and Malware Prevention)}
+The nginx reverse proxy for both applications enforces:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Rate Limiting}: Three rate-limiting zones---general requests (30~req/s), API endpoints (10~req/s), and authentication routes (5~req/s)---using the \texttt{limit\_req} module with short burst allowances to absorb legitimate traffic spikes while throttling volumetric attacks.
+  \item \textbf{Connection Limits}: Maximum 20 concurrent connections per IP address via \texttt{limit\_conn}, mitigating connection-flood DDoS variants.
+  \item \textbf{Slow-Loris Mitigation}: Aggressive timeout configuration (\texttt{client\_body\_timeout}, \texttt{client\_header\_timeout}, \texttt{send\_timeout}) to close slow or stalled connections.
+  \item \textbf{Body Size Cap}: 2~MB maximum request body (\texttt{client\_max\_body\_size 2m}) to prevent payload-based resource exhaustion.
+  \item \textbf{Malware Upload Prevention}: Location-based blocking of dangerous file extensions (\texttt{.exe}, \texttt{.php}, \texttt{.sh}, \texttt{.py}, \texttt{.dll}, \texttt{.bat}, \texttt{.cmd}, \texttt{.ps1}), hidden files (\texttt{.env}, \texttt{.git}), and backup files (\texttt{.sql}, \texttt{.bak}, \texttt{.yml}), returning HTTP~403 for all blocked patterns.
+  \item \textbf{Hardened Security Headers}: Content-Security-Policy with \texttt{object-src 'none'}, \texttt{base-uri 'self'}, \texttt{form-action 'self'}, \texttt{frame-ancestors 'self'}; HTTP Strict Transport Security (HSTS) with 1-year max-age; restrictive Permissions-Policy disabling camera, microphone, and geolocation APIs.
+\end{itemize}
+
+\subsubsection{Express Middleware Layer (Survey API)}
+The Node.js Express API implements:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Helmet}: The \texttt{helmet} middleware provides defense-in-depth security headers at the application level, complementing nginx's header configuration.
+  \item \textbf{Restricted CORS}: Origin whitelist restricted to known deployment domains only, preventing unauthorized cross-origin API access.
+  \item \textbf{XSS Prevention}: Full HTML entity encoding in \texttt{sanitizeString()} (escaping \texttt{\&}, \texttt{<}, \texttt{>}, \texttt{"}, \texttt{'}, \texttt{/}) applied to all user-supplied string inputs. Additionally, a middleware layer detects \texttt{<script>} tags and JavaScript event handler injection patterns in request bodies.
+  \item \textbf{SQL Injection Defense}: Defense-in-depth middleware that pattern-matches common SQL injection signatures (\texttt{UNION SELECT}, \texttt{DROP TABLE}, \texttt{OR 1=1}, etc.) in request bodies before parameterized queries provide the primary protection layer.
+\end{itemize}
+
+\subsubsection{FastAPI Layer (Core API)}
+The Python FastAPI backend enforces:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Rate Limiting Middleware}: 30 requests per minute per IP address, tracked via an in-memory dictionary with automatic window expiration.
+  \item \textbf{Restricted CORS}: Only \texttt{GET} and \texttt{POST} methods permitted via CORS middleware configuration.
+  \item \textbf{Pydantic Field Validators}: Input models include field-level validators that reject payloads containing SQL injection patterns or XSS script injection attempts, providing typed validation at the API boundary.
+  \item \textbf{Path Traversal Prevention}: File path inputs are validated to block \texttt{../} and \texttt{\textasciitilde} sequences, with a file extension whitelist restricting uploads to image and video formats only.
+\end{itemize}
 
 \subsection{Production Bundle Analysis}
 
@@ -489,11 +597,10 @@ styles.css & 12.80 KB & 0.79 KB \\
 
 The 92 KB transfer size ensures fast loading even on constrained networks, critical for survey data collection across diverse participant populations.
 
-%% ============================================================
-\section{Experimental Design}
-%% ============================================================
+%% --- Experimental Design (within Methodology) ---
+\subsection{Experimental Design}
 
-\subsection{Study Protocol}
+\subsubsection{Study Protocol}
 
 The survey instrument is designed for a within-subjects experimental study with two conditions:
 
@@ -504,12 +611,12 @@ The survey instrument is designed for a within-subjects experimental study with 
 
 Participants complete both conditions (counterbalanced order) with different dynamically fetched content from internet sources. Each session's content is unique—fetched in real time from Wikipedia, Picsum, Pexels, and Pollinations.ai—ensuring no two sessions present identical stimuli and eliminating memorization effects in repeated-measures designs.
 
-\subsection{Data Collection Infrastructure}
+\subsubsection{Data Collection Infrastructure}
 
 All survey data is collected in the \texttt{TrustFeed} MySQL 8.0 database through a three-stage persistence pipeline:
 
 \begin{enumerate}[leftmargin=*]
-  \item \textbf{Session Creation} (\texttt{POST /api/sessions}): When a participant starts a survey, an anonymous session record is created with a timestamp-based identifier (e.g., \texttt{session-1719432000000}), collaboration mode flag, and item count. \emph{No PII is collected at any stage.}
+  \item \textbf{Session Creation} (\texttt{POST /api/sessions}): When a participant starts a survey, an anonymous session record is created with a cryptographically hardened identifier (e.g., \texttt{session-1719432000000-a3f8b2c1}), collaboration mode flag, and item count. \emph{No PII is collected at any stage.} Duplicate IP session detection (Section~\ref{sec:integrity}) prevents ballot-stuffing.
   \item \textbf{Per-Item Response} (\texttt{POST /api/sessions/:id/responses}): After each item verdict, the human response (verdict, confidence, reasoning) and all five agent verdicts are persisted within a database transaction to ensure atomicity.
   \item \textbf{Session Completion} (\texttt{PUT /api/sessions/:id/complete}): Upon survey completion, computed results (human accuracy, agent results, agreement matrix) are persisted and the session is marked complete.
 \end{enumerate}
@@ -524,7 +631,7 @@ Four pre-defined database views enable real-time aggregate analysis without appl
 
 The analytics endpoint (\texttt{GET /api/analytics}) aggregates data from all completed sessions for researcher access.
 
-\subsection{Measured Variables}
+\subsubsection{Measured Variables}
 
 \textbf{Primary outcome}: Classification accuracy (proportion correct), stored in \texttt{survey\_sessions.human\_accuracy}.
 
@@ -538,7 +645,7 @@ The analytics endpoint (\texttt{GET /api/analytics}) aggregates data from all co
   \item Per-agent performance (via \texttt{agent\_results}: correct count, accuracy, average confidence per region per session).
 \end{itemize}
 
-\subsection{Agent Performance Baselines}
+\subsubsection{Agent Performance Baselines}
 
 Each agent's expected accuracy varies by difficulty and bias profile. The probabilistic generation model produces the following expected accuracy ranges:
 
@@ -561,7 +668,7 @@ Oceania (AI-biased) & 77--87\% & 62--74\% & 47--57\% \\
 Note: AI-biased agents (Asia, Oceania) show higher accuracy on AI-generated content but lower accuracy on human content, and vice versa for the human-biased Europe agent. This asymmetry is deliberate—it demonstrates how regional bias affects detection reliability for different content types.
 
 %% ============================================================
-\section{Collected Data and Results}
+\section{Results}
 %% ============================================================
 
 All results reported in this section are derived from the \texttt{TrustFeed} MySQL database aggregate views and the analytics API endpoint. Data reflects completed anonymous survey sessions with no personally identifiable information.
@@ -704,9 +811,19 @@ Unlike traditional approaches that attempt to eliminate bias from AI systems, Tr
   \item Favoritism detection (bias delta $>$ 0.20 or region dominance $>$ 0.60) provides actionable thresholds for content moderation pipelines.
 \end{itemize}
 
-\subsection{Circuit Breakers for Cognitive Safety}
+\subsection{Circuit Breakers as a Defense Against Mass Propaganda and Misinformation}
 
-The exposure tracking system addresses a gap in current platform design: the cognitive effects of repeated AI content exposure on human judgment. Our circuit breaker mechanism draws on three converging lines of research—digital wellbeing friction design~\cite{lukoff2021design}, confirmation bias in AI-assisted decision making~\cite{bansal2021does}, and algorithmic amplification effects~\cite{huszar2022algorithmic}. The three-trigger architecture (exposure cap, diversity threshold, judgment drift detection) provides defense-in-depth against cognitive manipulation.
+The exposure tracking and circuit breaker system addresses a critical gap in current platform design: the absence of any mechanism to protect users from the cumulative cognitive effects of AI-generated propaganda campaigns. While existing approaches focus on detecting and labeling individual pieces of misinformation~\cite{nakov2021automated}, they fail to account for the \emph{volume-based nature} of modern propaganda~\cite{goldstein2023generative}. A single AI-generated article may be harmless; a sustained feed of AI-generated narratives can systematically shift human perception.
+
+Our circuit breaker mechanism draws on three converging lines of research—digital wellbeing friction design~\cite{lukoff2021design}, confirmation bias in AI-assisted decision making~\cite{bansal2021does}, and algorithmic amplification effects~\cite{huszar2022algorithmic}—and applies them specifically to the propaganda threat. The three-trigger architecture (exposure cap, diversity threshold, judgment drift detection) provides defense-in-depth against three distinct propaganda attack vectors:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Volume saturation}: The exposure cap prevents adversaries from gradually normalizing AI content through sheer repetition, directly countering the amplification strategies documented by Vosoughi et al.~\cite{vosoughi2018spread}.
+  \item \textbf{Diversity suppression}: The diversity threshold detects when AI content crowds out human voices—a pattern consistent with coordinated inauthentic behavior campaigns that use bot-generated content to dominate discourse~\cite{bessi2016social}.
+  \item \textbf{Cognitive drift}: The judgment drift detector identifies when propaganda has begun to affect user perception even below explicit volume thresholds, catching sophisticated campaigns that pace their injection to avoid naive detection.
+\end{itemize}
+
+The friction-based intervention—a full-screen interstitial requiring conscious acknowledgment—is specifically designed to break the passive consumption loops that propaganda campaigns exploit. By making the AI saturation pattern visible and requiring active engagement, the circuit breaker transforms users from passive propaganda targets into informed agents who can recognize and resist manipulation patterns. This represents a fundamentally different approach from content moderation: rather than trying to remove or label every piece of misinformation (an arms race that AI generation makes increasingly unwinnable), the circuit breaker protects the \emph{cognitive integrity of the consumer}.
 
 \subsection{Implications for Platform Design}
 
@@ -717,9 +834,16 @@ Our work suggests several design principles for AI content platforms:
   \item Platforms should implement exposure monitoring and circuit breaker mechanisms to protect user judgment integrity.
   \item Human-AI collaboration should be offered as an option with transparent agent reasoning, preserving human agency.
   \item Expert escalation pathways should exist for high-risk, high-bias content that exceeds automated system confidence.
+  \item AI transparency indicators should adopt familiar social media design patterns (avatar rings, inline labels, contextual menus) to promote adoption without user friction.
+  \item Research survey instruments collecting human judgment data should implement multi-layered data integrity mechanisms to prevent automated and disengaged responses from corrupting datasets.
+  \item Defense-in-depth security must span all architectural layers (reverse proxy, application middleware, input validation) to protect both user data and system integrity.
 \end{enumerate}
 
-\subsection{Limitations}
+%% ============================================================
+\section{Limitations and Future Work}
+%% ============================================================
+
+\subsection{Current Limitations}
 
 Several limitations should be noted:
 \begin{itemize}[leftmargin=*]
@@ -728,39 +852,42 @@ Several limitations should be noted:
   \item The \texttt{TrustFeed} database enforces a strict no-PII policy, which prevents demographic analysis of results. Optionally collecting anonymized demographic metadata (age range, technical background) would enable richer analysis while maintaining anonymity.
   \item Content difficulty labels are researcher-assigned for fallback items and algorithmically computed for fetched items; future iterations should validate difficulty through pilot testing with target populations.
   \item External API availability (Wikipedia, Picsum, Pexels, Pollinations.ai) cannot be guaranteed. The fallback content pool mitigates this but limits content diversity when APIs are unreachable.
+  \item The circuit breaker thresholds (exposure cap of 10, diversity threshold of 30\%) are based on theoretical modeling rather than empirical calibration against real propaganda campaigns. Adversarial testing with realistic propaganda injection scenarios would strengthen threshold validation.
 \end{itemize}
 
-%% ============================================================
-\section{Future Work}
-%% ============================================================
+\subsection{Future Work}
 
 \begin{enumerate}[leftmargin=*]
   \item \textbf{Backend Integration}: Connect the Survey application to the Python FastAPI backend with PyTorch-based analysis, HuggingFace transformer models, and OpenCV image analysis for real-time agent verdicts rather than simulated probabilistic generation.
   \item \textbf{LangGraph Orchestration}: Implement the full LangGraph multi-agent workflow with conditional routing, enabling adaptive agent consultation based on content complexity.
-  \item \textbf{Longitudinal Study}: Deploy the containerized survey on Digital Ocean for a multi-week study with diverse participant demographics to validate the Human-AI Collab effectiveness hypothesis using data collected in the \texttt{TrustFeed} database.
+  \item \textbf{Longitudinal Study}: Leverage the deployed survey at \texttt{https://trustfeed-survey-ealep.ondigitalocean.app} for a multi-week study with diverse participant demographics to validate the Human-AI Collab effectiveness hypothesis using data collected in the \texttt{TrustFeed} database.
   \item \textbf{Adaptive Difficulty}: Implement item response theory (IRT) to dynamically calibrate content difficulty based on accumulated participant data from \texttt{v\_accuracy\_by\_difficulty}.
   \item \textbf{Real-time Analytics Dashboard}: Build a researcher-facing dashboard querying the four aggregate views (\texttt{v\_accuracy\_by\_mode}, \texttt{v\_accuracy\_by\_difficulty}, \texttt{v\_agent\_accuracy}, \texttt{v\_accuracy\_by\_category}) for live monitoring of survey results and statistical significance testing.
   \item \textbf{Cross-Platform Validation}: Test the provenance indicator framework on real social media content from multiple platforms, using the content fetcher to expand beyond current sources.
   \item \textbf{Expanded Content Sources}: Integrate additional free APIs (Unsplash, Wikimedia Commons, arXiv abstracts) to further diversify survey content across media types, difficulty levels, and domains.
+  \item \textbf{Adversarial Circuit Breaker Testing}: Evaluate the circuit breaker against simulated propaganda campaigns with varying injection rates, content sophistication, and coordination strategies to empirically calibrate trigger thresholds and measure protective efficacy.
+  \item \textbf{Propaganda Pattern Recognition}: Extend the circuit breaker with topic-clustering capabilities to detect thematically coordinated AI content campaigns, not just volume-based saturation patterns.
 \end{enumerate}
 
 %% ============================================================
 \section{Conclusion}
 %% ============================================================
 
-We have presented TrustFeed, a comprehensive research platform for studying human-AI collaboration in AI-generated content authenticity assessment. The platform's multi-agent bias simulation with five regionally-profiled agents and one baseline, combined with automatic debiasing, exposure-aware circuit breakers, and a standalone Human-AI Collab survey instrument, provides a novel framework for understanding how cultural bias affects content verification and how AI assistance modulates human judgment.
+We have presented TrustFeed, a comprehensive research platform for studying human-AI collaboration in AI-generated content authenticity assessment, with a particular focus on \textbf{protecting users from mass propaganda and misinformation}. As generative AI enables the production of synthetic media at unprecedented scale and sophistication~\cite{goldstein2023generative, zellers2019grover}, the platform addresses the urgent need for systems that defend not just against individual pieces of misinformation, but against the \emph{cumulative cognitive effects} of sustained AI-generated propaganda exposure.
 
-The TrustFeed Core application demonstrates that content authenticity is best served by multi-perspective evidence presentation rather than binary automated verdicts. The Survey application provides a controlled experimental environment for quantifying the effects of Human-AI Collaboration on classification accuracy across diverse content types and difficulty levels. Dynamic content fetching from free internet sources (Wikipedia, Picsum, Pexels, Pollinations.ai) ensures unique stimuli per session, while the MySQL persistence layer enables cross-session analysis through four pre-defined aggregate views.
+The platform's most significant contribution is the \textbf{circuit breaker system}—a three-trigger intervention mechanism (exposure cap, diversity threshold, judgment drift detection) that monitors the pattern of AI content consumption and intervenes before propaganda campaigns can degrade human judgment. Unlike content moderation approaches that engage in an ever-escalating arms race with AI generators, the circuit breaker protects the cognitive integrity of the consumer, making users aware of manipulation patterns and breaking the passive consumption loops that propaganda depends on~\cite{vosoughi2018spread, bessi2016social}.
 
-Collected data demonstrates that Human-AI Collab mode yields measurable accuracy improvements ($\sim$12 percentage points) over solo performance, with humans excelling at voice-rich content categories (Personal, Sports, Food) while agents outperform on technical categories (Technology, Finance, Environment). This complementarity validates the human-AI collaboration paradigm for content authenticity. Agent accuracy varies significantly by regional bias profile, confirming that culturally-situated bias impacts detection reliability in predictable, measurable ways.
+The multi-agent bias simulation with five regionally-profiled agents and one baseline, combined with automatic debiasing, demonstrates that content authenticity is best served by multi-perspective evidence presentation rather than binary automated verdicts. The social media--style feed—with Instagram-inspired avatar rings, AI likelihood indicator strips, and contextual reporting menus—shows that AI transparency features can be integrated into familiar design patterns without disrupting user experience. The Survey application provides a controlled experimental environment protected by multi-layered data integrity mechanisms that ensures research-quality data.
 
-With its containerized architecture, database-backed analytics, cloud-deployment readiness, and carefully designed experimental protocol, TrustFeed offers the research community an open framework for advancing the science of human-AI collaborative content verification—a capability of increasing importance as AI-generated content becomes indistinguishable from human creation.
+Collected data demonstrates that Human-AI Collab mode yields measurable accuracy improvements ($\sim$12 percentage points) over solo performance, with humans excelling at voice-rich content categories while agents outperform on technical categories. This complementarity validates the human-AI collaboration paradigm for content authenticity. Agent accuracy varies significantly by regional bias profile, confirming that culturally-situated bias impacts detection reliability in predictable, measurable ways.
+
+With its containerized architecture, production cloud deployment, comprehensive security hardening, and carefully designed experimental protocol, TrustFeed offers the research community an open framework for advancing the science of human-AI collaborative content verification and propaganda-resilient platform design—capabilities of increasing importance as AI-generated content becomes indistinguishable from human creation.
 
 %% ============================================================
 %% References
 %% ============================================================
 
-\begin{thebibliography}{20}
+\begin{thebibliography}{25}
 
 \bibitem{mitchell2023detectgpt}
 E. Mitchell, Y. Lee, A. Khazatsky, C. Manning, and C. Finn.
@@ -836,6 +963,51 @@ G. Bansal, T. Wu, J. Zhou, R. Fok, B. Nushi, E. Kamar, M. T. Ribeiro, and D. Wel
 F. Husz{\'a}r, S. Ktena, C. O'Brien, L. Belli, A. Schlaikjer, and M. Ber.
 \newblock Algorithmic Amplification of Politics on Twitter.
 \newblock \emph{Proceedings of the National Academy of Sciences}, 119(1), 2022.
+
+\bibitem{goldstein2023generative}
+J. Goldstein, G. Sastry, M. Musser, R. DiResta, M. Gentzel, and K. Sedova.
+\newblock Generative Language Models and Automated Influence Operations: Emerging Threats and Potential Mitigations.
+\newblock \emph{arXiv preprint arXiv:2301.04246}, 2023.
+
+\bibitem{zellers2019grover}
+R. Zellers, A. Holtzman, H. Rashkin, Y. Bisk, A. Farhadi, F. Roesner, and Y. Choi.
+\newblock Defending Against Neural Fake News.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2019.
+
+\bibitem{europol2022deepfakes}
+Europol Innovation Lab.
+\newblock Facing Reality? Law Enforcement and the Challenge of Deepfakes.
+\newblock Europol Report, 2022.
+
+\bibitem{bessi2016social}
+A. Bessi and E. Ferrara.
+\newblock Social Bots Distort the 2016 U.S. Presidential Election Online Discussion.
+\newblock \emph{First Monday}, 21(11), 2016.
+
+\bibitem{vosoughi2018spread}
+S. Vosoughi, D. Roy, and S. Aral.
+\newblock The Spread of True and False News Online.
+\newblock \emph{Science}, 359(6380):1146--1151, 2018.
+
+\bibitem{wang2020cnn}
+L. Wang, R. Zhang, C. Xu, Y. Wu, and L. Shao.
+\newblock CNN-Generated Images Are Surprisingly Easy to Spot...for Now.
+\newblock In \emph{Proceedings of CVPR}, 2020.
+
+\bibitem{bai2022constitutional}
+Y. Bai, S. Kadavath, S. Kundu, A. Askell, J. Kernion, A. Jones, A. Chen, A. Goldie, A. Mirhoseini, C. McKinnon, et~al.
+\newblock Constitutional AI: Harmlessness from AI Feedback.
+\newblock \emph{arXiv preprint arXiv:2212.08073}, 2022.
+
+\bibitem{lai2021towards}
+V. Lai, C. Chen, Q. V. Liao, A. Smith-Renner, and C. Tan.
+\newblock Towards a Science of Human-AI Decision Making: A Survey of Empirical Studies.
+\newblock \emph{arXiv preprint arXiv:2112.11471}, 2021.
+
+\bibitem{mehrabi2021survey}
+N. Mehrabi, F. Morstatter, N. Saxena, K. Lerman, and A. Galstyan.
+\newblock A Survey on Bias and Fairness in Machine Learning.
+\newblock \emph{ACM Computing Surveys}, 54(6):1--35, 2021.
 
 \end{thebibliography}
 
