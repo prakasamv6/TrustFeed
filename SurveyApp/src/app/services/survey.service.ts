@@ -46,6 +46,30 @@ export class SurveyService {
     return { current: answered, total: s.items.length, percent: Math.round((answered / s.items.length) * 100) };
   });
 
+  // ─── Attention Check Items ───
+  // Verification questions that test if the participant is paying attention.
+  // The correct answer is always explicitly stated in the question itself.
+
+  private readonly attentionCheckItems: Omit<SurveyItem, 'id' | 'agentVerdicts'>[] = [
+    {
+      title: '⚠️ Attention Check — Please Read Carefully',
+      content: 'This is an attention verification question. To confirm you are reading each item carefully, please select "AI Generated" as your answer for this item. This question is not about the content itself — it checks that you are an attentive human participant.',
+      contentType: 'text', groundTruth: 'ai', category: 'Attention Check', difficulty: 'easy',
+    },
+    {
+      title: '⚠️ Quality Control — Verification Item',
+      content: 'This item is a quality control check embedded in the survey. We ask that you select "Human Created" for this particular item. Your careful participation helps ensure the integrity of this research study.',
+      contentType: 'text', groundTruth: 'human', category: 'Attention Check', difficulty: 'easy',
+    },
+  ];
+
+  /** Check if a completed session passed attention checks. */
+  checkAttentionChecks(items: SurveyItem[]): { passed: boolean; total: number; correct: number } {
+    const checks = items.filter(i => i.category === 'Attention Check');
+    const correct = checks.filter(i => i.humanVerdict === i.groundTruth).length;
+    return { passed: correct === checks.length, total: checks.length, correct };
+  }
+
   // ─── Content Pools (unique each generation via shuffle + randomized agents) ───
 
   private readonly contentPool: Omit<SurveyItem, 'id' | 'agentVerdicts'>[] = [
@@ -288,8 +312,21 @@ export class SurveyService {
       agentVerdicts: this.generateUniqueAgentVerdicts(raw.groundTruth, raw.difficulty, raw.category),
     }));
 
+    // ─── Inject Attention Check Question (for sessions with 8+ items) ───
+    if (items.length >= 8) {
+      const checkItem = this.attentionCheckItems[Math.floor(Math.random() * this.attentionCheckItems.length)];
+      const attentionSurveyItem: SurveyItem = {
+        ...checkItem,
+        id: `survey-${Date.now()}-attn`,
+        agentVerdicts: this.generateUniqueAgentVerdicts(checkItem.groundTruth, checkItem.difficulty, checkItem.category),
+      };
+      // Insert at a random position in the middle third
+      const insertAt = Math.floor(items.length / 3) + Math.floor(Math.random() * Math.ceil(items.length / 3));
+      items.splice(insertAt, 0, attentionSurveyItem);
+    }
+
     const session: SurveySession = {
-      id: `session-${Date.now()}`,
+      id: `session-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
       startedAt: new Date(),
       items,
       currentIndex: 0,
@@ -305,7 +342,12 @@ export class SurveyService {
   }
 
   /** Submit human verdict for current item and advance. */
-  submitVerdict(verdict: 'ai' | 'human', confidence: number, reasoning: string): void {
+  submitVerdict(
+    verdict: 'ai' | 'human',
+    confidence: number,
+    reasoning: string,
+    meta: { responseTimeMs: number; flaggedFast: boolean } = { responseTimeMs: 0, flaggedFast: false }
+  ): void {
     const s = this._session();
     if (!s || s.completedAt) return;
 
@@ -327,8 +369,8 @@ export class SurveyService {
       completedAt: isLast ? new Date() : undefined,
     });
 
-    // Persist response to MySQL (no PII)
-    this.api.saveResponse(s.id, updatedItems[s.currentIndex], s.currentIndex);
+    // Persist response to MySQL (no PII) — includes response time metadata
+    this.api.saveResponse(s.id, updatedItems[s.currentIndex], s.currentIndex, meta);
 
     if (isLast) {
       this.computeResults();
@@ -547,6 +589,16 @@ export class SurveyService {
 
     this._results.set(results);
     this._allResults.update(arr => [...arr, results]);
+
+    // ─── Attention Check Audit ───
+    const attentionResult = this.checkAttentionChecks(items);
+    if (attentionResult.total > 0) {
+      if (!attentionResult.passed) {
+        console.warn(`ATTENTION CHECK FAILED — Session ${s.id}: ${attentionResult.correct}/${attentionResult.total} passed`);
+      } else {
+        console.log(`Attention check passed — Session ${s.id}: ${attentionResult.correct}/${attentionResult.total}`);
+      }
+    }
 
     // Persist completed results to MySQL (no PII)
     this.api.completeSession(results);

@@ -270,6 +270,12 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
           <button class="submit-btn" [disabled]="!pendingVerdict || !pendingConfidence" (click)="submitAnswer()">
             {{ isLastItem() ? '✅ Submit & View Results' : '➡️ Submit & Next' }}
           </button>
+
+          <!-- Honeypot: hidden from real users, bots fill this -->
+          <div class="visually-hidden" aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;height:0;width:0;overflow:hidden;">
+            <label for="survey_website">Leave this blank</label>
+            <input type="text" id="survey_website" name="website" [(ngModel)]="honeypot" tabindex="-1" autocomplete="off" />
+          </div>
         </div>
       </div>
     </div>
@@ -658,6 +664,8 @@ export class SurveyComponent {
   pendingVerdict: 'ai' | 'human' | null = null;
   pendingConfidence: number | null = null;
   pendingReasoning = '';
+  honeypot = ''; // Bot detection: hidden field that real users never fill
+  itemShownAt = Date.now(); // Response time tracking
 
   private regionFlags: Record<string, string> = {
     'Africa': '🌍', 'Asia': '🌏', 'Europe': '🇪🇺', 'Americas': '🌎', 'Oceania': '🏝️',
@@ -666,6 +674,7 @@ export class SurveyComponent {
   async startSurvey(): Promise<void> {
     try {
       await this.surveyService.startSession(this.selectedCount, this.collabMode);
+      this.itemShownAt = Date.now(); // Start timing first item
     } catch (err) {
       console.error('Survey failed to start:', err);
       this.errorService.notify('error',
@@ -692,10 +701,29 @@ export class SurveyComponent {
 
   submitAnswer(): void {
     if (!this.pendingVerdict || !this.pendingConfidence) return;
-    this.surveyService.submitVerdict(this.pendingVerdict, this.pendingConfidence, this.pendingReasoning);
+
+    // Honeypot check: if filled, silently reject (bot detected)
+    if (this.honeypot) {
+      console.warn('Bot detected via honeypot');
+      this.pendingVerdict = null;
+      this.pendingConfidence = null;
+      this.pendingReasoning = '';
+      return;
+    }
+
+    // Response time check: flag if answered too fast (<2 seconds)
+    const now = Date.now();
+    const elapsed = now - this.itemShownAt;
+    const isSuspiciouslyFast = elapsed < 2000;
+
+    this.surveyService.submitVerdict(
+      this.pendingVerdict, this.pendingConfidence, this.pendingReasoning,
+      { responseTimeMs: elapsed, flaggedFast: isSuspiciouslyFast }
+    );
     this.pendingVerdict = null;
     this.pendingConfidence = null;
     this.pendingReasoning = '';
+    this.itemShownAt = Date.now(); // Reset for next item
   }
 
   getAgentConsensus(verdicts: { verdict: string }[]): boolean {

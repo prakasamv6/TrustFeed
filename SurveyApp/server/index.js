@@ -80,7 +80,7 @@ setInterval(() => {
 // ─── Input Validation Helpers ───
 
 function isValidSessionId(id) {
-  return typeof id === 'string' && /^session-\d{13,}$/.test(id);
+  return typeof id === 'string' && /^session-\d{13,}(-[a-f0-9]{8})?$/.test(id);
 }
 
 function isValidVerdict(v) {
@@ -182,6 +182,60 @@ const memStore = {
   agreementMatrix: new Map(),
 };
 
+// ─── Bot & Fraud Detection (per IP, no PII stored — only counts) ───
+
+const ipSessionTracker = new Map(); // IP → { count, firstSeen }
+const IP_SESSION_LIMIT = 5;         // Max sessions per IP per hour
+const IP_SESSION_WINDOW = 3600000;  // 1 hour
+
+function trackIpSession(ip) {
+  const now = Date.now();
+  const entry = ipSessionTracker.get(ip) || { count: 0, firstSeen: now };
+  if (now - entry.firstSeen > IP_SESSION_WINDOW) {
+    entry.count = 0;
+    entry.firstSeen = now;
+  }
+  entry.count++;
+  ipSessionTracker.set(ip, entry);
+  return entry.count;
+}
+
+// Clean up IP tracker every 30 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of ipSessionTracker) {
+    if (now - entry.firstSeen > IP_SESSION_WINDOW * 2) ipSessionTracker.delete(ip);
+  }
+}, 1800000);
+
+// ─── Straight-Line & Quality Detection ───
+
+function detectStraightLine(responses) {
+  if (!Array.isArray(responses) || responses.length < 3) return false;
+  const verdicts = responses.map(r => r.humanVerdict).filter(Boolean);
+  if (verdicts.length < 3) return false;
+  // All same answer = straight-lining
+  return verdicts.every(v => v === verdicts[0]);
+}
+
+function computeFraudFlags(responses) {
+  const flags = [];
+  if (detectStraightLine(responses)) {
+    flags.push('straight_line');
+  }
+  // Check if all responses were suspiciously fast (<2s each)
+  const fastCount = responses.filter(r => r.flaggedFast).length;
+  if (fastCount > 0 && fastCount >= responses.length * 0.5) {
+    flags.push('speed_bot');
+  }
+  // Check for zero-variance confidence (all same confidence)
+  const confidences = responses.map(r => r.humanConfidence).filter(c => c != null);
+  if (confidences.length >= 3 && confidences.every(c => c === confidences[0])) {
+    flags.push('uniform_confidence');
+  }
+  return flags;
+}
+
 let dbAvailable = false;
 
 async function checkDb() {
@@ -263,6 +317,17 @@ app.post('/api/sessions', async (req, res) => {
       });
     }
 
+    // ─── Duplicate IP Detection ───
+    const clientIp = req.ip || 'unknown';
+    const ipCount = trackIpSession(clientIp);
+    if (ipCount > IP_SESSION_LIMIT) {
+      console.warn(`FRAUD: IP ${clientIp} exceeded session limit (${ipCount} sessions)`);
+      return res.status(429).json({
+        error: 'Too many sessions',
+        message: 'Multiple survey submissions from the same network have been detected. Please wait before starting a new session.',
+      });
+    }
+
     if (dbAvailable) {
       await pool.execute(
         `INSERT INTO survey_sessions (session_id, started_at, collab_mode, item_count)
@@ -301,8 +366,16 @@ app.post('/api/sessions/:id/responses', async (req, res) => {
     const {
       itemIndex, itemTitle, itemCategory, itemDifficulty, contentType,
       groundTruth, humanVerdict, humanConfidence, humanReasoning,
+      responseTimeMs, flaggedFast,
       agentVerdicts
     } = req.body;
+
+    // Log response time and fraud flag
+    const responseTime = typeof responseTimeMs === 'number' ? Math.max(0, responseTimeMs) : null;
+    const isFast = !!flaggedFast;
+    if (isFast) {
+      console.warn(`FRAUD: Fast response detected — session ${sessionId}, item ${itemIndex}, ${responseTime}ms`);
+    }
 
     // Validate required fields
     if (itemIndex == null || !humanVerdict || !humanConfidence) {
@@ -397,6 +470,7 @@ app.post('/api/sessions/:id/responses', async (req, res) => {
         sessionId, itemIndex: parsedIndex, itemTitle, itemCategory,
         itemDifficulty: safeDifficulty, contentType, groundTruth,
         humanVerdict, humanConfidence, humanReasoning,
+        responseTimeMs: responseTime, flaggedFast: isFast,
       });
       if (Array.isArray(agentVerdicts)) {
         memStore.agentVerdicts.set(key, agentVerdicts.slice(0, 10));
@@ -488,7 +562,18 @@ app.put('/api/sessions/:id/complete', async (req, res) => {
       if (Array.isArray(agreementMatrix)) memStore.agreementMatrix.set(sessionId, agreementMatrix);
     }
 
-    res.json({ sessionId, message: 'Session completed and results saved' });
+    // ─── Straight-Line & Fraud Audit (runs on every completion) ───
+    const sessionResponses = [...memStore.responses.values()].filter(r => r.sessionId === sessionId);
+    const fraudFlags = computeFraudFlags(sessionResponses);
+    if (fraudFlags.length > 0) {
+      console.warn(`FRAUD AUDIT — Session ${sessionId}: [${fraudFlags.join(', ')}]`);
+    }
+
+    res.json({
+      sessionId,
+      message: 'Session completed and results saved',
+      qualityFlags: fraudFlags.length > 0 ? fraudFlags : undefined,
+    });
   } catch (err) {
     if (conn) await conn.rollback();
     console.error('PUT /api/sessions/:id/complete error:', err.message);

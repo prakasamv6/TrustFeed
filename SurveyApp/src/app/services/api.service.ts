@@ -32,7 +32,12 @@ export class ApiService {
   }
 
   /** Save a single item response + agent verdicts. Retries once on failure. */
-  saveResponse(sessionId: string, item: SurveyItem, itemIndex: number) {
+  saveResponse(
+    sessionId: string,
+    item: SurveyItem,
+    itemIndex: number,
+    meta: { responseTimeMs: number; flaggedFast: boolean } = { responseTimeMs: 0, flaggedFast: false }
+  ) {
     return this.http.post(`${this.baseUrl}/sessions/${encodeURIComponent(sessionId)}/responses`, {
       itemIndex,
       itemTitle: item.title,
@@ -43,6 +48,8 @@ export class ApiService {
       humanVerdict: item.humanVerdict,
       humanConfidence: item.humanConfidence,
       humanReasoning: item.humanReasoning || null,
+      responseTimeMs: meta.responseTimeMs,
+      flaggedFast: meta.flaggedFast,
       agentVerdicts: item.agentVerdicts.map(av => ({
         region: av.region,
         verdict: av.verdict,
