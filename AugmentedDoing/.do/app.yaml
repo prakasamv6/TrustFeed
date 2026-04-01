@@ -1,7 +1,6 @@
 # ─────────────────────────────────────────────────────────
 # Digital Ocean App Platform — TrustFeed Core
-# Deploy from repo root: doctl apps create --spec AugmentedDoing/.do/app.yaml
-# Monorepo: uses source_dir to locate components
+# Deploy:  doctl apps create --spec AugmentedDoing/.do/app.yaml
 # ─────────────────────────────────────────────────────────
 
 name: trustfeed-core
@@ -10,7 +9,7 @@ region: nyc
 services:
   # ─── Angular Frontend (nginx) ───
   - name: core-frontend
-    dockerfile_path: AugmentedDoing/Dockerfile
+    dockerfile_path: Dockerfile
     github:
       repo: prakasamv6/TrustFeed
       branch: main
@@ -28,7 +27,7 @@ services:
 
   # ─── FastAPI Backend ───
   - name: core-api
-    dockerfile_path: AugmentedDoing/backend/Dockerfile
+    dockerfile_path: Dockerfile
     github:
       repo: prakasamv6/TrustFeed
       branch: main
