@@ -1,0 +1,33 @@
+# ─── Python ───
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# ─── Node ───
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# ─── Build outputs ───
+dist/
+tmp/
+out-tsc/
+*.angular/cache
+
+# ─── IDE ───
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+.history/
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+
+# ─── Secrets (never commit) ───
+.env
+.env.*
+*.pem
+*.key

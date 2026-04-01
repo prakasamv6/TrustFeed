@@ -1,14 +1,26 @@
 # ─────────────────────────────────────────────────────────
-# Digital Ocean App Platform — TrustFeed Survey
-# Deploy from repo root: doctl apps create --spec SurveyApp/.do/app.yaml
-# Monorepo: uses source_dir to locate components
+# Digital Ocean App Platform — TrustFeed (Monorepo)
+# This is the root spec. Deploy with:
+#   doctl apps create --spec .do/app.yaml
+#
+# Both apps share one GitHub repo. source_dir tells DO
+# where each component lives.
+# ─────────────────────────────────────────────────────────
+#
+# NOTE: DO App Platform supports ONE app per spec.
+# Deploy each app separately:
+#
+#   doctl apps create --spec SurveyApp/.do/app.yaml
+#   doctl apps create --spec AugmentedDoing/.do/app.yaml
+#
+# Or deploy the Survey app (primary) with this root spec:
 # ─────────────────────────────────────────────────────────
 
 name: trustfeed-survey
 region: nyc
 
-# ─── Angular Frontend (nginx) ───
 services:
+  # ─── Survey Angular Frontend (nginx) ───
   - name: survey-frontend
     dockerfile_path: SurveyApp/Dockerfile
     github:
@@ -26,7 +38,7 @@ services:
       initial_delay_seconds: 10
       period_seconds: 30
 
-  # ─── Express API Server ───
+  # ─── Survey Express API Server ───
   - name: survey-api
     dockerfile_path: SurveyApp/server/Dockerfile
     github:
@@ -62,7 +74,6 @@ services:
       initial_delay_seconds: 15
       period_seconds: 30
 
-# ─── MySQL 8 Database (NO PII) ───
 databases:
   - name: db
     engine: MYSQL
