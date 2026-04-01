@@ -197,6 +197,10 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
                   <span class="arc-verdict" [class]="'v-' + av.verdict">{{ av.verdict | uppercase }}</span>
                   <span class="arc-result">{{ av.verdict === item.groundTruth ? '✅' : '❌' }}</span>
                 </div>
+                <div class="agent-review-media" *ngIf="av.analysisImageUrl || av.analysisVideoUrl">
+                  <video *ngIf="av.analysisMediaType === 'video' && av.analysisVideoUrl" [src]="av.analysisVideoUrl" [poster]="av.analysisImageUrl" controls muted class="agent-media-video"></video>
+                  <img *ngIf="av.analysisMediaType === 'image' && av.analysisImageUrl" [src]="av.analysisImageUrl" alt="Agent analysis media" class="agent-media-img" loading="lazy" />
+                </div>
                 <div class="arc-conf">Confidence: {{ av.confidence * 100 | number:'1.0-0' }}%</div>
                 <p class="arc-reasoning">{{ av.reasoning }}</p>
               </div>
@@ -427,6 +431,18 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
     }
     .hint-conf { font-size: 0.65rem; color: #8892b0; }
     .hint-reasoning { margin: 0; font-size: 0.7rem; color: #8892b0; line-height: 1.5; }
+    .hint-media, .agent-review-media {
+      margin: 0.4rem 0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .agent-media-img {
+      width: 100%; height: auto; max-height: 160px; object-fit: cover;
+      border-radius: 8px;
+    }
+    .agent-media-video {
+      width: 100%; max-height: 160px; border-radius: 8px; background: #000;
+    }
     .already-answered {
       display: flex; flex-direction: column; gap: 1rem;
     }
