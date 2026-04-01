@@ -42,6 +42,10 @@ services:
     instance_size_slug: basic-xxs
     routes:
       - path: /api
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 10
+      period_seconds: 30
     envs:
       - key: DB_HOST
         type: SECRET
