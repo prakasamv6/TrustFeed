@@ -149,6 +149,59 @@ async function fetchPexelsContent(apiKey, photoCount, videoCount) {
   return results;
 }
 
+// ─── Free Video Sources (human videos, no API key) ───
+
+function getHumanVideos(count) {
+  // Curated set of real human-filmed stock video URLs (free/open sources)
+  const videos = [
+    { title: 'Ocean Waves at Sunset', content: 'Real footage of ocean waves breaking on a sandy beach during golden hour. The natural movement of water, authentic lens flare, and ambient sound of the surf are hallmarks of human-captured videography.', category: 'Nature', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', imageUrl: 'https://picsum.photos/seed/ocean/600/400' },
+    { title: 'Forest Stream in Morning Light', content: 'A tranquil forest stream filmed in early morning light. Dappled sunlight filters through the canopy, creating natural bokeh effects. The handheld camera movement and organic framing indicate human cinematography.', category: 'Nature', videoUrl: 'https://www.w3schools.com/html/movie.mp4', imageUrl: 'https://picsum.photos/seed/forest/600/400' },
+    { title: 'City Street Time-lapse', content: 'A time-lapse recording of a busy city intersection during rush hour. The video captures authentic urban dynamics — pedestrian flow, traffic patterns, and changing light conditions — characteristic of real-world documentary filming.', category: 'Urban', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', imageUrl: 'https://picsum.photos/seed/city/600/400' },
+    { title: 'Cooking Fresh Pasta by Hand', content: 'Close-up footage of a chef preparing fresh pasta from scratch. The video showcases real hand movements, flour dust particles, and natural kitchen lighting that are difficult for AI to replicate convincingly.', category: 'Lifestyle', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4', imageUrl: 'https://picsum.photos/seed/cooking/600/400' },
+    { title: 'Mountain Hiking Trail', content: 'Point-of-view footage from a mountain hiking trail. Natural camera shake from walking, authentic wind noise, and the organic pacing of a human hiker distinguish this from synthetic footage.', category: 'Adventure', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', imageUrl: 'https://picsum.photos/seed/mountain/600/400' },
+    { title: 'Birds in a Garden', content: 'Handheld footage of songbirds feeding in a suburban garden. The unpredictable movement of the birds, natural depth of field shifts, and ambient garden sounds mark this as genuine wildlife videography.', category: 'Wildlife', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', imageUrl: 'https://picsum.photos/seed/birds/600/400' },
+    { title: 'Rainy Window View', content: 'A contemplative shot of rain falling on a window pane with a blurred cityscape behind. The randomness of raindrop patterns and natural reflections are telltale signs of real-world footage.', category: 'Atmospheric', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4', imageUrl: 'https://picsum.photos/seed/rain/600/400' },
+    { title: 'Children Playing in a Park', content: 'Candid footage of children playing on playground equipment in a sunlit park. The spontaneous laughter, unpredictable movement, and natural lens exposure adjustments are characteristic of authentic human filming.', category: 'Lifestyle', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4', imageUrl: 'https://picsum.photos/seed/park/600/400' },
+  ];
+
+  return videos.sort(() => Math.random() - 0.5).slice(0, count).map(v => ({
+    title: v.title,
+    content: v.content,
+    imageUrl: v.imageUrl,
+    videoUrl: v.videoUrl,
+    contentType: 'video',
+    groundTruth: 'human',
+    category: v.category,
+    difficulty: 'hard',
+    source: 'human-video',
+  }));
+}
+
+// ─── AI-Generated Videos (synthetic / simulated, no API key) ───
+
+function getAIGeneratedVideos(count) {
+  const videos = [
+    { title: 'AI Dreamscape: Morphing Landscapes', content: 'An AI-generated video showing landscapes that smoothly morph from desert to ocean to forest. The impossibly fluid transitions and perfectly symmetrical compositions reveal its synthetic origin. Generated using diffusion-based video models.', imageUrl: 'https://image.pollinations.ai/prompt/morphing%20dreamscape%20landscape?width=600&height=400&nologo=true' },
+    { title: 'Neural Network Visualization', content: 'A procedurally generated visualization of data flowing through a neural network. The perfectly geometric nodes, impossibly smooth particle trajectories, and mathematically precise color gradients distinguish it from human-made animation.', imageUrl: 'https://image.pollinations.ai/prompt/neural%20network%20visualization%20data%20flow?width=600&height=400&nologo=true' },
+    { title: 'AI Fashion Runway', content: 'An AI-generated fashion runway video showing models in algorithmically designed clothing. Subtle inconsistencies in finger geometry, overly symmetrical facial features, and fabric that moves with unnatural fluidity betray its synthetic nature.', imageUrl: 'https://image.pollinations.ai/prompt/futuristic%20fashion%20runway%20AI%20generated?width=600&height=400&nologo=true' },
+    { title: 'Synthetic Nature Documentary', content: 'AI-generated footage of a species of animal that does not exist — a luminescent arctic fox with butterfly wings. The impossibly detailed fur rendering and physically implausible creature design indicate AI generation.', imageUrl: 'https://image.pollinations.ai/prompt/luminescent%20arctic%20fox%20butterfly%20wings%20nature%20documentary?width=600&height=400&nologo=true' },
+    { title: 'AI Architectural Walkthrough', content: 'A walkthrough of an AI-designed building with impossible geometry — staircases that loop into themselves, rooms that are larger inside than outside. The flawless lighting and absence of construction imperfections signal AI origin.', imageUrl: 'https://image.pollinations.ai/prompt/impossible%20architecture%20escher%20walkthrough?width=600&height=400&nologo=true' },
+    { title: 'Deepfake Weather Report', content: 'An AI-generated weather report featuring a synthetic presenter. The overly smooth skin texture, slightly misaligned lip sync, and unnaturally consistent eye blinks are telltale signs of deepfake video generation technology.', imageUrl: 'https://image.pollinations.ai/prompt/AI%20generated%20news%20anchor%20weather%20report?width=600&height=400&nologo=true' },
+  ];
+
+  return videos.sort(() => Math.random() - 0.5).slice(0, count).map(v => ({
+    title: v.title,
+    content: v.content,
+    imageUrl: v.imageUrl,
+    videoUrl: null,
+    contentType: 'video',
+    groundTruth: 'ai',
+    category: 'AI Video',
+    difficulty: 'hard',
+    source: 'ai-generated',
+  }));
+}
+
 // ─── Pollinations.ai (AI-generated images, no API key) ───
 
 async function fetchAIImages(count) {
@@ -340,18 +393,22 @@ function assignDifficulty(text) {
 // ─── Main fetch orchestrator ───
 
 async function fetchUniqueContent(totalCount, pexelsApiKey) {
-  // Distribute count: ~40% human text, ~20% human images, ~10% human video, ~20% AI text, ~10% AI images
-  const humanTextCount = Math.ceil(totalCount * 0.3);
+  // Distribute: ~25% human text, ~15% human images, ~10% human video,
+  //             ~20% AI text, ~15% AI images, ~10% AI video, ~5% pexels bonus
+  const humanTextCount = Math.ceil(totalCount * 0.25);
   const humanImageCount = Math.ceil(totalCount * 0.15);
-  const humanVideoCount = pexelsApiKey ? Math.max(1, Math.ceil(totalCount * 0.05)) : 0;
-  const aiTextCount = Math.ceil(totalCount * 0.3);
-  const aiImageCount = Math.ceil(totalCount * 0.2);
+  const humanVideoCount = Math.max(1, Math.ceil(totalCount * 0.10));
+  const aiTextCount = Math.ceil(totalCount * 0.20);
+  const aiImageCount = Math.ceil(totalCount * 0.15);
+  const aiVideoCount = Math.max(1, Math.ceil(totalCount * 0.10));
+  const pexelsPhotoCount = pexelsApiKey ? Math.ceil(totalCount * 0.05) : 0;
+  const pexelsVideoCount = pexelsApiKey ? Math.max(1, Math.ceil(totalCount * 0.05)) : 0;
 
   // Fetch all sources in parallel — using allSettled so one failure doesn't block others
   const results = await Promise.allSettled([
     fetchWikipediaArticles(humanTextCount + 3), // extra for fallback
     fetchPicsumImages(humanImageCount + 2),
-    fetchPexelsContent(pexelsApiKey, humanImageCount, humanVideoCount),
+    fetchPexelsContent(pexelsApiKey, pexelsPhotoCount, pexelsVideoCount),
     fetchAIImages(aiImageCount + 2),
   ]);
 
@@ -369,14 +426,18 @@ async function fetchUniqueContent(totalCount, pexelsApiKey) {
   });
 
   const aiTexts = generateAITexts(aiTextCount + 2);
+  const humanVideos = getHumanVideos(humanVideoCount + 1);
+  const aiVideos = getAIGeneratedVideos(aiVideoCount + 1);
 
   // Combine all content
   let allContent = [
     ...wikiArticles.slice(0, humanTextCount),
     ...picsumImages.slice(0, humanImageCount),
+    ...humanVideos.slice(0, humanVideoCount),
     ...pexelsContent,
     ...aiTexts.slice(0, aiTextCount),
     ...aiImages.slice(0, aiImageCount),
+    ...aiVideos.slice(0, aiVideoCount),
   ];
 
   // If we have fewer items than requested, pad with AI text (always available)

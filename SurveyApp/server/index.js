@@ -97,6 +97,28 @@ if (process.env.DB_SSL === 'true') {
 
 const pool = mysql.createPool(dbConfig);
 
+// ─── In-memory fallback when MySQL is not available ───
+const memStore = {
+  sessions: new Map(),
+  responses: new Map(),
+  agentVerdicts: new Map(),
+  agentResults: new Map(),
+  agreementMatrix: new Map(),
+};
+
+let dbAvailable = false;
+
+async function checkDb() {
+  try {
+    await pool.query('SELECT 1');
+    dbAvailable = true;
+  } catch {
+    dbAvailable = false;
+  }
+}
+checkDb();
+setInterval(checkDb, 30000);
+
 // ─── Health Check ───
 
 app.get('/api/health', async (_req, res) => {
@@ -165,11 +187,18 @@ app.post('/api/sessions', async (req, res) => {
       });
     }
 
-    await pool.execute(
-      `INSERT INTO survey_sessions (session_id, started_at, collab_mode, item_count)
-       VALUES (?, ?, ?, ?)`,
-      [sessionId, parsedDate, !!collabMode, parsedCount]
-    );
+    if (dbAvailable) {
+      await pool.execute(
+        `INSERT INTO survey_sessions (session_id, started_at, collab_mode, item_count)
+         VALUES (?, ?, ?, ?)`,
+        [sessionId, parsedDate, !!collabMode, parsedCount]
+      );
+    } else {
+      if (memStore.sessions.has(sessionId)) {
+        return res.status(409).json({ error: 'Session already exists', message: 'Duplicate session.' });
+      }
+      memStore.sessions.set(sessionId, { sessionId, startedAt: parsedDate, collabMode: !!collabMode, itemCount: parsedCount });
+    }
 
     res.status(201).json({ sessionId, message: 'Session created' });
   } catch (err) {
@@ -190,7 +219,7 @@ app.post('/api/sessions', async (req, res) => {
 // ─── POST /api/sessions/:id/responses — Save a single item response ───
 
 app.post('/api/sessions/:id/responses', async (req, res) => {
-  const conn = await pool.getConnection();
+  let conn = null;
   try {
     const sessionId = req.params.id;
     const {
@@ -239,69 +268,82 @@ app.post('/api/sessions/:id/responses', async (req, res) => {
 
     const safeDifficulty = isValidDifficulty(itemDifficulty) ? itemDifficulty : 'medium';
 
-    await conn.beginTransaction();
+    if (dbAvailable) {
+      conn = await pool.getConnection();
+      await conn.beginTransaction();
 
-    // Insert human response
-    await conn.execute(
-      `INSERT INTO survey_responses
-       (session_id, item_index, item_title, item_category, item_difficulty, content_type,
-        ground_truth, human_verdict, human_confidence, human_reasoning)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-        human_verdict = VALUES(human_verdict),
-        human_confidence = VALUES(human_confidence),
-        human_reasoning = VALUES(human_reasoning)`,
-      [
-        sessionId, parsedIndex,
-        sanitizeString(itemTitle, 200), sanitizeString(itemCategory, 50),
-        safeDifficulty, sanitizeString(contentType, 20) || 'text',
-        groundTruth, humanVerdict, humanConfidence,
-        sanitizeString(humanReasoning, 1000) || null
-      ]
-    );
+      await conn.execute(
+        `INSERT INTO survey_responses
+         (session_id, item_index, item_title, item_category, item_difficulty, content_type,
+          ground_truth, human_verdict, human_confidence, human_reasoning)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+          human_verdict = VALUES(human_verdict),
+          human_confidence = VALUES(human_confidence),
+          human_reasoning = VALUES(human_reasoning)`,
+        [
+          sessionId, parsedIndex,
+          sanitizeString(itemTitle, 200), sanitizeString(itemCategory, 50),
+          safeDifficulty, sanitizeString(contentType, 20) || 'text',
+          groundTruth, humanVerdict, humanConfidence,
+          sanitizeString(humanReasoning, 1000) || null
+        ]
+      );
 
-    // Insert agent verdicts for this item
-    if (Array.isArray(agentVerdicts)) {
-      for (const av of agentVerdicts.slice(0, 10)) { // cap at 10 agents max
-        if (!av.region || !av.verdict) continue;
-        await conn.execute(
-          `INSERT INTO agent_verdicts
-           (session_id, item_index, agent_region, verdict, confidence, reasoning, ground_truth)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE
-            verdict = VALUES(verdict),
-            confidence = VALUES(confidence),
-            reasoning = VALUES(reasoning)`,
-          [
-            sessionId, parsedIndex,
-            sanitizeString(av.region, 50),
-            isValidVerdict(av.verdict) ? av.verdict : 'human',
-            typeof av.confidence === 'number' ? Math.min(Math.max(av.confidence, 0), 1) : 0.5,
-            sanitizeString(av.reasoning, 500),
-            groundTruth
-          ]
-        );
+      if (Array.isArray(agentVerdicts)) {
+        for (const av of agentVerdicts.slice(0, 10)) {
+          if (!av.region || !av.verdict) continue;
+          await conn.execute(
+            `INSERT INTO agent_verdicts
+             (session_id, item_index, agent_region, verdict, confidence, reasoning, ground_truth)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+              verdict = VALUES(verdict),
+              confidence = VALUES(confidence),
+              reasoning = VALUES(reasoning)`,
+            [
+              sessionId, parsedIndex,
+              sanitizeString(av.region, 50),
+              isValidVerdict(av.verdict) ? av.verdict : 'human',
+              typeof av.confidence === 'number' ? Math.min(Math.max(av.confidence, 0), 1) : 0.5,
+              sanitizeString(av.reasoning, 500),
+              groundTruth
+            ]
+          );
+        }
+      }
+
+      await conn.commit();
+    } else {
+      // In-memory fallback
+      const key = `${sessionId}-${parsedIndex}`;
+      memStore.responses.set(key, {
+        sessionId, itemIndex: parsedIndex, itemTitle, itemCategory,
+        itemDifficulty: safeDifficulty, contentType, groundTruth,
+        humanVerdict, humanConfidence, humanReasoning,
+      });
+      if (Array.isArray(agentVerdicts)) {
+        memStore.agentVerdicts.set(key, agentVerdicts.slice(0, 10));
       }
     }
 
-    await conn.commit();
     res.status(201).json({ message: 'Response saved' });
   } catch (err) {
-    await conn.rollback();
+    if (conn) await conn.rollback();
     console.error('POST /api/sessions/:id/responses error:', err.message);
     res.status(500).json({
       error: 'Server error',
       message: 'Your response couldn\'t be saved right now. Your local progress is still intact.',
     });
   } finally {
-    conn.release();
+    if (conn) conn.release();
   }
 });
 
 // ─── PUT /api/sessions/:id/complete — Complete session with results ───
 
 app.put('/api/sessions/:id/complete', async (req, res) => {
-  const conn = await pool.getConnection();
+  let conn = null;
   try {
     const sessionId = req.params.id;
     const {
@@ -311,65 +353,75 @@ app.put('/api/sessions/:id/complete', async (req, res) => {
       agentResults, agreementMatrix
     } = req.body;
 
-    await conn.beginTransaction();
+    if (dbAvailable) {
+      conn = await pool.getConnection();
+      await conn.beginTransaction();
 
-    // Update session with results
-    await conn.execute(
-      `UPDATE survey_sessions SET
-        completed_at = ?, human_correct = ?, human_accuracy = ?,
-        human_ai_count = ?, human_human_count = ?,
-        actual_ai_count = ?, actual_human_count = ?
-       WHERE session_id = ?`,
-      [
-        new Date(completedAt || Date.now()),
-        humanCorrect, humanAccuracy,
-        humanAiCount, humanHumanCount,
-        actualAiCount, actualHumanCount,
-        sessionId
-      ]
-    );
+      await conn.execute(
+        `UPDATE survey_sessions SET
+          completed_at = ?, human_correct = ?, human_accuracy = ?,
+          human_ai_count = ?, human_human_count = ?,
+          actual_ai_count = ?, actual_human_count = ?
+         WHERE session_id = ?`,
+        [
+          new Date(completedAt || Date.now()),
+          humanCorrect, humanAccuracy,
+          humanAiCount, humanHumanCount,
+          actualAiCount, actualHumanCount,
+          sessionId
+        ]
+      );
 
-    // Insert agent result summaries
-    if (Array.isArray(agentResults)) {
-      for (const ar of agentResults) {
-        await conn.execute(
-          `INSERT INTO agent_results
-           (session_id, agent_region, correct_count, accuracy, ai_count, human_count, avg_confidence)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE
-            correct_count = VALUES(correct_count),
-            accuracy = VALUES(accuracy),
-            ai_count = VALUES(ai_count),
-            human_count = VALUES(human_count),
-            avg_confidence = VALUES(avg_confidence)`,
-          [sessionId, ar.region, ar.correct, ar.accuracy, ar.aiCount, ar.humanCount, ar.avgConfidence]
-        );
+      if (Array.isArray(agentResults)) {
+        for (const ar of agentResults) {
+          await conn.execute(
+            `INSERT INTO agent_results
+             (session_id, agent_region, correct_count, accuracy, ai_count, human_count, avg_confidence)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+              correct_count = VALUES(correct_count),
+              accuracy = VALUES(accuracy),
+              ai_count = VALUES(ai_count),
+              human_count = VALUES(human_count),
+              avg_confidence = VALUES(avg_confidence)`,
+            [sessionId, ar.region, ar.correct, ar.accuracy, ar.aiCount, ar.humanCount, ar.avgConfidence]
+          );
+        }
       }
+
+      if (Array.isArray(agreementMatrix)) {
+        for (const am of agreementMatrix) {
+          await conn.execute(
+            `INSERT INTO agreement_matrix (session_id, agent_region, agreement_rate)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE agreement_rate = VALUES(agreement_rate)`,
+            [sessionId, am.region, am.agreementRate]
+          );
+        }
+      }
+
+      await conn.commit();
+    } else {
+      // In-memory fallback
+      const session = memStore.sessions.get(sessionId) || {};
+      session.completedAt = completedAt;
+      session.humanCorrect = humanCorrect;
+      session.humanAccuracy = humanAccuracy;
+      memStore.sessions.set(sessionId, session);
+      if (Array.isArray(agentResults)) memStore.agentResults.set(sessionId, agentResults);
+      if (Array.isArray(agreementMatrix)) memStore.agreementMatrix.set(sessionId, agreementMatrix);
     }
 
-    // Insert agreement matrix
-    if (Array.isArray(agreementMatrix)) {
-      for (const am of agreementMatrix) {
-        await conn.execute(
-          `INSERT INTO agreement_matrix (session_id, agent_region, agreement_rate)
-           VALUES (?, ?, ?)
-           ON DUPLICATE KEY UPDATE agreement_rate = VALUES(agreement_rate)`,
-          [sessionId, am.region, am.agreementRate]
-        );
-      }
-    }
-
-    await conn.commit();
     res.json({ sessionId, message: 'Session completed and results saved' });
   } catch (err) {
-    await conn.rollback();
+    if (conn) await conn.rollback();
     console.error('PUT /api/sessions/:id/complete error:', err.message);
     res.status(500).json({
       error: 'Server error',
       message: 'Your results couldn\'t be saved to the research database. Your local results are still available.',
     });
   } finally {
-    conn.release();
+    if (conn) conn.release();
   }
 });
 
@@ -377,50 +429,33 @@ app.put('/api/sessions/:id/complete', async (req, res) => {
 
 app.get('/api/sessions/:id', async (req, res) => {
   try {
-    const [sessions] = await pool.execute(
-      'SELECT * FROM survey_sessions WHERE session_id = ?',
-      [req.params.id]
-    );
-    if (sessions.length === 0) {
-      return res.status(404).json({
-        error: 'Session not found',
-        message: 'We couldn\'t find a session with that ID. It may have expired or not been created yet.',
-      });
+    const sid = req.params.id;
+
+    if (dbAvailable) {
+      const [sessions] = await pool.execute(
+        'SELECT * FROM survey_sessions WHERE session_id = ?', [sid]
+      );
+      if (sessions.length === 0) {
+        return res.status(404).json({ error: 'Session not found', message: 'Session not found.' });
+      }
+      const [responses] = await pool.execute('SELECT * FROM survey_responses WHERE session_id = ? ORDER BY item_index', [sid]);
+      const [verdicts] = await pool.execute('SELECT * FROM agent_verdicts WHERE session_id = ? ORDER BY item_index, agent_region', [sid]);
+      const [agentRes] = await pool.execute('SELECT * FROM agent_results WHERE session_id = ?', [sid]);
+      const [agreement] = await pool.execute('SELECT * FROM agreement_matrix WHERE session_id = ?', [sid]);
+      res.json({ session: sessions[0], responses, agentVerdicts: verdicts, agentResults: agentRes, agreementMatrix: agreement });
+    } else {
+      const session = memStore.sessions.get(sid);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found', message: 'Session not found.' });
+      }
+      const responses = [...memStore.responses.values()].filter(r => r.sessionId === sid);
+      const agentVerdicts = [];
+      for (const [k, v] of memStore.agentVerdicts) { if (k.startsWith(sid)) agentVerdicts.push(...v); }
+      res.json({ session, responses, agentVerdicts, agentResults: memStore.agentResults.get(sid) || [], agreementMatrix: memStore.agreementMatrix.get(sid) || [] });
     }
-
-    const [responses] = await pool.execute(
-      'SELECT * FROM survey_responses WHERE session_id = ? ORDER BY item_index',
-      [req.params.id]
-    );
-
-    const [verdicts] = await pool.execute(
-      'SELECT * FROM agent_verdicts WHERE session_id = ? ORDER BY item_index, agent_region',
-      [req.params.id]
-    );
-
-    const [agentRes] = await pool.execute(
-      'SELECT * FROM agent_results WHERE session_id = ?',
-      [req.params.id]
-    );
-
-    const [agreement] = await pool.execute(
-      'SELECT * FROM agreement_matrix WHERE session_id = ?',
-      [req.params.id]
-    );
-
-    res.json({
-      session: sessions[0],
-      responses,
-      agentVerdicts: verdicts,
-      agentResults: agentRes,
-      agreementMatrix: agreement
-    });
   } catch (err) {
     console.error('GET /api/sessions/:id error:', err.message);
-    res.status(500).json({
-      error: 'Server error',
-      message: 'Something went wrong while retrieving session data.',
-    });
+    res.status(500).json({ error: 'Server error', message: 'Something went wrong while retrieving session data.' });
   }
 });
 
@@ -428,50 +463,46 @@ app.get('/api/sessions/:id', async (req, res) => {
 
 app.get('/api/analytics', async (req, res) => {
   try {
-    const [totalSessions] = await pool.execute(
-      'SELECT COUNT(*) AS count FROM survey_sessions WHERE completed_at IS NOT NULL'
-    );
-
-    const [byMode] = await pool.execute(
-      `SELECT
-        CASE WHEN collab_mode THEN 'collab' ELSE 'solo' END AS mode,
-        COUNT(*) AS sessions,
-        ROUND(AVG(human_accuracy), 4) AS avg_accuracy,
-        ROUND(AVG(human_correct), 1) AS avg_correct
-       FROM survey_sessions WHERE completed_at IS NOT NULL
-       GROUP BY collab_mode`
-    );
-
-    const [byDifficulty] = await pool.execute(
-      `SELECT item_difficulty, COUNT(*) AS total,
-        SUM(is_correct) AS correct,
-        ROUND(SUM(is_correct) / COUNT(*), 4) AS accuracy,
-        ROUND(AVG(human_confidence), 2) AS avg_confidence
-       FROM survey_responses GROUP BY item_difficulty`
-    );
-
-    const [agentAccuracy] = await pool.execute(
-      `SELECT agent_region, COUNT(*) AS total,
-        SUM(is_correct) AS correct,
-        ROUND(SUM(is_correct) / COUNT(*), 4) AS accuracy,
-        ROUND(AVG(confidence), 2) AS avg_confidence
-       FROM agent_verdicts GROUP BY agent_region`
-    );
-
-    const [byCategory] = await pool.execute(
-      `SELECT item_category, COUNT(*) AS total,
-        SUM(is_correct) AS correct,
-        ROUND(SUM(is_correct) / COUNT(*), 4) AS accuracy
-       FROM survey_responses GROUP BY item_category`
-    );
-
-    res.json({
-      totalCompletedSessions: totalSessions[0].count,
-      accuracyByMode: byMode,
-      accuracyByDifficulty: byDifficulty,
-      agentAccuracy,
-      accuracyByCategory: byCategory,
-    });
+    if (dbAvailable) {
+      const [totalSessions] = await pool.execute(
+        'SELECT COUNT(*) AS count FROM survey_sessions WHERE completed_at IS NOT NULL'
+      );
+      const [byMode] = await pool.execute(
+        `SELECT CASE WHEN collab_mode THEN 'collab' ELSE 'solo' END AS mode,
+          COUNT(*) AS sessions, ROUND(AVG(human_accuracy), 4) AS avg_accuracy,
+          ROUND(AVG(human_correct), 1) AS avg_correct
+         FROM survey_sessions WHERE completed_at IS NOT NULL GROUP BY collab_mode`
+      );
+      const [byDifficulty] = await pool.execute(
+        `SELECT item_difficulty, COUNT(*) AS total, SUM(is_correct) AS correct,
+          ROUND(SUM(is_correct) / COUNT(*), 4) AS accuracy,
+          ROUND(AVG(human_confidence), 2) AS avg_confidence
+         FROM survey_responses GROUP BY item_difficulty`
+      );
+      const [agentAccuracy] = await pool.execute(
+        `SELECT agent_region, COUNT(*) AS total, SUM(is_correct) AS correct,
+          ROUND(SUM(is_correct) / COUNT(*), 4) AS accuracy,
+          ROUND(AVG(confidence), 2) AS avg_confidence
+         FROM agent_verdicts GROUP BY agent_region`
+      );
+      const [byCategory] = await pool.execute(
+        `SELECT item_category, COUNT(*) AS total, SUM(is_correct) AS correct,
+          ROUND(SUM(is_correct) / COUNT(*), 4) AS accuracy
+         FROM survey_responses GROUP BY item_category`
+      );
+      res.json({ totalCompletedSessions: totalSessions[0].count, accuracyByMode: byMode, accuracyByDifficulty: byDifficulty, agentAccuracy, accuracyByCategory: byCategory });
+    } else {
+      // In-memory summary
+      const completed = [...memStore.sessions.values()].filter(s => s.completedAt);
+      res.json({
+        totalCompletedSessions: completed.length,
+        accuracyByMode: [],
+        accuracyByDifficulty: [],
+        agentAccuracy: [],
+        accuracyByCategory: [],
+        note: 'Database not connected — showing in-memory data only.',
+      });
+    }
   } catch (err) {
     console.error('GET /api/analytics error:', err.message);
     res.status(500).json({
