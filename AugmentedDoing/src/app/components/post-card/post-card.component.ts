@@ -19,15 +19,15 @@ import { ReportExportComponent } from '../report-export/report-export.component'
         <span class="ai-text">Author declared: AI-Generated Content</span>
       </div>
 
-      <!-- AI Analysis Notification Banner — notifies humans this content was analyzed by AI -->
+      <!-- AI Analysis Notification Banner — notifies investigators this content has AI-influenced suggestions -->
       <div class="ai-notification-banner" *ngIf="post.aiAnalyzed">
         <div class="ai-notif-icon-area">
           <span class="ai-notif-pulse"></span>
           <span class="ai-notif-icon">🧠</span>
         </div>
         <div class="ai-notif-body">
-          <span class="ai-notif-title">AI Multi-Agent Analysis Complete</span>
-          <span class="ai-notif-sub">This content was analyzed by 5 regional AI bias agents + 1 baseline agent using PyTorch, HuggingFace Transformers &amp; OpenCV</span>
+          <span class="ai-notif-title">⚡ AI-Influenced Suggestions Available</span>
+          <span class="ai-notif-sub">This content was analyzed by 5 regional AI bias agents + 1 baseline. The verdicts below are AI-influenced suggestions — review bias indicators before adopting.</span>
         </div>
         <span class="ai-notif-badge" [class]="'severity-' + (post.biasDetection?.overallBiasLevel ?? 'low')">
           {{ post.biasDetection?.overallBiasLevel ?? 'analyzed' | uppercase }}

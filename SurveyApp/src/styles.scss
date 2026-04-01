@@ -14,13 +14,34 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  line-height: 1.5;
 }
 
-a { color: #00d9ff; text-decoration: none; }
-a:hover { text-decoration: underline; }
+button { font-family: inherit; }
+
+a { color: #00d9ff; text-decoration: none; transition: color 0.3s ease; }
+a:hover { color: #00ff88; text-decoration: none; }
+
+::selection { background: rgba(0,217,255,0.3); color: #ffffff; }
+:focus-visible { outline: 2px solid #00d9ff; outline-offset: 2px; }
 
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: #0a0a0f; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #00d9ff, #00ff88); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #00b8d9, #00d975); }
+
+/* Animations */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes glow { 0%, 100% { box-shadow: 0 0 8px rgba(0,217,255,0.15); } 50% { box-shadow: 0 0 20px rgba(0,217,255,0.35); } }
+
+.fade-in { animation: fadeIn 0.4s ease-out; }
+.fade-in-down { animation: fadeInDown 0.4s ease-out; }
+.text-gradient {
+  background: linear-gradient(135deg, #00d9ff, #00ff88);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
 

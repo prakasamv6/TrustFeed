@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { PostService } from '../../services/post.service';
@@ -11,13 +11,28 @@ import { ContentType } from '../../models/post.model';
   imports: [CommonModule, RouterLink, RouterLinkActive],
   template: `
     <header class="header">
+      <!-- AI Influence Notification Bar (for investigator) -->
+      <div class="ai-influence-bar" *ngIf="showAiInfluence()">
+        <div class="ai-influence-inner">
+          <span class="ai-pulse-dot"></span>
+          <span class="ai-inf-icon">🧠</span>
+          <span class="ai-inf-text">
+            <strong>AI-Influenced Analysis Active</strong> — 5 regional bias agents + 1 baseline are providing AI-influenced suggestions on all content. All AI suggestions are labeled.
+          </span>
+          <span class="ai-inf-badge">{{ exposureTracker.aiExposureCount() }} items analyzed</span>
+          <button class="ai-inf-dismiss" (click)="showAiInfluence.set(false)">✕</button>
+        </div>
+      </div>
+
       <div class="disclaimer-bar">
-        ⚠️ BIAS SIMULATOR - NOT A REAL PROVENANCE JUDGE
+        ⚠️ BIAS SIMULATOR — AI-Influenced Suggestions Are Clearly Marked
       </div>
       <div class="header-content">
         <a routerLink="/" class="logo">
           <span class="logo-icon">🔍</span>
           <h1>TrustFeed</h1>
+          <span class="logo-version">v2.0</span>
+          <span class="live-badge"><span class="live-dot"></span>LIVE</span>
           <span class="tagline">Authentic Content, Transparent AI</span>
         </a>
 
@@ -109,10 +124,62 @@ import { ContentType } from '../../models/post.model';
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 
+    /* AI Influence Notification Bar */
+    .ai-influence-bar {
+      background: linear-gradient(90deg, rgba(0,217,255,0.1), rgba(156,39,176,0.08), rgba(0,255,136,0.06));
+      border-bottom: 1px solid rgba(0,217,255,0.15);
+      padding: 0.45rem 2rem;
+      animation: fadeInDown 0.5s ease-out;
+    }
+    .ai-influence-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .ai-pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      background: #00d9ff; animation: pulseDot 2s ease-in-out infinite;
+      box-shadow: 0 0 8px rgba(0,217,255,0.5);
+    }
+    .ai-inf-icon { font-size: 1rem; flex-shrink: 0; }
+    .ai-inf-text {
+      font-size: 0.72rem; color: #ccd6f6; line-height: 1.3; flex: 1;
+      strong { color: #00d9ff; }
+    }
+    .ai-inf-badge {
+      font-size: 0.6rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 10px;
+      background: rgba(0,217,255,0.1); color: #00d9ff; white-space: nowrap; flex-shrink: 0;
+    }
+    .ai-inf-dismiss {
+      background: none; border: 1px solid rgba(255,255,255,0.1); color: #8892b0;
+      width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 0.65rem;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: all 0.2s;
+      &:hover { background: rgba(255,255,255,0.1); color: #e6e6e6; }
+    }
+    @keyframes fadeInDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
     .disclaimer-bar {
       background: linear-gradient(135deg, #ff6b6b, #ff8e53);
       color: white; text-align: center; padding: 0.3rem;
       font-size: 0.7rem; font-weight: 700; letter-spacing: 1px;
+    }
+
+    /* LIVE & Version badges */
+    .logo-version {
+      font-size: 0.55rem; font-weight: 600; color: #5a6480;
+      background: rgba(255,255,255,0.08); padding: 0.12rem 0.35rem; border-radius: 4px;
+    }
+    .live-badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      font-size: 0.6rem; font-weight: 700; color: #4caf50; letter-spacing: 0.5px;
+      background: rgba(76,175,80,0.1); border: 1px solid rgba(76,175,80,0.25);
+      padding: 0.15rem 0.5rem; border-radius: 10px;
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #4caf50;
+      animation: pulseDot 1.5s ease-in-out infinite;
+      box-shadow: 0 0 6px rgba(76,175,80,0.6);
     }
 
     .header-content {
@@ -345,6 +412,7 @@ export class HeaderComponent {
   private postService = inject(PostService);
   private router = inject(Router);
   exposureTracker = inject(ExposureTrackerService);
+  showAiInfluence = signal(true);
 
   filters: { value: ContentType; label: string; icon: string }[] = [
     { value: 'all', label: 'All Posts', icon: '📋' },
