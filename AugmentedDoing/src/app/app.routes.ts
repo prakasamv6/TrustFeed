@@ -5,6 +5,7 @@ import { ContentReviewComponent } from './components/content-review/content-revi
 import { BiasDashboardComponent } from './components/bias-dashboard/bias-dashboard.component';
 import { SurveyComponent } from './components/survey/survey.component';
 import { SurveyResultsComponent } from './components/survey-results/survey-results.component';
+import { TrendingComponent } from './components/trending/trending.component';
 
 export const routeAnimations = trigger('routeAnimations', [
   transition('* <=> *', [
@@ -26,6 +27,7 @@ export const routes: Routes = [
   { path: '', component: FeedComponent, data: { animation: 'feed' } },
   { path: 'review', component: ContentReviewComponent, data: { animation: 'review' } },
   { path: 'dashboard', component: BiasDashboardComponent, data: { animation: 'dashboard' } },
+  { path: 'trending', component: TrendingComponent, data: { animation: 'trending' } },
   { path: 'survey', component: SurveyComponent, data: { animation: 'survey' } },
   { path: 'survey-results', component: SurveyResultsComponent, data: { animation: 'survey-results' } },
   { path: '**', redirectTo: '' }

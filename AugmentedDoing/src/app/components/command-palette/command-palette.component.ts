@@ -1,5 +1,4 @@
 import { Component, EventEmitter, Output, OnInit, OnDestroy, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../icon/icon.component';
@@ -16,7 +15,7 @@ interface CommandItem {
 @Component({
   selector: 'app-command-palette',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [FormsModule, IconComponent],
   template: `
     <!-- Backdrop -->
     <div class="palette-backdrop" (click)="close.emit()" aria-hidden="true"></div>

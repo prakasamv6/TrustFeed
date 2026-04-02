@@ -120,3 +120,93 @@ export interface FairnessSurveyResult {
   responses: FairnessSurveyResponseItem[];
   summary: FairnessSurveySummary | null;
 }
+
+// ── AI Content Detection & Flagging ─────────────────────────────────────────
+
+export type AiLabel = 'ai-generated' | 'likely-ai' | 'uncertain' | 'likely-human' | 'human';
+
+export interface AiDetectionResult {
+  overallAiProbability: number;
+  trustScore: number;
+  recommendedLabel: AiLabel;
+  confidence: number;
+  linguisticScore: number;
+  structuralScore: number;
+  statisticalScore: number;
+  communityScore: number;
+  authorDeclarationWeight: number;
+  signals: string[];
+  riskFactors: string[];
+  recommendation: string;
+}
+
+export interface AiFlagSummary {
+  postId: string;
+  totalFlags: number;
+  aiFlags: number;
+  humanFlags: number;
+  disputedFlags: number;
+  misleadingFlags: number;
+  avgConfidence: number;
+  recommendedLabel: string;
+  consensusStrength: number;
+}
+
+export interface CorrectiveAction {
+  actionId: string;
+  category: 'labeling' | 'suppression' | 'transparency' | 'escalation' | 'education';
+  severity: 'info' | 'advisory' | 'recommended' | 'required';
+  title: string;
+  description: string;
+  rationale: string;
+  automated: boolean;
+  applied?: boolean;
+}
+
+export interface CorrectiveReport {
+  overallRisk: 'low' | 'medium' | 'high' | 'critical';
+  trustScore: number;
+  summary: string;
+  actions: CorrectiveAction[];
+}
+
+export interface ContentTrustResult {
+  postId: string;
+  detection: AiDetectionResult;
+  flags: AiFlagSummary;
+  corrections: CorrectiveReport;
+}
+
+// ── Trending & Circuit Breaker ──────────────────────────────────────────────
+
+export interface TrendingTopic {
+  topic: string;
+  postCount: number;
+  engagementCount: number;
+  velocity: number;
+  aiContentRatio: number;
+  uniqueAuthors: number;
+  coordinationScore: number;
+  trustScore: number;
+  circuitBroken: boolean;
+  breakReason: string;
+  breakSeverity: 'none' | 'watch' | 'warning' | 'critical' | 'broken';
+  correctiveActions: string[];
+  firstSeen: string;
+  lastUpdated: string;
+}
+
+export interface TrendAlert {
+  topic: string;
+  alertType: string;
+  severity: 'watch' | 'warning' | 'critical';
+  message: string;
+  evidence: string[];
+  recommendedAction: string;
+  timestamp: string;
+}
+
+export interface TrendingResponse {
+  topics: TrendingTopic[];
+  alerts: TrendAlert[];
+}

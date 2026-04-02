@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DecimalPipe, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SurveyService } from '../../services/survey.service';
 import { SurveyResultsComponent } from '../survey-results/survey-results.component';
@@ -8,10 +8,11 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
 @Component({
   selector: 'app-survey',
   standalone: true,
-  imports: [CommonModule, FormsModule, SurveyResultsComponent],
+  imports: [FormsModule, SurveyResultsComponent, DecimalPipe, UpperCasePipe],
   template: `
     <!-- Survey Landing / Start Screen -->
-    <div class="survey-container" *ngIf="!surveyService.isActive() && !surveyService.isComplete() && !surveyService.loading()">
+    @if (!surveyService.isActive() && !surveyService.isComplete() && !surveyService.loading()) {
+    <div class="survey-container">
       <div class="survey-landing">
         <div class="landing-header">
           <span class="landing-icon">📋</span>
@@ -60,10 +61,12 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
           <div class="config-row">
             <label>Number of Items</label>
             <div class="config-options">
-              <button *ngFor="let n of itemCounts"
+              @for (n of itemCounts; track n) {
+              <button
                 [class.active]="selectedCount === n"
                 (click)="selectedCount = n"
                 class="config-btn">{{ n }}</button>
+              }
             </div>
           </div>
           <div class="config-row">
@@ -77,10 +80,12 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
               </button>
             </div>
           </div>
-          <p class="collab-note" *ngIf="collabMode">
+          @if (collabMode) {
+          <p class="collab-note">
             In <strong>Human-AI Collab</strong> mode, you'll see agent verdicts <em>before</em> making your decision.
             This measures how AI assistance affects human judgment accuracy.
           </p>
+          }
           <button class="start-btn" (click)="startSurvey()">
             <span>🚀</span> Begin Research Survey
           </button>
@@ -92,9 +97,11 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
         </div>
       </div>
     </div>
+    }
 
     <!-- Loading Screen — Fetching unique content from internet -->
-    <div class="survey-container" *ngIf="surveyService.loading()">
+    @if (surveyService.loading()) {
+    <div class="survey-container">
       <div class="loading-screen">
         <div class="loading-spinner"></div>
         <h2>Fetching Unique Content</h2>
@@ -107,9 +114,13 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
         </div>
       </div>
     </div>
+    }
 
     <!-- Active Survey -->
-    <div class="survey-container" *ngIf="surveyService.isActive()">
+    @if (surveyService.isActive()) {
+    @let session = surveyService.session();
+    @if (session) {
+    <div class="survey-container">
       <div class="survey-progress">
         <div class="progress-info">
           <span class="progress-label">Progress</span>
@@ -119,22 +130,26 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
           <div class="progress-fill" [style.width.%]="surveyService.progress().percent"></div>
         </div>
         <div class="progress-items">
-          <button *ngFor="let item of surveyService.session()!.items; let i = index"
+          @for (item of session.items; track $index) {
+          <button
             class="progress-dot"
             [class.answered]="item.humanVerdict != null"
-            [class.current]="i === surveyService.session()!.currentIndex"
+            [class.current]="$index === session.currentIndex"
             [class.correct]="item.humanVerdict != null && item.humanVerdict === item.groundTruth"
             [class.wrong]="item.humanVerdict != null && item.humanVerdict !== item.groundTruth"
-            (click)="surveyService.goToItem(i)">
-            {{ i + 1 }}
+            (click)="surveyService.goToItem($index)">
+            {{ $index + 1 }}
           </button>
+          }
         </div>
       </div>
 
       <!-- Current Item -->
-      <div class="survey-item" *ngIf="surveyService.currentItem() as item">
+      @let item = surveyService.currentItem();
+      @if (item) {
+      <div class="survey-item">
         <div class="item-header">
-          <span class="item-number">Item {{ surveyService.session()!.currentIndex + 1 }}</span>
+          <span class="item-number">Item {{ session.currentIndex + 1 }}</span>
           <span class="item-category">{{ item.category }}</span>
           <span class="item-difficulty" [class]="'diff-' + item.difficulty">{{ item.difficulty }}</span>
           <span class="item-type">{{ item.contentType }}</span>
@@ -143,18 +158,25 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
         <div class="item-content-card">
           <h3 class="item-title">{{ item.title }}</h3>
           <p class="item-content">{{ item.content }}</p>
-          <img *ngIf="item.imageUrl && item.contentType !== 'video'" [src]="item.imageUrl" alt="Survey content image" class="item-image" />
-          <div class="item-video-wrap" *ngIf="item.contentType === 'video' && item.videoUrl">
+          @if (item.imageUrl && item.contentType !== 'video') {
+          <img [src]="item.imageUrl" alt="Survey content image" class="item-image" />
+          }
+          @if (item.contentType === 'video' && item.videoUrl) {
+          <div class="item-video-wrap">
             <video controls [poster]="item.imageUrl || ''" class="item-video">
               <source [src]="item.videoUrl" type="video/mp4">
               Your browser does not support video playback.
             </video>
           </div>
-          <img *ngIf="item.contentType === 'video' && !item.videoUrl && item.imageUrl" [src]="item.imageUrl" alt="Video thumbnail" class="item-image" />
+          }
+          @if (item.contentType === 'video' && !item.videoUrl && item.imageUrl) {
+          <img [src]="item.imageUrl" alt="Video thumbnail" class="item-image" />
+          }
         </div>
 
         <!-- Human-AI Collab: Agent Hints (shown before answering in collab mode) -->
-        <div class="collab-hints" *ngIf="surveyService.session()!.collabMode && item.humanVerdict == null">
+        @if (session.collabMode && item.humanVerdict == null) {
+        <div class="collab-hints">
           <!-- AI Influence Alert for Investigator -->
           <div class="ai-influence-alert">
             <div class="aia-icon-area">
@@ -175,24 +197,34 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
             <span class="collab-title">Human-AI Collaboration Mode — Agent Hints</span>
           </div>
           <div class="agent-hints-grid">
-            <div class="agent-hint" *ngFor="let av of item.agentVerdicts">
+            @for (av of item.agentVerdicts; track av.region) {
+            <div class="agent-hint">
               <div class="hint-header">
                 <span class="hint-flag">{{ getRegionFlag(av.region) }}</span>
                 <span class="hint-region">{{ av.region }}</span>
                 <span class="hint-verdict" [class]="'v-' + av.verdict">{{ av.verdict | uppercase }}</span>
                 <span class="hint-conf">{{ av.confidence * 100 | number:'1.0-0' }}%</span>
               </div>
-              <div class="hint-media" *ngIf="av.analysisImageUrl || av.analysisVideoUrl">
-                <video *ngIf="av.analysisMediaType === 'video' && av.analysisVideoUrl" [src]="av.analysisVideoUrl" [poster]="av.analysisImageUrl" controls muted class="agent-media-video"></video>
-                <img *ngIf="av.analysisMediaType === 'image' && av.analysisImageUrl" [src]="av.analysisImageUrl" alt="Agent analysis media" class="agent-media-img" loading="lazy" />
+              @if (av.analysisImageUrl || av.analysisVideoUrl) {
+              <div class="hint-media">
+                @if (av.analysisMediaType === 'video' && av.analysisVideoUrl) {
+                <video [src]="av.analysisVideoUrl" [poster]="av.analysisImageUrl" controls muted class="agent-media-video"></video>
+                }
+                @if (av.analysisMediaType === 'image' && av.analysisImageUrl) {
+                <img [src]="av.analysisImageUrl" alt="Agent analysis media" class="agent-media-img" loading="lazy" />
+                }
               </div>
+              }
               <p class="hint-reasoning">{{ av.reasoning }}</p>
             </div>
+            }
           </div>
         </div>
+        }
 
         <!-- Already-answered review -->
-        <div class="already-answered" *ngIf="item.humanVerdict != null">
+        @if (item.humanVerdict != null) {
+        <div class="already-answered">
           <div class="answer-summary" [class.correct]="item.humanVerdict === item.groundTruth" [class.wrong]="item.humanVerdict !== item.groundTruth">
             <span class="answer-icon">{{ item.humanVerdict === item.groundTruth ? '✅' : '❌' }}</span>
             <div class="answer-details">
@@ -212,7 +244,8 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
               </span>
             </div>
             <div class="agent-grid-review">
-              <div class="agent-review-card" *ngFor="let av of item.agentVerdicts"
+              @for (av of item.agentVerdicts; track av.region) {
+              <div class="agent-review-card"
                 [class.agent-correct]="av.verdict === item.groundTruth"
                 [class.agent-wrong]="av.verdict !== item.groundTruth">
                 <div class="arc-header">
@@ -220,19 +253,28 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
                   <span class="arc-verdict" [class]="'v-' + av.verdict">{{ av.verdict | uppercase }}</span>
                   <span class="arc-result">{{ av.verdict === item.groundTruth ? '✅' : '❌' }}</span>
                 </div>
-                <div class="agent-review-media" *ngIf="av.analysisImageUrl || av.analysisVideoUrl">
-                  <video *ngIf="av.analysisMediaType === 'video' && av.analysisVideoUrl" [src]="av.analysisVideoUrl" [poster]="av.analysisImageUrl" controls muted class="agent-media-video"></video>
-                  <img *ngIf="av.analysisMediaType === 'image' && av.analysisImageUrl" [src]="av.analysisImageUrl" alt="Agent analysis media" class="agent-media-img" loading="lazy" />
+                @if (av.analysisImageUrl || av.analysisVideoUrl) {
+                <div class="agent-review-media">
+                  @if (av.analysisMediaType === 'video' && av.analysisVideoUrl) {
+                  <video [src]="av.analysisVideoUrl" [poster]="av.analysisImageUrl" controls muted class="agent-media-video"></video>
+                  }
+                  @if (av.analysisMediaType === 'image' && av.analysisImageUrl) {
+                  <img [src]="av.analysisImageUrl" alt="Agent analysis media" class="agent-media-img" loading="lazy" />
+                  }
                 </div>
+                }
                 <div class="arc-conf">Confidence: {{ av.confidence * 100 | number:'1.0-0' }}%</div>
                 <p class="arc-reasoning">{{ av.reasoning }}</p>
               </div>
+              }
             </div>
           </div>
         </div>
+        }
 
         <!-- Verdict Input (only show if not yet answered) -->
-        <div class="verdict-input" *ngIf="item.humanVerdict == null">
+        @if (item.humanVerdict == null) {
+        <div class="verdict-input">
           <h3 class="verdict-question">Is this content AI-generated or human-created?</h3>
 
           <div class="verdict-buttons">
@@ -246,26 +288,32 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
             </button>
           </div>
 
-          <div class="confidence-input" *ngIf="pendingVerdict">
+          @if (pendingVerdict) {
+          <div class="confidence-input">
             <label>Confidence Level</label>
             <div class="confidence-scale">
-              <button *ngFor="let c of [1,2,3,4,5]"
+              @for (c of [1,2,3,4,5]; track c) {
+              <button
                 class="conf-btn"
                 [class.selected]="pendingConfidence === c"
                 (click)="pendingConfidence = c">
                 {{ c }}
               </button>
+              }
             </div>
             <div class="conf-labels">
               <span>Not sure</span>
               <span>Very confident</span>
             </div>
           </div>
+          }
 
-          <div class="reasoning-input" *ngIf="pendingVerdict">
+          @if (pendingVerdict) {
+          <div class="reasoning-input">
             <label>Why do you think so? (optional)</label>
             <textarea [(ngModel)]="pendingReasoning" placeholder="Describe what clues led to your decision..." rows="3"></textarea>
           </div>
+          }
 
           <button class="submit-btn" [disabled]="!pendingVerdict || !pendingConfidence" (click)="submitAnswer()">
             {{ isLastItem() ? '✅ Submit & View Results' : '➡️ Submit & Next' }}
@@ -277,11 +325,17 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
             <input type="text" id="survey_website" name="website" [(ngModel)]="honeypot" tabindex="-1" autocomplete="off" />
           </div>
         </div>
+        }
       </div>
+      }
     </div>
+    }
+    }
 
     <!-- Results Dashboard -->
-    <app-survey-results *ngIf="surveyService.isComplete()" />
+    @if (surveyService.isComplete()) {
+    <app-survey-results />
+    }
   `,
   styles: [`
     .survey-container {

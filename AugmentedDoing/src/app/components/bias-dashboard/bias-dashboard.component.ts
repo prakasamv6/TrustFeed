@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule, DecimalPipe, PercentPipe } from '@angular/common';
+import { DecimalPipe, PercentPipe, TitleCasePipe } from '@angular/common';
 import { DashboardService } from '../../services/dashboard.service';
 import { PostService } from '../../services/post.service';
 import { FairnessSurveyService } from '../../services/fairness-survey.service';
@@ -24,7 +24,7 @@ interface SurveyRatings {
 @Component({
   selector: 'app-bias-dashboard',
   standalone: true,
-  imports: [CommonModule, DecimalPipe, PercentPipe],
+  imports: [DecimalPipe, PercentPipe, TitleCasePipe],
   templateUrl: './bias-dashboard.component.html',
   styleUrl: './bias-dashboard.component.scss',
 })

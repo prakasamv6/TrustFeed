@@ -1,5 +1,4 @@
 import { Component, inject, signal, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { PostService } from '../../services/post.service';
 import { ExposureTrackerService } from '../../services/exposure-tracker.service';
@@ -10,7 +9,7 @@ import { IconComponent, IconName } from '../icon/icon.component';
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, IconComponent],
+  imports: [RouterLink, RouterLinkActive, IconComponent],
   template: `
     <header class="header glass" role="banner">
       <!-- AI Analysis Active — dismissible info banner -->
@@ -84,6 +83,13 @@ import { IconComponent, IconName } from '../icon/icon.component';
                 <a routerLink="/dashboard" routerLinkActive="active" class="nav-item" [attr.aria-current]="router.url === '/dashboard' ? 'page' : null">
                   <app-icon name="chart" [size]="18" />
                   <span>Bias Dashboard</span>
+                </a>
+              </li>
+              <li>
+                <a routerLink="/trending" routerLinkActive="active" class="nav-item" [attr.aria-current]="router.url === '/trending' ? 'page' : null">
+                  <app-icon name="activity" [size]="18" />
+                  <span>Trending</span>
+                  <span class="new-pill" aria-label="New feature">NEW</span>
                 </a>
               </li>
               <li>
@@ -262,15 +268,14 @@ import { IconComponent, IconName } from '../icon/icon.component';
 
     /* ── Header Main ── */
     .header-main {
-      max-width: 1280px;
+      max-width: 1400px;
       margin: 0 auto;
-      padding: var(--space-4) var(--space-6);
+      padding: var(--space-3) var(--space-6);
     }
     .header-top-row {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: var(--space-6);
+      gap: var(--space-4);
     }
 
     /* ── Brand ── */
@@ -280,51 +285,61 @@ import { IconComponent, IconName } from '../icon/icon.component';
       gap: var(--space-3);
       text-decoration: none !important;
       flex-shrink: 0;
+      min-width: 0;
     }
     .brand-logo {
-      width: 40px; height: 40px;
+      width: 36px; height: 36px;
       border-radius: var(--radius-md);
       background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 16px rgba(88, 166, 255, 0.25);
+      box-shadow: 0 0 12px rgba(88, 166, 255, 0.2);
+      flex-shrink: 0;
     }
     .brand-text {
       display: flex;
       flex-direction: column;
+      min-width: 0;
     }
     .brand-name {
-      font-size: var(--text-xl);
+      font-size: var(--text-lg);
       font-weight: 800;
       color: var(--text-primary);
-      line-height: 1.2;
+      line-height: 1.15;
       letter-spacing: -0.02em;
     }
     .brand-tagline {
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       color: var(--text-muted);
       font-weight: 400;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .version-badge {
-      font-size: 0.6rem;
+      font-size: 0.55rem;
       font-weight: 600;
       color: var(--text-muted);
       background: var(--bg-elevated);
       padding: 2px 6px;
       border-radius: var(--radius-sm);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .live-indicator {
       display: inline-flex;
       align-items: center;
       gap: var(--space-1);
-      font-size: 0.6rem;
+      font-size: 0.55rem;
       font-weight: 700;
       color: var(--accent-green);
       background: var(--human-bg);
       border: 1px solid rgba(63, 185, 80, 0.25);
       padding: 2px 8px;
       border-radius: var(--radius-full);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .live-dot {
       width: 6px; height: 6px;
@@ -334,26 +349,35 @@ import { IconComponent, IconName } from '../icon/icon.component';
     }
 
     /* ── Main Nav ── */
-    .main-nav { display: flex; }
+    .main-nav {
+      display: flex;
+      flex: 1 1 auto;
+      justify-content: center;
+      min-width: 0;
+    }
     .nav-list {
       display: flex;
-      gap: var(--space-1);
+      gap: 2px;
       list-style: none;
       margin: 0;
-      padding: 0;
+      padding: var(--space-1);
+      background: var(--bg-elevated);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
     }
     .nav-item {
       display: flex;
       align-items: center;
       gap: var(--space-2);
-      padding: var(--space-2) var(--space-4);
-      border-radius: var(--radius-lg);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
       text-decoration: none !important;
       color: var(--text-secondary);
-      font-size: var(--text-sm);
+      font-size: 0.8rem;
       font-weight: 500;
       transition: all var(--transition-fast);
       position: relative;
+      white-space: nowrap;
 
       &:hover {
         background: var(--bg-hover);
@@ -363,6 +387,7 @@ import { IconComponent, IconName } from '../icon/icon.component';
         background: var(--info-bg);
         color: var(--accent-blue);
         font-weight: 600;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
       }
     }
     .survey-item {
@@ -372,21 +397,22 @@ import { IconComponent, IconName } from '../icon/icon.component';
       }
     }
     .new-pill {
-      font-size: 0.55rem;
+      font-size: 0.5rem;
       font-weight: 700;
       color: white;
       background: var(--accent-red);
       padding: 1px 5px;
       border-radius: var(--radius-full);
       letter-spacing: 0.5px;
-      line-height: 1.4;
+      line-height: 1.3;
     }
 
     /* ── Header Actions ── */
     .header-actions {
       display: flex;
       align-items: center;
-      gap: var(--space-4);
+      gap: var(--space-3);
+      flex-shrink: 0;
     }
     .exposure-chip {
       display: flex;
@@ -396,8 +422,9 @@ import { IconComponent, IconName } from '../icon/icon.component';
       border-radius: var(--radius-full);
       background: var(--bg-elevated);
       border: 1px solid var(--border-default);
-      font-size: var(--text-xs);
+      font-size: 0.7rem;
       color: var(--accent-cyan);
+      white-space: nowrap;
       &.triggered {
         background: var(--warning-bg);
         border-color: rgba(210, 153, 34, 0.3);
@@ -417,8 +444,8 @@ import { IconComponent, IconName } from '../icon/icon.component';
 
     .legend {
       display: flex;
-      gap: var(--space-4);
-      font-size: var(--text-xs);
+      gap: var(--space-3);
+      font-size: 0.7rem;
       color: var(--text-muted);
     }
     .legend-item {
@@ -438,8 +465,8 @@ import { IconComponent, IconName } from '../icon/icon.component';
     /* ── Toolbar ── */
     .toolbar {
       display: flex;
-      gap: var(--space-1);
-      padding: var(--space-1);
+      gap: 1px;
+      padding: 3px;
       border-radius: var(--radius-lg);
       background: var(--bg-elevated);
       border: 1px solid var(--border-subtle);
@@ -448,8 +475,8 @@ import { IconComponent, IconName } from '../icon/icon.component';
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       border-radius: var(--radius-md);
       color: var(--text-secondary);
       transition: all var(--transition-fast);
@@ -506,20 +533,41 @@ import { IconComponent, IconName } from '../icon/icon.component';
     }
 
     /* ── Responsive ── */
-    @media (max-width: 1024px) {
+    @media (max-width: 1200px) {
+      .nav-item { padding: var(--space-2); font-size: 0.75rem; }
+      .nav-item span { display: none; }
       .brand-tagline { display: none; }
+    }
+
+    @media (max-width: 1024px) {
       .legend { display: none; }
+      .exposure-chip .drift-chip { display: none; }
     }
 
     @media (max-width: 768px) {
-      .header-main { padding: var(--space-3) var(--space-4); }
-      .header-top-row { flex-wrap: wrap; gap: var(--space-3); }
-      .main-nav { width: 100%; overflow-x: auto; }
-      .nav-list { width: 100%; justify-content: center; }
+      .header-main { padding: var(--space-2) var(--space-3); }
+      .header-top-row { flex-wrap: wrap; gap: var(--space-2); }
+      .main-nav { order: 3; width: 100%; overflow-x: auto; }
+      .nav-list {
+        width: 100%;
+        justify-content: space-around;
+        background: transparent;
+        border: none;
+        padding: 0;
+      }
+      .nav-item { flex: 1; justify-content: center; }
       .nav-item span { display: none; }
-      .nav-item { padding: var(--space-2) var(--space-3); }
       .version-badge, .live-indicator { display: none; }
-      .toolbar { order: -1; }
+      .exposure-chip { font-size: 0.6rem; }
+      .toolbar-btn { width: 28px; height: 28px; }
+      .filter-bar { margin-top: var(--space-2); padding-top: var(--space-2); }
+      .filter-chip { font-size: 0.65rem; padding: var(--space-1) var(--space-2); }
+    }
+
+    @media (max-width: 480px) {
+      .brand-text { display: none; }
+      .new-pill { display: none; }
+      .toolbar { gap: 0; }
     }
 
     @media (forced-colors: active) {

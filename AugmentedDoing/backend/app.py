@@ -64,12 +64,31 @@ orchestrator = get_orchestrator()
 
 # ── Reports & Storage ────────────────────────────────────────────────────────
 from reports import ReportBuilder  # noqa: E402
-from storage import AnalysisRepository, FairnessStore  # noqa: E402
+from storage import AnalysisRepository, FairnessStore, FlagStore
 
 repo = AnalysisRepository()
 fairness_store = FairnessStore()
+flag_store = FlagStore()
 from storage.repository import StoredAnalysis  # noqa: E402
 from storage.fairness_store import FairnessSurveyResponse  # noqa: E402
+from storage.flag_store import AiContentFlag  # noqa: E402
+
+# ── Detection modules ────────────────────────────────────────────────────────
+from detection import (  # noqa: E402
+    AiContentDetector,
+    TrendCircuitBreaker,
+    TrendEngagement,
+    CorrectiveEngine,
+)
+from detection.trend_circuit_breaker import seed_mock_trends  # noqa: E402
+
+ai_detector = AiContentDetector(mock=MOCK_MODE)
+trend_breaker = TrendCircuitBreaker()
+corrective_engine = CorrectiveEngine()
+
+# Seed mock trending data for demo
+if MOCK_MODE:
+    seed_mock_trends(trend_breaker)
 
 # ── FastAPI app ──────────────────────────────────────────────────────────────
 API_PREFIX = os.getenv("API_PREFIX", "")  # Set to "/api" on DO App Platform
@@ -652,6 +671,317 @@ def dashboard_fairness_trends():
         }
         for t in fairness_store.get_trends(days=7)
     ]
+
+
+# ── AI Content Detection & Flagging endpoints ────────────────────────────────
+
+
+class AiFlagRequest(BaseModel):
+    postId: str
+    flagType: str = "ai"      # ai | human | disputed | misleading
+    reason: str = ""
+    confidence: int = 3
+
+    @field_validator("flagType")
+    @classmethod
+    def validate_flag_type(cls, v: str) -> str:
+        allowed = {"ai", "human", "disputed", "misleading"}
+        if v not in allowed:
+            raise ValueError(f"flagType must be one of: {allowed}")
+        return v
+
+    @field_validator("confidence")
+    @classmethod
+    def validate_confidence(cls, v: int) -> int:
+        if v < 1 or v > 5:
+            raise ValueError("confidence must be between 1 and 5")
+        return v
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, v: str) -> str:
+        if len(v) > 1000:
+            raise ValueError("reason must be under 1000 characters")
+        if v and _contains_malicious_input(v):
+            raise ValueError("reason contains disallowed patterns")
+        return v
+
+
+class TrendEngagementRequest(BaseModel):
+    topic: str
+    postId: str
+    userId: str = "anonymous"
+    isAiContent: bool = False
+    engagementType: str = "post"
+
+    @field_validator("topic")
+    @classmethod
+    def validate_topic(cls, v: str) -> str:
+        if not v or len(v) > 200:
+            raise ValueError("topic must be 1-200 characters")
+        if _contains_malicious_input(v):
+            raise ValueError("topic contains disallowed patterns")
+        return v
+
+
+@router.post("/flag-ai-content")
+def flag_ai_content(req: AiFlagRequest):
+    """Community flag: report content as AI-generated, human, disputed, or misleading."""
+    flag = AiContentFlag(
+        post_id=req.postId,
+        flag_type=req.flagType,
+        reason=req.reason,
+        confidence=req.confidence,
+    )
+    flag_id = flag_store.save(flag)
+    summary = flag_store.get_summary(req.postId)
+    return {
+        "flagId": flag_id,
+        "status": "recorded",
+        "summary": {
+            "postId": summary.post_id,
+            "totalFlags": summary.total_flags,
+            "aiFlags": summary.ai_flags,
+            "humanFlags": summary.human_flags,
+            "disputedFlags": summary.disputed_flags,
+            "misleadingFlags": summary.misleading_flags,
+            "avgConfidence": summary.avg_confidence,
+            "recommendedLabel": summary.recommended_label,
+            "consensusStrength": summary.consensus_strength,
+        },
+    }
+
+
+@router.get("/content-trust/{post_id}")
+def get_content_trust(post_id: str):
+    """Get AI detection analysis and trust score for a post."""
+    stored = repo.get(post_id)
+    content = ""
+    is_declared = False
+    community_ai = 0
+    community_human = 0
+    ml_features = None
+    agent_scores_data = None
+
+    if stored:
+        ml_features = {}
+        agent_scores_data = [
+            {"score": s.score, "agent": s.agent_name}
+            for s in stored.agent_scores
+        ]
+
+    # Run AI detection
+    result = ai_detector.analyze(
+        post_id,
+        content,
+        is_author_declared_ai=is_declared,
+        community_ai_votes=community_ai,
+        community_human_votes=community_human,
+        ml_features=ml_features,
+        agent_scores=agent_scores_data,
+    )
+
+    # Get flag summary
+    flag_summary = flag_store.get_summary(post_id)
+
+    # Generate corrective actions
+    corrections = corrective_engine.generate_post_corrections(
+        post_id,
+        ai_probability=result.overall_ai_probability,
+        recommended_label=result.recommended_label,
+        is_author_declared=is_declared,
+        bias_delta=stored.debiased.bias_delta if stored else 0,
+        favoritism_flag=stored.debiased.favoritism_flag if stored else False,
+        dominant_agent=stored.debiased.dominant_biased_agent if stored else None,
+        risk_factors=result.risk_factors,
+        community_ai_ratio=flag_summary.ai_flags / max(1, flag_summary.total_flags),
+    )
+
+    return {
+        "postId": post_id,
+        "detection": {
+            "overallAiProbability": result.overall_ai_probability,
+            "trustScore": result.trust_score,
+            "recommendedLabel": result.recommended_label,
+            "confidence": result.confidence,
+            "linguisticScore": result.linguistic_score,
+            "structuralScore": result.structural_score,
+            "statisticalScore": result.statistical_score,
+            "communityScore": result.community_score,
+            "authorDeclarationWeight": result.author_declaration_weight,
+            "signals": result.signals,
+            "riskFactors": result.risk_factors,
+            "recommendation": result.recommendation,
+        },
+        "flags": {
+            "totalFlags": flag_summary.total_flags,
+            "aiFlags": flag_summary.ai_flags,
+            "humanFlags": flag_summary.human_flags,
+            "recommendedLabel": flag_summary.recommended_label,
+            "consensusStrength": flag_summary.consensus_strength,
+        },
+        "corrections": {
+            "overallRisk": corrections.overall_risk,
+            "trustScore": corrections.trust_score,
+            "summary": corrections.summary,
+            "actions": [
+                {
+                    "actionId": a.action_id,
+                    "category": a.category,
+                    "severity": a.severity,
+                    "title": a.title,
+                    "description": a.description,
+                    "rationale": a.rationale,
+                    "automated": a.automated,
+                }
+                for a in corrections.actions
+            ],
+        },
+    }
+
+
+@router.post("/detect-ai")
+def detect_ai_content(req: AnalyzeRequest):
+    """Run AI content detection on submitted content (standalone, no bias pipeline)."""
+    result = ai_detector.analyze(
+        req.postId,
+        req.content,
+        is_author_declared_ai=False,
+    )
+    return {
+        "postId": req.postId,
+        "overallAiProbability": result.overall_ai_probability,
+        "trustScore": result.trust_score,
+        "recommendedLabel": result.recommended_label,
+        "confidence": result.confidence,
+        "signals": result.signals,
+        "riskFactors": result.risk_factors,
+        "recommendation": result.recommendation,
+    }
+
+
+# ── Trending & Circuit Breaker endpoints ─────────────────────────────────────
+
+
+@router.get("/trending")
+def get_trending():
+    """Get trending topics with circuit breaker status."""
+    topics = trend_breaker.get_trending(limit=20)
+    return {
+        "topics": [
+            {
+                "topic": t.topic,
+                "postCount": t.post_count,
+                "engagementCount": t.engagement_count,
+                "velocity": t.velocity,
+                "aiContentRatio": t.ai_content_ratio,
+                "uniqueAuthors": t.unique_authors,
+                "coordinationScore": t.coordination_score,
+                "trustScore": t.trust_score,
+                "circuitBroken": t.circuit_broken,
+                "breakReason": t.break_reason,
+                "breakSeverity": t.break_severity,
+                "correctiveActions": t.corrective_actions,
+                "firstSeen": t.first_seen.isoformat(),
+                "lastUpdated": t.last_updated.isoformat(),
+            }
+            for t in topics
+        ],
+        "alerts": [
+            {
+                "topic": a.topic,
+                "alertType": a.alert_type,
+                "severity": a.severity,
+                "message": a.message,
+                "evidence": a.evidence,
+                "recommendedAction": a.recommended_action,
+                "timestamp": a.timestamp.isoformat(),
+            }
+            for a in trend_breaker.get_alerts(since_hours=24)
+        ],
+    }
+
+
+@router.post("/trending/engage")
+def record_trend_engagement(req: TrendEngagementRequest):
+    """Record an engagement event on a trending topic."""
+    engagement = TrendEngagement(
+        user_id=req.userId,
+        post_id=req.postId,
+        topic=req.topic,
+        is_ai_content=req.isAiContent,
+        engagement_type=req.engagementType,
+    )
+    topic = trend_breaker.record_engagement(engagement)
+    return {
+        "topic": topic.topic,
+        "postCount": topic.post_count,
+        "velocity": topic.velocity,
+        "aiContentRatio": topic.ai_content_ratio,
+        "trustScore": topic.trust_score,
+        "circuitBroken": topic.circuit_broken,
+        "breakSeverity": topic.break_severity,
+        "correctiveActions": topic.corrective_actions,
+    }
+
+
+@router.post("/trending/circuit-break")
+def manual_circuit_break(topic: str, reason: str = "Manual intervention"):
+    """Manually trigger a circuit break on a trending topic."""
+    result = trend_breaker.manual_break(topic, reason)
+    if not result:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    return {
+        "topic": result.topic,
+        "circuitBroken": result.circuit_broken,
+        "breakReason": result.break_reason,
+        "correctiveActions": result.corrective_actions,
+    }
+
+
+@router.get("/corrective-actions/{post_id}")
+def get_corrective_actions(post_id: str):
+    """Get corrective action recommendations for a post."""
+    stored = repo.get(post_id)
+
+    # Run detection
+    result = ai_detector.analyze(post_id, "", agent_scores=(
+        [{"score": s.score, "agent": s.agent_name} for s in stored.agent_scores]
+        if stored else None
+    ))
+
+    flag_summary = flag_store.get_summary(post_id)
+
+    corrections = corrective_engine.generate_post_corrections(
+        post_id,
+        ai_probability=result.overall_ai_probability,
+        recommended_label=result.recommended_label,
+        bias_delta=stored.debiased.bias_delta if stored else 0,
+        favoritism_flag=stored.debiased.favoritism_flag if stored else False,
+        dominant_agent=stored.debiased.dominant_biased_agent if stored else None,
+        risk_factors=result.risk_factors,
+        community_ai_ratio=flag_summary.ai_flags / max(1, flag_summary.total_flags),
+    )
+
+    return {
+        "postId": post_id,
+        "overallRisk": corrections.overall_risk,
+        "trustScore": corrections.trust_score,
+        "summary": corrections.summary,
+        "actions": [
+            {
+                "actionId": a.action_id,
+                "category": a.category,
+                "severity": a.severity,
+                "title": a.title,
+                "description": a.description,
+                "rationale": a.rationale,
+                "automated": a.automated,
+                "applied": a.applied,
+            }
+            for a in corrections.actions
+        ],
+    }
 
 
 # ── Startup ──────────────────────────────────────────────────────────────────

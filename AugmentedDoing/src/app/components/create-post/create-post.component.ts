@@ -214,35 +214,46 @@ import { IconComponent, IconName } from '../icon/icon.component';
 
     .toggle-btn {
       position: relative;
-      width: 44px;
-      height: 24px;
+      width: 48px;
+      height: 26px;
       background: var(--bg-hover);
-      border: 1px solid var(--border-default);
-      border-radius: var(--radius-full);
+      border: 2px solid var(--border-default);
+      border-radius: 9999px;
       cursor: pointer;
-      transition: background 0.2s ease, border-color 0.2s ease;
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
       flex-shrink: 0;
+      padding: 0;
+      appearance: none;
+      -webkit-appearance: none;
+
+      &:hover {
+        border-color: var(--text-muted);
+      }
 
       &.ai-active {
         background: var(--accent-primary);
         border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px rgba(188, 140, 255, 0.2);
       }
 
       .toggle-slider {
         position: absolute;
-        top: 2px;
-        left: 2px;
+        top: 50%;
+        left: 3px;
         width: 18px;
         height: 18px;
-        background: var(--text-primary);
+        background: var(--text-muted);
         border-radius: 50%;
-        transition: transform 0.2s ease, background 0.2s ease;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        transform: translateY(-50%);
+        pointer-events: none;
       }
 
       &.ai-active .toggle-slider {
-        transform: translateX(20px);
+        transform: translate(22px, -50%);
         background: #fff;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
       }
 
       &:focus-visible {

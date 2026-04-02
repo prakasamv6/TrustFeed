@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DecimalPipe, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SurveyService } from '../../services/survey.service';
 import { SurveyResultsComponent } from '../survey-results/survey-results.component';
@@ -7,10 +7,11 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
 @Component({
   selector: 'app-survey',
   standalone: true,
-  imports: [CommonModule, FormsModule, SurveyResultsComponent],
+  imports: [FormsModule, SurveyResultsComponent, DecimalPipe, UpperCasePipe],
   template: `
     <!-- Survey Landing / Start Screen -->
-    <div class="survey-container" *ngIf="!surveyService.isActive() && !surveyService.isComplete()">
+    @if (!surveyService.isActive() && !surveyService.isComplete()) {
+    <div class="survey-container">
       <div class="survey-landing">
         <div class="landing-header">
           <span class="landing-icon">📋</span>
@@ -59,10 +60,12 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
           <div class="config-row">
             <label>Number of Items</label>
             <div class="config-options">
-              <button *ngFor="let n of itemCounts"
+              @for (n of itemCounts; track $index) {
+              <button
                 [class.active]="selectedCount === n"
                 (click)="selectedCount = n"
                 class="config-btn">{{ n }}</button>
+              }
             </div>
           </div>
           <div class="config-row">
@@ -76,10 +79,12 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
               </button>
             </div>
           </div>
-          <p class="collab-note" *ngIf="collabMode">
+          @if (collabMode) {
+          <p class="collab-note">
             In <strong>Human-AI Collab</strong> mode, you'll see agent verdicts <em>before</em> making your decision.
             This measures how AI assistance affects human judgment accuracy.
           </p>
+          }
           <button class="start-btn" (click)="startSurvey()">
             <span>🚀</span> Begin Research Survey
           </button>
@@ -92,9 +97,13 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
         </div>
       </div>
     </div>
+    }
 
     <!-- Active Survey -->
-    <div class="survey-container" *ngIf="surveyService.isActive()">
+    @if (surveyService.isActive()) {
+    @let session = surveyService.session();
+    @if (session) {
+    <div class="survey-container">
       <div class="survey-progress">
         <div class="progress-info">
           <span class="progress-label">Progress</span>
@@ -104,22 +113,26 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
           <div class="progress-fill" [style.width.%]="surveyService.progress().percent"></div>
         </div>
         <div class="progress-items">
-          <button *ngFor="let item of surveyService.session()!.items; let i = index"
+          @for (item of session.items; track $index) {
+          <button
             class="progress-dot"
             [class.answered]="item.humanVerdict != null"
-            [class.current]="i === surveyService.session()!.currentIndex"
+            [class.current]="$index === session.currentIndex"
             [class.correct]="item.humanVerdict != null && item.humanVerdict === item.groundTruth"
             [class.wrong]="item.humanVerdict != null && item.humanVerdict !== item.groundTruth"
-            (click)="surveyService.goToItem(i)">
-            {{ i + 1 }}
+            (click)="surveyService.goToItem($index)">
+            {{ $index + 1 }}
           </button>
+          }
         </div>
       </div>
 
       <!-- Current Item -->
-      <div class="survey-item" *ngIf="surveyService.currentItem() as item">
+      @let item = surveyService.currentItem();
+      @if (item) {
+      <div class="survey-item">
         <div class="item-header">
-          <span class="item-number">Item {{ surveyService.session()!.currentIndex + 1 }}</span>
+          <span class="item-number">Item {{ session.currentIndex + 1 }}</span>
           <span class="item-category">{{ item.category }}</span>
           <span class="item-difficulty" [class]="'diff-' + item.difficulty">{{ item.difficulty }}</span>
           <span class="item-type">{{ item.contentType }}</span>
@@ -128,17 +141,21 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
         <div class="item-content-card">
           <h3 class="item-title">{{ item.title }}</h3>
           <p class="item-content">{{ item.content }}</p>
-          <img *ngIf="item.imageUrl" [src]="item.imageUrl" alt="Survey content image" class="item-image" />
+          @if (item.imageUrl) {
+          <img [src]="item.imageUrl" alt="Survey content image" class="item-image" />
+          }
         </div>
 
         <!-- Human-AI Collab: Agent Hints (shown before answering in collab mode) -->
-        <div class="collab-hints" *ngIf="surveyService.session()!.collabMode && item.humanVerdict == null">
+        @if (session.collabMode && item.humanVerdict == null) {
+        <div class="collab-hints">
           <div class="collab-header">
             <span class="collab-icon">🤝</span>
             <span class="collab-title">Human-AI Collaboration Mode — Agent Hints</span>
           </div>
           <div class="agent-hints-grid">
-            <div class="agent-hint" *ngFor="let av of item.agentVerdicts">
+            @for (av of item.agentVerdicts; track $index) {
+            <div class="agent-hint">
               <div class="hint-header">
                 <span class="hint-flag">{{ getRegionFlag(av.region) }}</span>
                 <span class="hint-region">{{ av.region }}</span>
@@ -147,11 +164,14 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
               </div>
               <p class="hint-reasoning">{{ av.reasoning }}</p>
             </div>
+            }
           </div>
         </div>
+        }
 
         <!-- Already-answered review -->
-        <div class="already-answered" *ngIf="item.humanVerdict != null">
+        @if (item.humanVerdict != null) {
+        <div class="already-answered">
           <div class="answer-summary" [class.correct]="item.humanVerdict === item.groundTruth" [class.wrong]="item.humanVerdict !== item.groundTruth">
             <span class="answer-icon">{{ item.humanVerdict === item.groundTruth ? '✅' : '❌' }}</span>
             <div class="answer-details">
@@ -163,7 +183,8 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
           <div class="post-answer-agents">
             <h4>🌍 Agent Verdicts</h4>
             <div class="agent-grid-review">
-              <div class="agent-review-card" *ngFor="let av of item.agentVerdicts"
+              @for (av of item.agentVerdicts; track $index) {
+              <div class="agent-review-card"
                 [class.agent-correct]="av.verdict === item.groundTruth"
                 [class.agent-wrong]="av.verdict !== item.groundTruth">
                 <div class="arc-header">
@@ -174,12 +195,15 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
                 <div class="arc-conf">Confidence: {{ av.confidence * 100 | number:'1.0-0' }}%</div>
                 <p class="arc-reasoning">{{ av.reasoning }}</p>
               </div>
+              }
             </div>
           </div>
         </div>
+        }
 
         <!-- Verdict Input (only show if not yet answered) -->
-        <div class="verdict-input" *ngIf="item.humanVerdict == null">
+        @if (item.humanVerdict == null) {
+        <div class="verdict-input">
           <h3 class="verdict-question">Is this content AI-generated or human-created?</h3>
 
           <div class="verdict-buttons">
@@ -193,36 +217,48 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
             </button>
           </div>
 
-          <div class="confidence-input" *ngIf="pendingVerdict">
+          @if (pendingVerdict) {
+          <div class="confidence-input">
             <label>Confidence Level</label>
             <div class="confidence-scale">
-              <button *ngFor="let c of [1,2,3,4,5]"
+              @for (c of [1,2,3,4,5]; track $index) {
+              <button
                 class="conf-btn"
                 [class.selected]="pendingConfidence === c"
                 (click)="pendingConfidence = c">
                 {{ c }}
               </button>
+              }
             </div>
             <div class="conf-labels">
               <span>Not sure</span>
               <span>Very confident</span>
             </div>
           </div>
+          }
 
-          <div class="reasoning-input" *ngIf="pendingVerdict">
+          @if (pendingVerdict) {
+          <div class="reasoning-input">
             <label>Why do you think so? (optional)</label>
             <textarea [(ngModel)]="pendingReasoning" placeholder="Describe what clues led to your decision..." rows="3"></textarea>
           </div>
+          }
 
           <button class="submit-btn" [disabled]="!pendingVerdict || !pendingConfidence" (click)="submitAnswer()">
             {{ isLastItem() ? '✅ Submit & View Results' : '➡️ Submit & Next' }}
           </button>
         </div>
+        }
       </div>
+      }
     </div>
+    }
+    }
 
     <!-- Results Dashboard -->
-    <app-survey-results *ngIf="surveyService.isComplete()" />
+    @if (surveyService.isComplete()) {
+    <app-survey-results />
+    }
   `,
   styles: [`
     .survey-container {

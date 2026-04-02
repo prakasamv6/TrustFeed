@@ -1,11 +1,10 @@
 import { Component, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-consent-waiver',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="consent-container">
       <div class="consent-card">
@@ -134,7 +133,7 @@ import { Router } from '@angular/router';
         <div class="consent-agreement">
           <label class="checkbox-label" (click)="toggleConsent()">
             <div class="custom-checkbox" [class.checked]="consentGiven()">
-              <span *ngIf="consentGiven()">✓</span>
+              @if (consentGiven()) { <span>✓</span> }
             </div>
             <span>
               I have read and understand the above information. I understand that my participation

@@ -1,12 +1,11 @@
 import { Component, EventEmitter, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { IconComponent } from '../icon/icon.component';
 import { AccessibilityService, ThemeMode, FontSize, AnimationLevel, LayoutDensity } from '../../services/accessibility.service';
 
 @Component({
   selector: 'app-settings-panel',
   standalone: true,
-  imports: [CommonModule, IconComponent],
+  imports: [IconComponent],
   template: `
     <!-- Backdrop -->
     <div

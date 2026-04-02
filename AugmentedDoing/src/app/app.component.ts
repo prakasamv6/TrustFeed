@@ -1,5 +1,4 @@
 import { Component, HostListener, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './components/header/header.component';
 import { ToastContainerComponent } from './components/toast/toast.component';
@@ -13,7 +12,6 @@ import { routeAnimations } from './app.routes';
   selector: 'app-root',
   standalone: true,
   imports: [
-    CommonModule,
     RouterOutlet,
     HeaderComponent,
     ToastContainerComponent,

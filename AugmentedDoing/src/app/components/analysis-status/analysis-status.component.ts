@@ -1,13 +1,12 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { AnalysisStatusType } from '../../models/post.model';
 
 @Component({
   selector: 'app-analysis-status',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
-    <div class="status-indicator" [ngClass]="status">
+    <div class="status-indicator" [class]="status">
       <span class="status-dot"></span>
       <span class="status-text">{{ getLabel() }}</span>
     </div>

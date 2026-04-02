@@ -1,5 +1,4 @@
 import { Component, Injectable, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { IconComponent, IconName } from '../icon/icon.component';
 
 export type ToastType = 'info' | 'success' | 'warning' | 'error';
@@ -46,7 +45,7 @@ export class ToastService {
 @Component({
   selector: 'app-toast-container',
   standalone: true,
-  imports: [CommonModule, IconComponent],
+  imports: [IconComponent],
   template: `
     <div class="toast-container" aria-live="polite" aria-relevant="additions removals">
       @for (toast of toastService.toasts(); track toast.id) {

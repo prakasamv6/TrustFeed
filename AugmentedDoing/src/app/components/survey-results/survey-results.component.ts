@@ -1,14 +1,16 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule, DecimalPipe, UpperCasePipe } from '@angular/common';
+import { DecimalPipe, UpperCasePipe } from '@angular/common';
 import { SurveyService } from '../../services/survey.service';
 import { Continent } from '../../models/survey.model';
 
 @Component({
   selector: 'app-survey-results',
   standalone: true,
-  imports: [CommonModule, DecimalPipe, UpperCasePipe],
+  imports: [DecimalPipe, UpperCasePipe],
   template: `
-    <div class="results-container" *ngIf="surveyService.results() as r">
+    @let r = surveyService.results();
+    @if (r) {
+    <div class="results-container">
       <!-- Results Header -->
       <div class="results-hero">
         <span class="hero-icon">📊</span>
@@ -55,7 +57,8 @@ import { Continent } from '../../models/survey.model';
             <span class="comp-detail">{{ r.humanCorrect }}/{{ r.totalItems }}</span>
           </div>
           <!-- Agent rows -->
-          <div class="comp-row" *ngFor="let a of r.agentResults">
+          @for (a of r.agentResults; track a.region) {
+          <div class="comp-row">
             <div class="comp-label">
               <span class="comp-icon">{{ getRegionFlag(a.region) }}</span>
               <span class="comp-name">{{ a.region }}</span>
@@ -68,6 +71,7 @@ import { Continent } from '../../models/survey.model';
             <span class="comp-pct">{{ a.accuracy * 100 | number:'1.0-0' }}%</span>
             <span class="comp-detail">{{ a.correct }}/{{ r.totalItems }}</span>
           </div>
+          }
         </div>
       </div>
 
@@ -124,7 +128,8 @@ import { Continent } from '../../models/survey.model';
       <div class="section agent-output-section">
         <h2>🌍 Agent Outputs — AI vs Human Classifications</h2>
         <div class="agent-output-grid">
-          <div class="agent-output-card" *ngFor="let a of r.agentResults">
+          @for (a of r.agentResults; track a.region) {
+          <div class="agent-output-card">
             <div class="aoc-header">
               <span class="aoc-flag">{{ getRegionFlag(a.region) }}</span>
               <span class="aoc-name">{{ a.region }} Agent</span>
@@ -145,6 +150,7 @@ import { Continent } from '../../models/survey.model';
               <span>Avg Confidence: {{ a.avgConfidence * 100 | number:'1.0-0' }}%</span>
             </div>
           </div>
+          }
         </div>
       </div>
 
@@ -153,7 +159,8 @@ import { Continent } from '../../models/survey.model';
         <h2>🤝 Human-Agent Agreement Matrix</h2>
         <p class="section-desc">How often your verdict matched each agent's verdict</p>
         <div class="agreement-grid">
-          <div class="agreement-card" *ngFor="let ag of r.agreementMatrix">
+          @for (ag of r.agreementMatrix; track ag.region) {
+          <div class="agreement-card">
             <span class="ag-flag">{{ getRegionFlag(ag.region) }}</span>
             <span class="ag-region">{{ ag.region }}</span>
             <div class="ag-bar-wrap">
@@ -164,6 +171,7 @@ import { Continent } from '../../models/survey.model';
             </div>
             <span class="ag-rate">{{ ag.agreementRate * 100 | number:'1.0-0' }}%</span>
           </div>
+          }
         </div>
       </div>
 
@@ -176,10 +184,13 @@ import { Continent } from '../../models/survey.model';
             <span class="bt-col bt-title">Title</span>
             <span class="bt-col bt-truth">Truth</span>
             <span class="bt-col bt-human">Human</span>
-            <span class="bt-col bt-agents" *ngFor="let c of continents">{{ getRegionFlag(c) }}</span>
+            @for (c of continents; track c) {
+            <span class="bt-col bt-agents">{{ getRegionFlag(c) }}</span>
+            }
           </div>
-          <div class="bt-row" *ngFor="let item of surveyService.session()!.items; let i = index">
-            <span class="bt-col bt-num">{{ i + 1 }}</span>
+          @for (item of surveyService.session()?.items ?? []; track $index) {
+          <div class="bt-row">
+            <span class="bt-col bt-num">{{ $index + 1 }}</span>
             <span class="bt-col bt-title" [title]="item.title">{{ item.title }}</span>
             <span class="bt-col bt-truth" [class]="'label-' + item.groundTruth">{{ item.groundTruth | uppercase }}</span>
             <span class="bt-col bt-human"
@@ -187,12 +198,15 @@ import { Continent } from '../../models/survey.model';
               [class.cell-wrong]="item.humanVerdict !== item.groundTruth">
               {{ item.humanVerdict! | uppercase }}
             </span>
-            <span class="bt-col bt-agents" *ngFor="let c of continents"
+            @for (c of continents; track c) {
+            <span class="bt-col bt-agents"
               [class.cell-correct]="getAgentVerdict(item, c) === item.groundTruth"
               [class.cell-wrong]="getAgentVerdict(item, c) !== item.groundTruth">
               {{ getAgentVerdict(item, c) | uppercase }}
             </span>
+            }
           </div>
+          }
         </div>
       </div>
 
@@ -206,6 +220,7 @@ import { Continent } from '../../models/survey.model';
         </button>
       </div>
     </div>
+    }
   `,
   styles: [`
     .results-container {

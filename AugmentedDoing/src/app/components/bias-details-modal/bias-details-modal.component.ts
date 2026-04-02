@@ -1,14 +1,15 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { DecimalPipe, UpperCasePipe } from '@angular/common';
 import { BiasResult, AgentScore, BiasDetection } from '../../models/post.model';
 import { getScoreLabel, getScoreColor } from '../../utils/score-utils';
 
 @Component({
   selector: 'app-bias-details-modal',
   standalone: true,
-  imports: [CommonModule, DecimalPipe],
+  imports: [DecimalPipe, UpperCasePipe],
   template: `
-    <div class="modal-overlay" (click)="close.emit()" *ngIf="visible">
+    @if (visible) {
+    <div class="modal-overlay" (click)="close.emit()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <h2>🔍 Bias Analysis Details</h2>
@@ -16,7 +17,8 @@ import { getScoreLabel, getScoreColor } from '../../utils/score-utils';
         </div>
         <div class="disclaimer">⚠️ BIAS SIMULATOR — Research prototype for studying regional AI bias patterns</div>
 
-        <div class="result-grid" *ngIf="result">
+        @if (result) {
+        <div class="result-grid">
           <div class="result-card raw">
             <h4>Raw Biased Score</h4>
             <span class="score-val">{{ result.rawBiasedScore | number:'1.3-3' }}</span>
@@ -33,9 +35,11 @@ import { getScoreLabel, getScoreColor } from '../../utils/score-utils';
             <span class="score-label">{{ getLabel(result.debiasedAdjustedScore) }}</span>
           </div>
         </div>
+        }
 
         <!-- Agent-by-Agent Breakdown -->
-        <div class="agents-section" *ngIf="agentScores.length > 0">
+        @if (agentScores.length > 0) {
+        <div class="agents-section">
           <h3 class="section-title">🌍 Regional Agent Scores</h3>
           <div class="agent-table">
             <div class="agent-row header-row">
@@ -44,7 +48,8 @@ import { getScoreLabel, getScoreColor } from '../../utils/score-utils';
               <span class="col-conf">Confidence</span>
               <span class="col-reasoning">Reasoning</span>
             </div>
-            <div class="agent-row" *ngFor="let a of agentScores"
+            @for (a of agentScores; track $index) {
+            <div class="agent-row"
                  [class.most-biased]="a.agentName === biasDetection?.mostBiasedAgent"
                  [class.least-biased]="a.agentName === biasDetection?.leastBiasedAgent">
               <span class="col-region">
@@ -55,11 +60,14 @@ import { getScoreLabel, getScoreColor } from '../../utils/score-utils';
               <span class="col-conf">{{ a.confidence * 100 | number:'1.0-0' }}%</span>
               <span class="col-reasoning">{{ a.reasoning }}</span>
             </div>
+            }
           </div>
         </div>
+        }
 
         <!-- Bias Detection Report -->
-        <div class="detection-section" *ngIf="biasDetection">
+        @if (biasDetection) {
+        <div class="detection-section">
           <h3 class="section-title">🔬 Bias Detection Report</h3>
           <div class="detection-meta">
             <span class="detection-chip">Most biased: <strong>{{ biasDetection.mostBiasedAgent }}</strong></span>
@@ -70,9 +78,11 @@ import { getScoreLabel, getScoreColor } from '../../utils/score-utils';
           </div>
           <p class="detection-summary-text">{{ biasDetection.summary }}</p>
 
-          <div class="flagged-list" *ngIf="biasDetection.flaggedItems.length">
+          @if (biasDetection.flaggedItems.length) {
+          <div class="flagged-list">
             <h4 class="flagged-title">Flagged Items</h4>
-            <div class="flag-item" *ngFor="let f of biasDetection.flaggedItems">
+            @for (f of biasDetection.flaggedItems; track $index) {
+            <div class="flag-item">
               <div class="flag-header">
                 <span class="flag-agent">{{ getRegionFlag(f.region) }} {{ f.agentName }}</span>
                 <span class="flag-mode" [class]="'mode-' + f.biasMode.toLowerCase()">{{ f.biasMode }}</span>
@@ -81,10 +91,14 @@ import { getScoreLabel, getScoreColor } from '../../utils/score-utils';
               </div>
               <p class="flag-explanation">{{ f.explanation }}</p>
             </div>
+            }
           </div>
+          }
         </div>
+        }
 
-        <div class="details-section" *ngIf="result">
+        @if (result) {
+        <div class="details-section">
           <h3 class="section-title">📐 Detailed Metrics</h3>
           <div class="detail-row">
             <span class="detail-label">Bias Delta</span>
@@ -106,25 +120,35 @@ import { getScoreLabel, getScoreColor } from '../../utils/score-utils';
             <span class="detail-label">Region Dominance</span>
             <span class="detail-value">{{ result.regionDominanceScore | number:'1.4-4' }}</span>
           </div>
-          <div class="detail-row" *ngIf="result.dominantBiasedAgent">
+          @if (result.dominantBiasedAgent) {
+          <div class="detail-row">
             <span class="detail-label">Dominant Agent</span>
             <span class="detail-value agent">{{ result.dominantBiasedAgent }}</span>
           </div>
-          <div class="detail-row" *ngIf="result.favoredRegion">
+          }
+          @if (result.favoredRegion) {
+          <div class="detail-row">
             <span class="detail-label">Favored Region</span>
             <span class="detail-value region">{{ result.favoredRegion }}</span>
           </div>
-          <div class="detail-row" *ngIf="result.favoredSegments.length > 0">
+          }
+          @if (result.favoredSegments.length > 0) {
+          <div class="detail-row">
             <span class="detail-label">Favored Segments</span>
             <span class="detail-value">{{ result.favoredSegments.join(', ') }}</span>
           </div>
-          <div class="explanation" *ngIf="result.explanationSummary">
+          }
+          @if (result.explanationSummary) {
+          <div class="explanation">
             <h4>Explanation</h4>
             <p>{{ result.explanationSummary }}</p>
           </div>
+          }
         </div>
+        }
       </div>
     </div>
+    }
   `,
   styles: [`
     .modal-overlay {

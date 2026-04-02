@@ -1,18 +1,19 @@
 import { Component, Input, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { AnalysisService } from '../../services/analysis.service';
 import { environment } from '../../services/environment';
 
 @Component({
   selector: 'app-report-export',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
-    <div class="report-actions" *ngIf="postId">
+    @if (postId) {
+    <div class="report-actions">
       <button class="report-btn" (click)="downloadReport()" title="Download analysis report">
         📥 Report
       </button>
     </div>
+    }
   `,
   styles: [`
     .report-actions { display: inline-flex; }

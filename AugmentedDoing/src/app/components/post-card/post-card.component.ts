@@ -1,8 +1,10 @@
 import { Component, Input, inject, signal, OnInit } from '@angular/core';
-import { CommonModule, DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
+import { DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
 import { Post } from '../../models/post.model';
 import { PostService } from '../../services/post.service';
 import { ExposureTrackerService } from '../../services/exposure-tracker.service';
+import { AiFlagService } from '../../services/ai-flag.service';
+import { ContentTrustResult } from '../../models/analysis.model';
 import { AnalysisStatusComponent } from '../analysis-status/analysis-status.component';
 import { BiasDetailsModalComponent } from '../bias-details-modal/bias-details-modal.component';
 import { ReportExportComponent } from '../report-export/report-export.component';
@@ -11,20 +13,23 @@ import { IconComponent } from '../icon/icon.component';
 @Component({
   selector: 'app-post-card',
   standalone: true,
-  imports: [CommonModule, DatePipe, DecimalPipe, UpperCasePipe, AnalysisStatusComponent, BiasDetailsModalComponent, ReportExportComponent, IconComponent],
+  imports: [DatePipe, DecimalPipe, UpperCasePipe, AnalysisStatusComponent, BiasDetailsModalComponent, ReportExportComponent, IconComponent],
   template: `
     <article class="post-card" [class.ai-generated]="post.isAiGenerated" [class.bias-flagged]="post.biasResult?.favoritismFlag" [class.ai-analyzed]="post.aiAnalyzed"
              [attr.aria-label]="'Post by ' + post.author.name">
       <!-- AI Generated Badge -->
-      <div class="ai-status-banner" *ngIf="post.isAiGenerated" role="status">
+      @if (post.isAiGenerated) {
+      <div class="ai-status-banner" role="status">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="3"/><line x1="8" y1="16" x2="8" y2="16.01"/><line x1="16" y1="16" x2="16" y2="16.01"/>
         </svg>
         <span>Author declared: AI-Generated Content</span>
       </div>
+      }
 
       <!-- AI Analysis Notification Banner -->
-      <div class="ai-notification-banner" *ngIf="post.aiAnalyzed" role="status" aria-label="AI analysis available">
+      @if (post.aiAnalyzed) {
+      <div class="ai-notification-banner" role="status" aria-label="AI analysis available">
         <div class="ai-notif-icon-area" aria-hidden="true">
           <span class="ai-notif-pulse"></span>
           <svg class="ai-notif-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
@@ -39,15 +44,18 @@ import { IconComponent } from '../icon/icon.component';
           {{ post.biasDetection?.overallBiasLevel ?? 'analyzed' | uppercase }}
         </span>
       </div>
+      }
 
       <!-- Favoritism Warning Badge -->
-      <div class="bias-warning-banner" *ngIf="post.biasResult?.favoritismFlag" role="alert">
+      @if (post.biasResult?.favoritismFlag) {
+      <div class="bias-warning-banner" role="alert">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
         </svg>
-        <span class="bias-text">Bias Favoritism Detected — {{ post.biasResult!.dominantBiasedAgent }} → {{ post.biasResult!.favoredRegion }}</span>
-        <span class="bias-deducted">Deducted: {{ post.biasResult!.deductedBiasAmount | number:'1.3-3' }}</span>
+        <span class="bias-text">Bias Favoritism Detected — {{ post.biasResult?.dominantBiasedAgent }} → {{ post.biasResult?.favoredRegion }}</span>
+        <span class="bias-deducted">Deducted: {{ post.biasResult?.deductedBiasAmount | number:'1.3-3' }}</span>
       </div>
+      }
 
       <!-- Post Header -->
       <header class="post-header">
@@ -58,11 +66,17 @@ import { IconComponent } from '../icon/icon.component';
           <div class="author-info">
             <div class="author-name-row">
               <span class="author-name">{{ post.author.name }}</span>
-              <span class="verified-badge" *ngIf="post.author.isVerified" aria-label="Verified account">
+              @if (post.author.isVerified) {
+              <span class="verified-badge" aria-label="Verified account">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
               </span>
-              <span class="ai-author-badge" *ngIf="post.isAiGenerated">AI</span>
-              <app-analysis-status [status]="post.analysisStatus" *ngIf="post.analysisRequested" />
+              }
+              @if (post.isAiGenerated) {
+              <span class="ai-author-badge">AI</span>
+              }
+              @if (post.analysisRequested) {
+              <app-analysis-status [status]="post.analysisStatus" />
+              }
             </div>
             <span class="author-username">&#64;{{ post.author.username }} · {{ post.createdAt | date:'shortTime' }} · {{ post.contentType }}</span>
           </div>
@@ -81,8 +95,11 @@ import { IconComponent } from '../icon/icon.component';
                 <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
               </svg>
             </button>
-            <div class="more-menu-backdrop" *ngIf="showMoreMenu()" (click)="showMoreMenu.set(false)"></div>
-            <div class="more-dropdown" *ngIf="showMoreMenu()" role="menu" aria-label="Post options">
+            @if (showMoreMenu()) {
+            <div class="more-menu-backdrop" (click)="showMoreMenu.set(false)"></div>
+            }
+            @if (showMoreMenu()) {
+            <div class="more-dropdown" role="menu" aria-label="Post options">
               <button class="dropdown-item" role="menuitem" (click)="reportAsAi()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ai-color)" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="3"/></svg>
                 Flag as AI-Generated
@@ -100,6 +117,7 @@ import { IconComponent } from '../icon/icon.component';
                 Report Misleading Content
               </button>
             </div>
+            }
           </div>
         </div>
       </header>
@@ -107,15 +125,23 @@ import { IconComponent } from '../icon/icon.component';
       <!-- Post Content -->
       <div class="post-content">
         <p class="content-text">{{ post.content }}</p>
-        <img *ngIf="post.imageUrl" [src]="post.imageUrl" [alt]="'Image posted by ' + post.author.name" class="post-image" loading="lazy" />
+        @if (post.imageUrl) {
+        <img [src]="post.imageUrl" [alt]="'Image posted by ' + post.author.name" class="post-image" loading="lazy" />
+        }
       </div>
 
       <!-- AI Likelihood Indicator Strip -->
       <div class="ai-likelihood-strip" [class]="'likelihood-' + getAiLikelihood()" role="status"
            [attr.aria-label]="'AI likelihood: ' + (getAiLikelihood() === 'ai' ? 'Looks AI-Generated' : getAiLikelihood() === 'human' ? 'Looks Human-Made' : 'Disputed')">
-        <svg *ngIf="getAiLikelihood() === 'ai'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="3"/></svg>
-        <svg *ngIf="getAiLikelihood() === 'human'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <svg *ngIf="getAiLikelihood() === 'disputed'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        @if (getAiLikelihood() === 'ai') {
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="3"/></svg>
+        }
+        @if (getAiLikelihood() === 'human') {
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        }
+        @if (getAiLikelihood() === 'disputed') {
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        }
         <span class="lk-label">
           {{ getAiLikelihood() === 'ai' ? 'Looks AI-Generated' : getAiLikelihood() === 'human' ? 'Looks Human-Made' : 'Disputed · Mixed Signals' }}
         </span>
@@ -124,7 +150,8 @@ import { IconComponent } from '../icon/icon.component';
       </div>
 
       <!-- Provenance Indicators -->
-      <div class="provenance-section" *ngIf="post.provenance?.length" role="region" aria-label="Provenance indicators">
+      @if (post.provenance?.length) {
+      <div class="provenance-section" role="region" aria-label="Provenance indicators">
         <div class="provenance-header">
           <span class="provenance-title">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
@@ -133,7 +160,8 @@ import { IconComponent } from '../icon/icon.component';
           <span class="provenance-note">Neutral evidence — not a judgment</span>
         </div>
         <div class="provenance-indicators">
-          <div class="provenance-item" *ngFor="let p of post.provenance" [class]="'prov-' + p.source">
+          @for (p of post.provenance; track $index) {
+          <div class="provenance-item" [class]="'prov-' + p.source">
             <span class="prov-icon" aria-hidden="true">{{ getProvenanceIcon(p.source) }}</span>
             <div class="prov-body">
               <span class="prov-label">{{ p.label }}</span>
@@ -144,26 +172,165 @@ import { IconComponent } from '../icon/icon.component';
               <span class="prov-conf-text">{{ p.confidence * 100 | number:'1.0-0' }}%</span>
             </div>
           </div>
+          }
         </div>
       </div>
+      }
 
       <!-- Expert Escalation -->
-      <div class="expert-escalation" *ngIf="post.expertEscalation?.escalated" [class]="'risk-' + post.expertEscalation!.riskLevel" role="alert">
+      @let ee = post.expertEscalation;
+      @if (ee && ee.escalated) {
+      <div class="expert-escalation" [class]="'risk-' + ee.riskLevel" role="alert">
         <div class="escalation-header">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          <span class="escalation-title">Expert Review {{ post.expertEscalation!.expertVerdict ? 'Complete' : 'Pending' }}</span>
-          <span class="risk-badge">{{ post.expertEscalation!.riskLevel | uppercase }} RISK</span>
+          <span class="escalation-title">Expert Review {{ ee.expertVerdict ? 'Complete' : 'Pending' }}</span>
+          <span class="risk-badge">{{ ee.riskLevel | uppercase }} RISK</span>
         </div>
-        <p class="escalation-reason">{{ post.expertEscalation!.reason }}</p>
-        <p class="expert-verdict" *ngIf="post.expertEscalation!.expertVerdict">
-          Expert finding: {{ post.expertEscalation!.expertVerdict }}
+        <p class="escalation-reason">{{ ee.reason }}</p>
+        @if (ee.expertVerdict) {
+        <p class="expert-verdict">
+          Expert finding: {{ ee.expertVerdict }}
         </p>
+        }
       </div>
+      }
+
+      <!-- AI Content Trust & Recommended Flag Section -->
+      @let tr = trustResult();
+      @if (tr) {
+      <div class="trust-section" role="region" aria-label="AI Content Trust Score">
+        <div class="trust-header">
+          <div class="trust-title-row">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span class="trust-title">Content Trust Analysis</span>
+            <span class="trust-label-badge" [class]="getLabelBadgeClass(tr.detection.recommendedLabel)">
+              {{ tr.detection.recommendedLabel }}
+            </span>
+          </div>
+          <button class="trust-toggle" (click)="showTrustDetails.set(!showTrustDetails())" [attr.aria-expanded]="showTrustDetails()">
+            {{ showTrustDetails() ? 'Less' : 'Details' }}
+          </button>
+        </div>
+
+        <!-- Trust score bar -->
+        <div class="trust-score-bar-wrap">
+          <div class="trust-score-number" [style.color]="getTrustScoreColor(tr.detection.trustScore)">
+            {{ tr.detection.trustScore | number:'1.0-0' }}
+          </div>
+          <div class="trust-bar-track">
+            <div class="trust-bar-fill" [style.width.%]="tr.detection.trustScore" [style.background]="getTrustScoreColor(tr.detection.trustScore)"></div>
+          </div>
+          <span class="trust-score-label">Trust Score</span>
+        </div>
+
+        <!-- Recommended Flag Button -->
+        @if (tr.detection.recommendedLabel === 'likely-ai' || tr.detection.recommendedLabel === 'ai-generated') {
+        <div class="recommended-flag">
+          <div class="flag-recommendation">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--status-notice)" stroke-width="2.5" aria-hidden="true">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+            </svg>
+            <span>Recommended: Flag or report this as <strong>"AI Content"</strong></span>
+          </div>
+          <button class="flag-ai-btn" (click)="flagAsAiContent()" [disabled]="flagSubmitting()" aria-label="Flag as AI Content">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="3"/>
+            </svg>
+            {{ flagSubmitting() ? 'Flagging...' : 'Flag as AI Content' }}
+          </button>
+        </div>
+        }
+
+        <!-- Detection breakdown (expanded) -->
+        @if (showTrustDetails()) {
+        <div class="trust-details">
+          <div class="signal-breakdown" role="group" aria-label="Detection signal breakdown">
+            <div class="signal-bar-item">
+              <span class="signal-name">Linguistic</span>
+              <div class="signal-track"><div class="signal-fill" [style.width.%]="tr.detection.linguisticScore * 100" style="background: var(--accent-primary)"></div></div>
+              <span class="signal-val">{{ tr.detection.linguisticScore | number:'1.0-0' }}%</span>
+            </div>
+            <div class="signal-bar-item">
+              <span class="signal-name">Structural</span>
+              <div class="signal-track"><div class="signal-fill" [style.width.%]="tr.detection.structuralScore * 100" style="background: var(--accent-secondary)"></div></div>
+              <span class="signal-val">{{ tr.detection.structuralScore | number:'1.0-0' }}%</span>
+            </div>
+            <div class="signal-bar-item">
+              <span class="signal-name">Statistical</span>
+              <div class="signal-track"><div class="signal-fill" [style.width.%]="tr.detection.statisticalScore * 100" style="background: var(--status-notice)"></div></div>
+              <span class="signal-val">{{ tr.detection.statisticalScore | number:'1.0-0' }}%</span>
+            </div>
+            <div class="signal-bar-item">
+              <span class="signal-name">Community</span>
+              <div class="signal-track"><div class="signal-fill" [style.width.%]="tr.detection.communityScore * 100" style="background: var(--status-confirm)"></div></div>
+              <span class="signal-val">{{ tr.detection.communityScore | number:'1.0-0' }}%</span>
+            </div>
+          </div>
+
+          <!-- Signals list -->
+          @if (tr.detection.signals.length) {
+          <div class="trust-signals">
+            <span class="signals-title">Detection Signals</span>
+            <ul class="signals-list">
+              @for (sig of tr.detection.signals; track $index) {
+              <li>{{ sig }}</li>
+              }
+            </ul>
+          </div>
+          }
+
+          <!-- Risk factors -->
+          @if (tr.detection.riskFactors.length) {
+          <div class="trust-risks">
+            <span class="risks-title">Risk Factors</span>
+            <div class="risk-tags">
+              @for (risk of tr.detection.riskFactors; track $index) {
+              <span class="risk-tag">{{ risk }}</span>
+              }
+            </div>
+          </div>
+          }
+
+          <!-- Corrective actions -->
+          @if (tr.corrections.actions.length) {
+          <div class="trust-corrections">
+            <div class="corrections-header">
+              <span class="corrections-title">Corrective Actions</span>
+              <span class="risk-level-badge" [class]="'risk-' + tr.corrections.overallRisk">
+                {{ tr.corrections.overallRisk | uppercase }} RISK
+              </span>
+            </div>
+            <div class="corrections-list">
+              @for (action of tr.corrections.actions; track $index) {
+              <div class="correction-item" [class]="'correction-' + action.severity">
+                <span class="correction-icon">{{ getCategoryIcon(action.category) }}</span>
+                <div class="correction-body">
+                  <span class="correction-title">{{ action.title }}</span>
+                  <span class="correction-desc">{{ action.description }}</span>
+                </div>
+                <span class="correction-severity">{{ action.severity }}</span>
+              </div>
+              }
+            </div>
+          </div>
+          }
+
+          <!-- AI detection recommendation -->
+          <div class="trust-recommendation">
+            <p>{{ tr.detection.recommendation }}</p>
+          </div>
+        </div>
+        }
+      </div>
+      }
 
       <!-- Bias Analysis Results -->
-      <div class="bias-results-section" *ngIf="post.biasResult" role="region" aria-label="Bias analysis results">
+      @if (post.biasResult) {
+      <div class="bias-results-section" role="region" aria-label="Bias analysis results">
         <div class="bias-results-header">
           <span class="results-title">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -185,21 +352,27 @@ import { IconComponent } from '../icon/icon.component';
             <span class="score-value">{{ post.biasResult.debiasedAdjustedScore | number:'1.3-3' }}</span>
           </div>
         </div>
-        <div class="bias-meta" *ngIf="post.biasResult.favoritismFlag">
+        @if (post.biasResult.favoritismFlag) {
+        <div class="bias-meta">
           <span class="meta-item">Δ {{ post.biasResult.biasDelta | number:'1.3-3' }}</span>
           <span class="meta-item">{{ post.biasResult.favoredRegion }}</span>
           <span class="meta-item">{{ post.biasResult.dominantBiasedAgent }}</span>
         </div>
-        <div class="bias-explanation" *ngIf="post.biasResult.explanationSummary">
+        }
+        @if (post.biasResult.explanationSummary) {
+        <div class="bias-explanation">
           <p>{{ post.biasResult.explanationSummary }}</p>
         </div>
+        }
         <div class="report-row">
           <app-report-export [postId]="post.id" />
         </div>
       </div>
+      }
 
       <!-- Regional Agent Verdicts -->
-      <div class="agent-verdicts-section" *ngIf="post.agentScores?.length" role="region" aria-label="Regional agent verdicts">
+      @if (post.agentScores?.length) {
+      <div class="agent-verdicts-section" role="region" aria-label="Regional agent verdicts">
         <div class="agent-verdicts-header">
           <span class="verdicts-title">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
@@ -211,10 +384,11 @@ import { IconComponent } from '../icon/icon.component';
           </button>
         </div>
 
-        <div class="agent-grid" *ngIf="showAgents()">
+        @if (showAgents()) {
+        <div class="agent-grid">
+          @for (agent of post.agentScores; track agent.agentName) {
           <div
             class="agent-card"
-            *ngFor="let agent of post.agentScores"
             [class.highest-bias]="agent.agentName === post.biasDetection?.mostBiasedAgent"
             [class.lowest-bias]="agent.agentName === post.biasDetection?.leastBiasedAgent"
           >
@@ -230,14 +404,21 @@ import { IconComponent } from '../icon/icon.component';
               <span class="conf-label">{{ agent.confidence * 100 | number:'1.0-0' }}% conf</span>
             </div>
             <p class="agent-reasoning">{{ agent.reasoning }}</p>
-            <div class="agent-highlights" *ngIf="agent.biasHighlights.length">
-              <span class="highlight-tag" *ngFor="let h of agent.biasHighlights">{{ h }}</span>
+            @if (agent.biasHighlights.length) {
+            <div class="agent-highlights">
+              @for (h of agent.biasHighlights; track $index) {
+              <span class="highlight-tag">{{ h }}</span>
+              }
             </div>
+            }
           </div>
+          }
         </div>
+        }
 
         <!-- Bias Detection Summary -->
-        <div class="bias-detection-summary" *ngIf="post.biasDetection">
+        @if (post.biasDetection) {
+        <div class="bias-detection-summary">
           <div class="detection-header">
             <span class="detection-label">Bias Detection</span>
             <span class="detection-level" [class]="'level-' + post.biasDetection.overallBiasLevel">
@@ -245,8 +426,10 @@ import { IconComponent } from '../icon/icon.component';
             </span>
           </div>
           <p class="detection-summary">{{ post.biasDetection.summary }}</p>
-          <div class="flagged-items" *ngIf="post.biasDetection.flaggedItems.length">
-            <div class="flagged-item" *ngFor="let item of post.biasDetection.flaggedItems">
+          @if (post.biasDetection.flaggedItems.length) {
+          <div class="flagged-items">
+            @for (item of post.biasDetection.flaggedItems; track $index) {
+            <div class="flagged-item">
               <div class="flagged-item-header">
                 <span class="flagged-agent">{{ getRegionFlag(item.region) }} {{ item.agentName }}</span>
                 <span class="flagged-mode" [class]="'mode-' + item.biasMode.toLowerCase()">{{ item.biasMode }}</span>
@@ -255,9 +438,13 @@ import { IconComponent } from '../icon/icon.component';
               <span class="flagged-delta">Δ {{ item.deltaFromBaseline | number:'1.3-3' }}</span>
               <p class="flagged-explanation">{{ item.explanation }}</p>
             </div>
+            }
           </div>
+          }
         </div>
+        }
       </div>
+      }
 
       <!-- Community AI Verification Section -->
       <div class="ai-verification-section" role="region" aria-label="Community verification">
@@ -903,6 +1090,279 @@ import { IconComponent } from '../icon/icon.component';
       .vote-btn.active { outline: 2px solid Highlight; }
       .stat-fill { forced-color-adjust: none; }
     }
+
+    /* ── AI Content Trust Section ────────────────────────────────────────── */
+
+    .trust-section {
+      margin: var(--space-4) var(--space-4) 0;
+      padding: var(--space-4);
+      background: var(--bg-tertiary, rgba(88,166,255,0.04));
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg, 10px);
+    }
+
+    .trust-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-3, 0.75rem);
+    }
+
+    .trust-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .trust-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .trust-label-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+
+    .label-ai, .label-likely-ai { color: #fff; background: var(--status-critical, #f85149); }
+    .label-uncertain { color: var(--status-notice, #d4a054); background: rgba(212,160,84,0.15); }
+    .label-likely-human, .label-human { color: var(--status-confirm, #2ea043); background: rgba(46,160,67,0.12); }
+
+    .trust-toggle {
+      font-size: 0.75rem;
+      color: var(--accent-primary, #58a6ff);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+
+    .trust-toggle:hover { text-decoration: underline; }
+
+    .trust-score-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: var(--space-3, 0.75rem);
+    }
+
+    .trust-score-number {
+      font-size: 1.5rem;
+      font-weight: 800;
+      min-width: 48px;
+      text-align: center;
+    }
+
+    .trust-bar-track {
+      flex: 1;
+      height: 8px;
+      background: var(--surface-secondary, #0d1117);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .trust-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    .trust-score-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    /* Recommended Flag */
+    .recommended-flag {
+      padding: 0.625rem 0.75rem;
+      background: rgba(212,160,84,0.08);
+      border: 1px solid rgba(212,160,84,0.25);
+      border-radius: 8px;
+      margin-bottom: var(--space-3, 0.75rem);
+    }
+
+    .flag-recommendation {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.825rem;
+      color: var(--text-secondary, #c9d1d9);
+      margin-bottom: 0.5rem;
+    }
+
+    .flag-recommendation strong {
+      color: var(--status-notice, #d4a054);
+    }
+
+    .flag-ai-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--status-critical, #f85149);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .flag-ai-btn:hover:not(:disabled) { background: #da3633; transform: translateY(-1px); }
+    .flag-ai-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Signal breakdown */
+    .signal-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      margin-bottom: var(--space-3, 0.75rem);
+    }
+
+    .signal-bar-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .signal-name {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      min-width: 72px;
+    }
+
+    .signal-track {
+      flex: 1;
+      height: 5px;
+      background: var(--surface-secondary, #0d1117);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .signal-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .signal-val {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      min-width: 32px;
+      text-align: right;
+    }
+
+    /* Signals list */
+    .trust-signals, .trust-risks { margin-bottom: var(--space-3, 0.75rem); }
+    .signals-title, .risks-title, .corrections-title {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.375rem;
+    }
+
+    .signals-list {
+      margin: 0;
+      padding-left: 1.25rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .risk-tags { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+    .risk-tag {
+      font-size: 0.7rem;
+      color: var(--status-critical, #f85149);
+      background: rgba(248,81,73,0.08);
+      border: 1px solid rgba(248,81,73,0.2);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* Corrective actions */
+    .corrections-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .risk-level-badge {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+
+    .risk-level-badge.risk-critical, .risk-level-badge.risk-high { color: #fff; background: var(--status-critical); }
+    .risk-level-badge.risk-medium { color: var(--status-notice); background: rgba(212,160,84,0.15); }
+    .risk-level-badge.risk-low { color: var(--status-confirm); background: rgba(46,160,67,0.12); }
+
+    .corrections-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: var(--space-3, 0.75rem);
+    }
+
+    .correction-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.5rem 0.625rem;
+      background: var(--surface-secondary, #0d1117);
+      border-radius: 6px;
+      border-left: 3px solid var(--border-default);
+    }
+
+    .correction-item.correction-required { border-left-color: var(--status-critical, #f85149); }
+    .correction-item.correction-recommended { border-left-color: var(--status-notice, #d4a054); }
+    .correction-item.correction-advisory { border-left-color: var(--accent-primary, #58a6ff); }
+    .correction-item.correction-info { border-left-color: var(--text-muted); }
+
+    .correction-icon { font-size: 0.9rem; margin-top: 1px; }
+
+    .correction-body { flex: 1; }
+    .correction-title {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .correction-desc {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-top: 2px;
+    }
+    .correction-severity {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .trust-recommendation {
+      padding: 0.5rem 0.75rem;
+      background: rgba(88,166,255,0.06);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .trust-recommendation p { margin: 0; }
   `]
 })
 export class PostCardComponent implements OnInit {
@@ -910,10 +1370,14 @@ export class PostCardComponent implements OnInit {
 
   private postService = inject(PostService);
   private exposureTracker = inject(ExposureTrackerService);
+  private aiFlagService = inject(AiFlagService);
   showDetails = signal(false);
   showAgents = signal(false);
   showMoreMenu = signal(false);
   notifyEnabled = signal(false);
+  trustResult = signal<ContentTrustResult | null>(null);
+  showTrustDetails = signal(false);
+  flagSubmitting = signal(false);
 
   private regionFlags: Record<string, string> = {
     'Africa': '🌍', 'Asia': '🌏', 'Europe': '🇪🇺', 'Americas': '🌎', 'Oceania': '🏝️'
@@ -927,6 +1391,10 @@ export class PostCardComponent implements OnInit {
       this.post.isAiGenerated,
       this.post.biasResult?.biasDelta ?? 0,
     );
+    // Load content trust analysis
+    this.aiFlagService.getContentTrust(this.post.id).subscribe(result => {
+      this.trustResult.set(result);
+    });
   }
 
   get confidence() {
@@ -1003,5 +1471,63 @@ export class PostCardComponent implements OnInit {
 
   likePost(): void {
     this.postService.likePost(this.post.id);
+  }
+
+  /** Flag this content as AI-generated with the AI flag service. */
+  flagAsAiContent(): void {
+    this.flagSubmitting.set(true);
+    this.aiFlagService.flagContent({
+      postId: this.post.id,
+      flagType: 'ai',
+      reason: 'Recommended flag based on AI detection analysis',
+      confidence: 4,
+    }).subscribe(() => {
+      this.flagSubmitting.set(false);
+      this.voteAi();
+      // Refresh trust result
+      this.aiFlagService.getContentTrust(this.post.id).subscribe(r => this.trustResult.set(r));
+    });
+  }
+
+  /** Flag as misleading content. */
+  flagAsMisleading(): void {
+    this.flagSubmitting.set(true);
+    this.aiFlagService.flagContent({
+      postId: this.post.id,
+      flagType: 'misleading',
+      reason: 'User flagged as misleading',
+      confidence: 3,
+    }).subscribe(() => {
+      this.flagSubmitting.set(false);
+    });
+  }
+
+  getTrustScoreColor(score: number): string {
+    if (score >= 80) return 'var(--status-confirm, #2ea043)';
+    if (score >= 60) return 'var(--accent-primary, #58a6ff)';
+    if (score >= 40) return 'var(--status-notice, #d4a054)';
+    return 'var(--status-critical, #f85149)';
+  }
+
+  getLabelBadgeClass(label: string): string {
+    switch (label) {
+      case 'ai-generated': return 'label-ai';
+      case 'likely-ai': return 'label-likely-ai';
+      case 'uncertain': return 'label-uncertain';
+      case 'likely-human': return 'label-likely-human';
+      case 'human': return 'label-human';
+      default: return 'label-uncertain';
+    }
+  }
+
+  getCategoryIcon(cat: string): string {
+    switch (cat) {
+      case 'labeling': return '🏷️';
+      case 'suppression': return '🔇';
+      case 'transparency': return '👁️';
+      case 'escalation': return '⚠️';
+      case 'education': return '📚';
+      default: return '📋';
+    }
   }
 }

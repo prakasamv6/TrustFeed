@@ -1,5 +1,4 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 export type IconName =
   | 'ai-robot' | 'human' | 'flag' | 'shield' | 'chart' | 'search'
@@ -80,7 +79,7 @@ const ICON_PATHS: Record<IconName, string> = {
 @Component({
   selector: 'app-icon',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <svg

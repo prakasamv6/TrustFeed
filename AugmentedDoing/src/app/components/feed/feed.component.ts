@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { PostService } from '../../services/post.service';
 import { ExposureTrackerService } from '../../services/exposure-tracker.service';
 import { PostCardComponent } from '../post-card/post-card.component';
@@ -9,12 +9,16 @@ import { SortMode } from '../../models/post.model';
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [CommonModule, PostCardComponent, CreatePostComponent],
+  imports: [DecimalPipe, PostCardComponent, CreatePostComponent],
   template: `
+    @let cb = exposureTracker.circuitBreaker();
+    @let drift = exposureTracker.judgmentDrift();
+    @let aiCount = exposureTracker.aiExposureCount();
+
     <!-- Circuit Breaker Interstitial Overlay -->
+    @if (cb.cooldownActive) {
     <div
       class="cb-overlay"
-      *ngIf="exposureTracker.circuitBreaker().cooldownActive"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="cb-title"
@@ -27,18 +31,18 @@ import { SortMode } from '../../models/post.model';
           </svg>
         </div>
         <h2 id="cb-title" class="cb-title">Circuit Breaker Activated</h2>
-        <p id="cb-desc" class="cb-desc">{{ exposureTracker.circuitBreaker().reason }}</p>
+        <p id="cb-desc" class="cb-desc">{{ cb.reason }}</p>
         <div class="cb-metrics" role="group" aria-label="Exposure metrics">
           <div class="cb-metric">
-            <span class="cb-metric-val">{{ exposureTracker.circuitBreaker().exposureCount }}</span>
+            <span class="cb-metric-val">{{ cb.exposureCount }}</span>
             <span class="cb-metric-label">AI Exposures</span>
           </div>
           <div class="cb-metric">
-            <span class="cb-metric-val">{{ exposureTracker.circuitBreaker().diversityScore * 100 | number:'1.0-0' }}%</span>
+            <span class="cb-metric-val">{{ cb.diversityScore * 100 | number:'1.0-0' }}%</span>
             <span class="cb-metric-label">Diversity Score</span>
           </div>
           <div class="cb-metric">
-            <span class="cb-metric-val">{{ exposureTracker.judgmentDrift().level }}</span>
+            <span class="cb-metric-val">{{ drift.level }}</span>
             <span class="cb-metric-label">Drift Level</span>
           </div>
         </div>
@@ -48,6 +52,7 @@ import { SortMode } from '../../models/post.model';
         </button>
       </div>
     </div>
+    }
 
     <div class="feed-layout">
       <!-- Left Sidebar -->
@@ -112,13 +117,16 @@ import { SortMode } from '../../models/post.model';
             <div class="section-controls">
               <label for="sort-select" class="sr-only">Sort posts by</label>
               <select id="sort-select" class="sort-select" [value]="currentSort" (change)="onSortChange($event)">
-                <option *ngFor="let s of sortOptions" [value]="s.value">{{ s.label }}</option>
+                @for (s of sortOptions; track s.value) {
+                <option [value]="s.value">{{ s.label }}</option>
+                }
               </select>
               <span class="post-count" aria-live="polite">{{ posts().length }} posts</span>
             </div>
           </div>
 
-          <div *ngIf="posts().length === 0" class="empty-state" role="status">
+          @if (posts().length === 0) {
+          <div class="empty-state" role="status">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" aria-hidden="true">
               <rect x="2" y="2" width="20" height="20" rx="5"/><line x1="9" y1="10" x2="9.01" y2="10"/>
               <line x1="15" y1="10" x2="15.01" y2="10"/><path d="M8 15s1.5-2 4-2 4 2 4 2"/>
@@ -126,11 +134,13 @@ import { SortMode } from '../../models/post.model';
             <h3>No posts found</h3>
             <p>Try changing your filter or create a new post!</p>
           </div>
+          }
 
+          @for (post of posts(); track post.id) {
           <app-post-card
-            *ngFor="let post of posts(); trackBy: trackPost"
             [post]="post"
           />
+          }
         </section>
       </main>
 
@@ -147,56 +157,60 @@ import { SortMode } from '../../models/post.model';
           <div class="monitor-stats">
             <div class="monitor-row">
               <span class="monitor-label">AI Exposures</span>
-              <span class="monitor-value" [class.warning]="exposureTracker.aiExposureCount() >= 7"
-                    [attr.aria-label]="exposureTracker.aiExposureCount() + ' of ' + exposureTracker.circuitBreaker().exposureCap + ' AI exposures'">
-                {{ exposureTracker.aiExposureCount() }} / {{ exposureTracker.circuitBreaker().exposureCap }}
+              <span class="monitor-value" [class.warning]="aiCount >= 7"
+                    [attr.aria-label]="aiCount + ' of ' + cb.exposureCap + ' AI exposures'">
+                {{ aiCount }} / {{ cb.exposureCap }}
               </span>
             </div>
             <div class="progress-bar" role="progressbar"
-                 [attr.aria-valuenow]="exposureTracker.aiExposureCount()"
-                 [attr.aria-valuemax]="exposureTracker.circuitBreaker().exposureCap"
+                 [attr.aria-valuenow]="aiCount"
+                 [attr.aria-valuemax]="cb.exposureCap"
                  aria-label="AI exposure progress">
               <div class="progress-fill"
-                [style.width.%]="(exposureTracker.aiExposureCount() / exposureTracker.circuitBreaker().exposureCap) * 100"
-                [class.warning]="exposureTracker.aiExposureCount() >= 7"
-                [class.danger]="exposureTracker.aiExposureCount() >= 10"></div>
+                [style.width.%]="(aiCount / cb.exposureCap) * 100"
+                [class.warning]="aiCount >= 7"
+                [class.danger]="aiCount >= 10"></div>
             </div>
             <div class="monitor-row">
               <span class="monitor-label">Diversity Score</span>
-              <span class="monitor-value" [class.warning]="exposureTracker.circuitBreaker().diversityScore < 0.4">
-                {{ exposureTracker.circuitBreaker().diversityScore * 100 | number:'1.0-0' }}%
+              <span class="monitor-value" [class.warning]="cb.diversityScore < 0.4">
+                {{ cb.diversityScore * 100 | number:'1.0-0' }}%
               </span>
             </div>
             <div class="monitor-row monitor-drift">
               <span class="monitor-label">Judgment Drift</span>
-              <span class="drift-badge" [class]="'drift-' + exposureTracker.judgmentDrift().level">
-                {{ exposureTracker.judgmentDrift().level }}
+              <span class="drift-badge" [class]="'drift-' + drift.level">
+                {{ drift.level }}
               </span>
             </div>
-            <div class="drift-details" *ngIf="exposureTracker.judgmentDrift().level !== 'stable'">
+            @if (drift.level !== 'stable') {
+            <div class="drift-details">
               <div class="drift-row">
                 <span>Accuracy Shift</span>
-                <span [class.positive]="exposureTracker.judgmentDrift().accuracyShift > 0"
-                      [class.negative]="exposureTracker.judgmentDrift().accuracyShift < 0">
-                  {{ exposureTracker.judgmentDrift().accuracyShift > 0 ? '+' : '' }}{{ exposureTracker.judgmentDrift().accuracyShift * 100 | number:'1.0-0' }}%
+                <span [class.positive]="drift.accuracyShift > 0"
+                      [class.negative]="drift.accuracyShift < 0">
+                  {{ drift.accuracyShift > 0 ? '+' : '' }}{{ drift.accuracyShift * 100 | number:'1.0-0' }}%
                 </span>
               </div>
               <div class="drift-row">
                 <span>AI Suspicion</span>
-                <span>{{ exposureTracker.judgmentDrift().aiSuspicionTrend * 100 | number:'1.0-0' }}%</span>
+                <span>{{ drift.aiSuspicionTrend * 100 | number:'1.0-0' }}%</span>
               </div>
               <div class="drift-row">
                 <span>Consecutive AI</span>
-                <span>{{ exposureTracker.judgmentDrift().consecutiveAiExposures }}</span>
+                <span>{{ drift.consecutiveAiExposures }}</span>
               </div>
             </div>
+            }
           </div>
-          <div class="cb-active-indicator" *ngIf="exposureTracker.circuitBreaker().triggered" role="alert">
+          @if (cb.triggered) {
+          <div class="cb-active-indicator" role="alert">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
             </svg>
             <span>Circuit breaker active</span>
           </div>
+          }
         </div>
 
         <!-- Platform Stats -->

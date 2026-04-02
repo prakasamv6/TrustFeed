@@ -1,14 +1,15 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ErrorNotificationService, AppError } from '../../services/error-notification.service';
 
 @Component({
   selector: 'app-error-toast',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
-    <div class="toast-container" *ngIf="errorService.activeErrors().length > 0">
-      <div *ngFor="let err of errorService.activeErrors()"
+    @if (errorService.activeErrors().length > 0) {
+    <div class="toast-container">
+      @for (err of errorService.activeErrors(); track err.id) {
+      <div
         class="toast" [class]="'toast-' + err.severity"
         role="alert" aria-live="polite">
         <div class="toast-header">
@@ -17,12 +18,18 @@ import { ErrorNotificationService, AppError } from '../../services/error-notific
           <button class="toast-dismiss" (click)="errorService.dismiss(err.id)" aria-label="Dismiss">×</button>
         </div>
         <p class="toast-message">{{ err.message }}</p>
-        <p class="toast-suggestion" *ngIf="err.suggestion">{{ err.suggestion }}</p>
-        <div class="toast-actions" *ngIf="err.retryAction">
+        @if (err.suggestion) {
+        <p class="toast-suggestion">{{ err.suggestion }}</p>
+        }
+        @if (err.retryAction) {
+        <div class="toast-actions">
           <button class="toast-retry" (click)="retry(err)">Try Again</button>
         </div>
+        }
       </div>
+      }
     </div>
+    }
   `,
   styles: [`
     .toast-container {

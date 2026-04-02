@@ -1,15 +1,15 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { ErrorToastComponent } from './components/error-toast/error-toast.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommonModule, ErrorToastComponent],
+  imports: [RouterOutlet, ErrorToastComponent],
   template: `
     <!-- AI Influence Notification Bar -->
-    <div class="ai-influence-bar" *ngIf="showAiNotice()">
+    @if (showAiNotice()) {
+    <div class="ai-influence-bar">
       <div class="ai-influence-inner">
         <span class="ai-pulse-dot"></span>
         <span class="ai-influence-icon">🧠</span>
@@ -19,6 +19,7 @@ import { ErrorToastComponent } from './components/error-toast/error-toast.compon
         <button class="ai-influence-dismiss" (click)="dismissNotice()">✕</button>
       </div>
     </div>
+    }
 
     <header class="app-header">
       <div class="header-inner">

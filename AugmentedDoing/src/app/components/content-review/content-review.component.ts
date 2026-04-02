@@ -1,12 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ContentReviewService, ReviewSubmission } from '../../services/content-review.service';
 
 @Component({
   selector: 'app-content-review',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule, DecimalPipe],
   template: `
     <div class="review-page">
       <div class="feed-container">
@@ -66,8 +66,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
               <div class="source-section">
                 <label class="source-label">Source:</label>
                 <div class="source-buttons">
+                  @for (src of sources; track src.value) {
                   <button 
-                    *ngFor="let src of sources"
                     [class.active]="selectedSource() === src.value"
                     (click)="selectedSource.set(src.value)"
                     class="source-btn"
@@ -75,6 +75,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
                     <span>{{ src.icon }}</span>
                     {{ src.label }}
                   </button>
+                  }
                 </div>
               </div>
 
@@ -108,7 +109,9 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
             <div class="submit-footer">
               <div class="char-info">
                 <span class="char-count">{{ contentText.length }} characters</span>
-                <span *ngIf="declareAsAi()" class="ai-badge-small">🤖 Will be marked as AI</span>
+                @if (declareAsAi()) {
+                <span class="ai-badge-small">🤖 Will be marked as AI</span>
+                }
               </div>
               <button 
                 class="submit-btn"
@@ -128,19 +131,23 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
           </div>
 
           <!-- Submissions Feed -->
+          @for (submission of submissions(); track submission.id) {
           <article 
-            *ngFor="let submission of submissions()" 
             class="review-card"
             [class.high-ai]="getConfidence(submission).percentage >= 70"
             [class.high-human]="getConfidence(submission).percentage < 30"
             [class.declared-ai]="submission.declaredAsAi"
           >
             <!-- AI Declaration Banner -->
-            <div class="ai-declared-banner" *ngIf="submission.declaredAsAi">
+            @if (submission.declaredAsAi) {
+            <div class="ai-declared-banner">
               <span class="declared-icon">🤖</span>
               <span class="declared-text">Declared as AI-Generated</span>
-              <span class="declared-time" *ngIf="submission.declaredAt">{{ getTimeAgo(submission.declaredAt) }}</span>
+              @if (submission.declaredAt) {
+              <span class="declared-time">{{ getTimeAgo(submission.declaredAt) }}</span>
+              }
             </div>
+            }
 
             <!-- Status Banner -->
             <div 
@@ -173,9 +180,11 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
                   <span>🤖</span>
                   {{ submission.declaredAsAi ? 'Declared AI' : 'Mark as AI' }}
                 </button>
-                <a *ngIf="submission.sourceUrl" [href]="submission.sourceUrl" target="_blank" class="source-link">
+                @if (submission.sourceUrl) {
+                <a [href]="submission.sourceUrl" target="_blank" class="source-link">
                   🔗 View Original
                 </a>
+                }
               </div>
             </header>
 
@@ -256,19 +265,23 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
               </div>
 
               <!-- Uncited Claims Alert -->
-              <div class="uncited-alert" *ngIf="submission.analysis.citationAnalysis.uncitedClaims > 0">
+              @if (submission.analysis.citationAnalysis.uncitedClaims > 0) {
+              <div class="uncited-alert">
                 <span class="alert-icon">⚠️</span>
                 <span class="alert-text">{{ submission.analysis.citationAnalysis.uncitedClaims }} uncited claim{{ submission.analysis.citationAnalysis.uncitedClaims > 1 ? 's' : '' }} - statements without references</span>
               </div>
+              }
 
               <!-- Expandable Pattern Tags -->
               <div class="pattern-tags">
-                <ng-container *ngFor="let pattern of submission.analysis.patterns">
-                  <span *ngIf="pattern.detected" class="pattern-tag" [class.positive]="pattern.weight < 0" [class.negative]="pattern.weight > 0">
+                @for (pattern of submission.analysis.patterns; track $index) {
+                  @if (pattern.detected) {
+                  <span class="pattern-tag" [class.positive]="pattern.weight < 0" [class.negative]="pattern.weight > 0">
                     {{ pattern.weight < 0 ? '✓' : '!' }} {{ pattern.category }}
                     <span class="tag-weight">{{ pattern.weight > 0 ? '+' : '' }}{{ pattern.weight }}</span>
                   </span>
-                </ng-container>
+                  }
+                }
               </div>
             </div>
 
@@ -284,13 +297,17 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
                     class="vote-fill ai-fill"
                     [style.width.%]="getAiPercentage(submission)"
                   >
-                    <span *ngIf="getAiPercentage(submission) > 15">🤖 {{ submission.votes.ai }}</span>
+                    @if (getAiPercentage(submission) > 15) {
+                    <span>🤖 {{ submission.votes.ai }}</span>
+                    }
                   </div>
                   <div 
                     class="vote-fill human-fill"
                     [style.width.%]="getHumanPercentage(submission)"
                   >
-                    <span *ngIf="getHumanPercentage(submission) > 15">👤 {{ submission.votes.human }}</span>
+                    @if (getHumanPercentage(submission) > 15) {
+                    <span>👤 {{ submission.votes.human }}</span>
+                    }
                   </div>
                 </div>
                 <div class="vote-labels">
@@ -342,13 +359,16 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
               </button>
             </footer>
           </article>
+          }
 
           <!-- Empty State -->
-          <div *ngIf="submissions().length === 0" class="empty-state">
+          @if (submissions().length === 0) {
+          <div class="empty-state">
             <span class="empty-icon">📭</span>
             <h3>No submissions yet</h3>
             <p>Be the first to submit content for review!</p>
           </div>
+          }
         </main>
 
         <!-- Right Sidebar -->

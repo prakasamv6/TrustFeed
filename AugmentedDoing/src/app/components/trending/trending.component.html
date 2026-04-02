@@ -1,0 +1,231 @@
+<section class="trending-page" aria-label="Trending Topics & Circuit Breaker Dashboard">
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-header-content">
+      <div class="page-title-area">
+        <h1 class="page-title">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" aria-hidden="true">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          Trending &amp; Circuit Breakers
+        </h1>
+        <p class="page-subtitle">
+          Monitoring trending topics for fake trends, AI content floods, and coordinated manipulation.
+          Circuit breakers automatically suppress suspicious virality.
+        </p>
+      </div>
+      <div class="page-stats" role="group" aria-label="Overview statistics">
+        <div class="stat-chip">
+          <span class="stat-value">{{ trendingService.topics().length }}</span>
+          <span class="stat-label">Topics</span>
+        </div>
+        @if (trendingService.brokenCount() > 0) {
+        <div class="stat-chip danger">
+          <span class="stat-value">{{ trendingService.brokenCount() }}</span>
+          <span class="stat-label">Broken</span>
+        </div>
+        }
+        @if (trendingService.warningCount() > 0) {
+        <div class="stat-chip warning">
+          <span class="stat-value">{{ trendingService.warningCount() }}</span>
+          <span class="stat-label">Warnings</span>
+        </div>
+        }
+        <div class="stat-chip">
+          <span class="stat-value">{{ trendingService.avgTrustScore() | number:'1.0-0' }}</span>
+          <span class="stat-label">Avg Trust</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="trending-layout">
+
+    <!-- Main: Trending Topics List -->
+    <main class="topics-main">
+      <div class="section-header">
+        <h2 class="section-title">Trending Topics</h2>
+        <span class="section-badge">Live</span>
+      </div>
+
+      <div class="topics-grid">
+        @for (topic of trendingService.topics(); track topic.topic) {
+          <article
+            class="topic-card"
+            [class]="getSeverityClass(topic.breakSeverity)"
+            [class.selected]="selectedTopic()?.topic === topic.topic"
+            (click)="selectTopic(topic)"
+            [attr.aria-label]="topic.topic + ' — Trust: ' + topic.trustScore + '/100'"
+            tabindex="0"
+            role="button"
+          >
+            <!-- Circuit breaker badge -->
+            <div class="topic-badge-row">
+              <span class="topic-name">{{ topic.topic }}</span>
+              <span class="severity-badge" [class]="getSeverityClass(topic.breakSeverity)">
+                {{ getSeverityLabel(topic.breakSeverity) }}
+              </span>
+            </div>
+
+            <!-- Metrics row -->
+            <div class="topic-metrics" role="group" aria-label="Topic metrics">
+              <div class="metric">
+                <span class="metric-value">{{ topic.postCount }}</span>
+                <span class="metric-label">Posts</span>
+              </div>
+              <div class="metric">
+                <span class="metric-value">{{ topic.uniqueAuthors }}</span>
+                <span class="metric-label">Authors</span>
+              </div>
+              <div class="metric">
+                <span class="metric-value">{{ topic.velocity | number:'1.1-1' }}/m</span>
+                <span class="metric-label">Velocity</span>
+              </div>
+              <div class="metric">
+                <span class="metric-value">{{ topic.engagementCount }}</span>
+                <span class="metric-label">Engage</span>
+              </div>
+            </div>
+
+            <!-- Trust bar -->
+            <div class="bar-group">
+              <div class="bar-label">
+                <span>Trust Score</span>
+                <span class="bar-value">{{ topic.trustScore | number:'1.0-0' }}/100</span>
+              </div>
+              <div class="bar-track" role="progressbar" [attr.aria-valuenow]="topic.trustScore" aria-valuemin="0" aria-valuemax="100">
+                <div class="bar-fill" [style.width]="getTrustBarWidth(topic.trustScore)" [style.background]="getTrustColor(topic.trustScore)"></div>
+              </div>
+            </div>
+
+            <!-- AI Content ratio bar -->
+            <div class="bar-group">
+              <div class="bar-label">
+                <span>AI Content</span>
+                <span class="bar-value">{{ topic.aiContentRatio | percent:'1.0-0' }}</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" [style.width]="getAiRatioWidth(topic.aiContentRatio)" [style.background]="getAiRatioColor(topic.aiContentRatio)"></div>
+              </div>
+            </div>
+
+            <!-- Coordination score if notable -->
+            @if (topic.coordinationScore > 0.3) {
+              <div class="bar-group">
+                <div class="bar-label">
+                  <span>Coordination</span>
+                  <span class="bar-value coordination-score">{{ topic.coordinationScore | percent:'1.0-0' }}</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill coordination-fill" [style.width]="getAiRatioWidth(topic.coordinationScore)"></div>
+                </div>
+              </div>
+            }
+
+            <!-- Circuit broken reason -->
+            @if (topic.circuitBroken) {
+              <div class="broken-banner" role="alert">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                <span>{{ topic.breakReason }}</span>
+              </div>
+            }
+
+            <!-- Corrective actions -->
+            @if (topic.correctiveActions.length > 0) {
+              <div class="corrective-list">
+                <span class="corrective-title">Corrective Actions:</span>
+                <ul>
+                  @for (action of topic.correctiveActions; track action) {
+                    <li>{{ action }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Manual break button (only if not already broken) -->
+            @if (!topic.circuitBroken && topic.breakSeverity !== 'none') {
+              <button
+                class="break-btn"
+                (click)="manualBreak(topic); $event.stopPropagation()"
+                [attr.aria-label]="'Manually break circuit for ' + topic.topic"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                Break Circuit
+              </button>
+            }
+          </article>
+        }
+      </div>
+    </main>
+
+    <!-- Sidebar: Alerts Timeline -->
+    <aside class="alerts-sidebar" aria-label="Trend Alerts">
+      <div class="section-header">
+        <h2 class="section-title">Alerts Timeline</h2>
+        <button class="toggle-btn" (click)="showAlerts.set(!showAlerts())" [attr.aria-expanded]="showAlerts()">
+          {{ showAlerts() ? 'Hide' : 'Show' }}
+        </button>
+      </div>
+
+      @if (showAlerts()) {
+        <div class="alerts-list">
+          @for (alert of trendingService.alerts(); track alert.timestamp + alert.topic) {
+            <div class="alert-card" [class]="'alert-' + alert.severity" role="alert">
+              <div class="alert-header">
+                <span class="alert-icon">{{ getAlertIcon(alert.alertType) }}</span>
+                <span class="alert-topic">{{ alert.topic }}</span>
+                <span class="alert-severity-badge" [class]="'badge-' + alert.severity">{{ alert.severity | uppercase }}</span>
+              </div>
+              <p class="alert-message">{{ alert.message }}</p>
+              <div class="alert-evidence">
+                @for (ev of alert.evidence; track ev) {
+                  <span class="evidence-tag">{{ ev }}</span>
+                }
+              </div>
+              <p class="alert-action">
+                <strong>Recommended:</strong> {{ alert.recommendedAction }}
+              </p>
+            </div>
+          }
+
+          @if (trendingService.alerts().length === 0) {
+            <div class="empty-state">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--status-confirm)" stroke-width="1.5" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <p>No alerts — all trends look healthy</p>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- How It Works section -->
+      <div class="info-card">
+        <h3 class="info-title">How Circuit Breakers Work</h3>
+        <ul class="info-list">
+          <li><strong>Monitor</strong> — Track velocity, AI ratio, coordination, diversity</li>
+          <li><strong>Detect</strong> — AI floods, bot campaigns, suspicious spikes</li>
+          <li><strong>Alert</strong> — Issue watch/warning/critical alerts</li>
+          <li><strong>Break</strong> — Suppress trend, label posts, throttle engagement</li>
+          <li><strong>Review</strong> — Human moderators verify and release</li>
+        </ul>
+      </div>
+
+      <div class="info-card">
+        <h3 class="info-title">Why This Matters</h3>
+        <p class="info-text">
+          Fake trends manufactured by AI bots and coordinated campaigns can manipulate
+          public opinion and spread misinformation. Circuit breakers are a corrective
+          mechanism to ensure trending topics reflect genuine human interest, not
+          artificial manufacture.
+        </p>
+      </div>
+    </aside>
+
+  </div>
+</section>
