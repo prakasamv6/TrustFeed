@@ -53,7 +53,7 @@ export function getScoreLabel(score: number): string {
 }
 
 export function getScoreColor(score: number): string {
-  if (score >= 0.7) return '#e91e63';
-  if (score >= 0.4) return '#ff9800';
-  return '#4caf50';
+  if (score >= 0.7) return '#d47766';   /* muted coral — high bias */
+  if (score >= 0.4) return '#d4a054';   /* amber — moderate */
+  return '#56d4c4';                     /* teal — low */
 }

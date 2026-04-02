@@ -1,0 +1,397 @@
+<div class="dashboard-page">
+  <div class="disclaimer-banner" role="alert">
+    ⚠️ BIAS SIMULATOR — Measured risk indicators, not definitive judgments
+  </div>
+
+  <div class="dashboard-container">
+    <header class="dashboard-header">
+      <h1>Bias-Aware Decision Intelligence</h1>
+      <p class="subtitle">Compare original, non-biased, and debiased evaluations — track fairness over time</p>
+      <div class="header-actions">
+        <button class="export-btn" (click)="exportJSON()">Export JSON</button>
+        <button class="export-btn" (click)="exportCSV()">Export CSV</button>
+      </div>
+    </header>
+
+    <!-- ─── KPI Cards ──────────────────────────────────────────────── -->
+    <section class="kpi-section" *ngIf="summary()" aria-label="Key performance indicators">
+      <div class="kpi-card">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ summary()!.totalAnalyzedPosts }}</span>
+          <span class="kpi-label">Total Analyzed</span>
+        </div>
+      </div>
+      <div class="kpi-card flagged">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ summary()!.totalBiasFlaggedPosts }}</span>
+          <span class="kpi-label">Bias Flagged</span>
+        </div>
+      </div>
+      <div class="kpi-card safe">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ summary()!.totalDebiasedPosts }}</span>
+          <span class="kpi-label">Debiased Safe</span>
+        </div>
+      </div>
+      <div class="kpi-card delta">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ summary()!.averageBiasDelta | number:'1.3-3' }}</span>
+          <span class="kpi-label">Avg Bias Delta</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ summary()!.averageDisagreementRate | number:'1.3-3' }}</span>
+          <span class="kpi-label">Avg Disagreement</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ summary()!.averageRegionDominance | number:'1.3-3' }}</span>
+          <span class="kpi-label">Region Dominance</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Decision Comparison (Original vs Non-Biased vs Debiased) ─── -->
+    <section class="panel decision-comparison" *ngIf="selectedPost()">
+      <h3>Decision Comparison</h3>
+      <p class="panel-desc">Side-by-side view of how bias influenced the evaluation outcome</p>
+      <div class="comparison-cards">
+        <div class="compare-card original">
+          <span class="compare-label">Original (Biased)</span>
+          <span class="compare-score">{{ selectedPost()!.biasResult!.rawBiasedScore | number:'1.3-3' }}</span>
+          <span class="compare-note">Aggregated from 5 regional agents — may reflect regional preferences</span>
+        </div>
+        <div class="compare-arrow">→</div>
+        <div class="compare-card baseline">
+          <span class="compare-label">Non-Biased Baseline</span>
+          <span class="compare-score">{{ selectedPost()!.biasResult!.baselineNonbiasedScore | number:'1.3-3' }}</span>
+          <span class="compare-note">Raw ML score with no regional bias profile applied</span>
+        </div>
+        <div class="compare-arrow">→</div>
+        <div class="compare-card debiased">
+          <span class="compare-label">Debiased Adjusted</span>
+          <span class="compare-score">{{ selectedPost()!.biasResult!.debiasedAdjustedScore | number:'1.3-3' }}</span>
+          <span class="compare-note">Baseline + residual correction (clamped ±0.05)</span>
+        </div>
+      </div>
+      <div class="comparison-metrics">
+        <div class="metric-item">
+          <span class="metric-label">Bias Delta</span>
+          <span class="metric-value delta-color">{{ selectedPost()!.biasResult!.biasDelta | number:'1.4-4' }}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Confidence Delta</span>
+          <span class="metric-value">{{ getConfidenceDelta() | number:'1.4-4' }}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Amplification Index</span>
+          <span class="metric-value">{{ selectedPost()!.biasResult!.biasAmplificationIndex | number:'1.3-3' }}×</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Dominant Agent</span>
+          <span class="metric-value">{{ selectedPost()!.biasResult!.dominantBiasedAgent }}</span>
+        </div>
+      </div>
+      <div class="explanation-box" *ngIf="selectedPost()!.biasResult?.explanationSummary">
+        <strong>Fairness Explanation:</strong> {{ selectedPost()!.biasResult!.explanationSummary }}
+      </div>
+    </section>
+
+    <!-- ─── Factor Attribution (Per-Feature Contribution) ──────────── -->
+    <section class="panel factor-panel" *ngIf="factorAttribution()">
+      <h3>Factor Contribution Analysis</h3>
+      <p class="panel-desc">Which features drove the divergence between regional agents and baseline</p>
+
+      <!-- Global top factors & proxy risk -->
+      <div class="factor-meta-row">
+        <div class="factor-meta">
+          <span class="meta-label">Top Factors:</span>
+          <span class="meta-tags">
+            <span class="factor-tag" *ngFor="let f of factorAttribution()!.globalTopFactors">{{ f }}</span>
+          </span>
+        </div>
+        <div class="factor-meta proxy-risk" *ngIf="factorAttribution()!.proxyRiskIndicators.length > 0">
+          <span class="meta-label">Proxy Risk:</span>
+          <span class="proxy-tag" *ngFor="let pr of factorAttribution()!.proxyRiskIndicators">{{ pr }}</span>
+        </div>
+      </div>
+
+      <!-- Per-agent factor bars -->
+      <div class="agent-attribution" *ngFor="let attr of factorAttribution()!.agentAttributions">
+        <div class="attr-header">
+          <span class="attr-agent">{{ attr.agentName }}</span>
+          <span class="attr-region" *ngIf="attr.region">({{ attr.region }})</span>
+          <span class="attr-delta" [class.positive]="attr.totalDelta > 0" [class.negative]="attr.totalDelta < 0">
+            Δ {{ attr.totalDelta | number:'1.4-4' }}
+          </span>
+        </div>
+        <div class="factor-bars">
+          <div class="factor-bar-row" *ngFor="let fc of attr.factors.slice(0, 5)">
+            <span class="factor-name">{{ fc.factorName }}</span>
+            <div class="factor-bar-track">
+              <div class="factor-bar-fill"
+                   [class.positive]="fc.contribution >= 0"
+                   [class.negative]="fc.contribution < 0"
+                   [style.width.%]="getFactorBarWidth(fc.contributionPct)">
+              </div>
+            </div>
+            <span class="factor-value">{{ fc.contribution >= 0 ? '+' : '' }}{{ fc.contribution | number:'1.4-4' }}</span>
+            <span class="factor-pct">({{ fc.contributionPct | number:'1.0-0' }}%)</span>
+          </div>
+        </div>
+        <p class="attr-summary">{{ attr.summary }}</p>
+      </div>
+
+      <p class="fairness-summary" *ngIf="factorAttribution()!.fairnessSummary">
+        {{ factorAttribution()!.fairnessSummary }}
+      </p>
+    </section>
+
+    <!-- ─── Section Row: Modality + Agent Stats ────────────────────── -->
+    <section class="section-row" *ngIf="summary()">
+      <div class="panel modality-panel">
+        <h3>Modality Breakdown</h3>
+        <div class="modality-bars">
+          <div class="mod-bar-row" *ngFor="let mod of getModalityEntries()">
+            <span class="mod-label">{{ mod[0] | titlecase }}</span>
+            <div class="mod-bar-track">
+              <div class="mod-bar-fill" [style.width.%]="getModalityPercent(mod[1])" [style.background]="getModalityColor(mod[0])"></div>
+            </div>
+            <span class="mod-count">{{ mod[1] }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel agent-panel">
+        <h3>Per-Agent Statistics</h3>
+        <div class="agent-table-wrap">
+          <table class="agent-table" *ngIf="agentStats()">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>Region</th>
+                <th>Avg Score</th>
+                <th>Favoritism %</th>
+                <th>Avg Δ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let agent of agentStats()!.agents" [class.baseline]="agent.region === 'None'">
+                <td class="agent-name">{{ agent.agentName }}</td>
+                <td>{{ agent.region }}</td>
+                <td>{{ agent.averageScore | number:'1.2-2' }}</td>
+                <td>
+                  <span class="fav-badge" [style.background]="getFavColor(agent.favoritismRate)">
+                    {{ agent.favoritismRate | percent:'1.0-0' }}
+                  </span>
+                </td>
+                <td>{{ agent.averageBiasDelta | number:'1.3-3' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Raw vs Debiased Bar Chart ──────────────────────────────── -->
+    <section class="panel chart-panel" *ngIf="agentStats()">
+      <h3>Raw Biased vs Debiased Score Comparison</h3>
+      <div class="bar-chart">
+        <div class="bar-row" *ngFor="let agent of agentStats()!.agents">
+          <span class="bar-label">{{ agent.agentName.replace('BiasAgent','').replace('NonBiasBaseline','Baseline') }}</span>
+          <div class="bar-track">
+            <div class="bar-fill raw" [style.width.%]="agent.averageScore * 100" title="Raw: {{ agent.averageScore | number:'1.2-2' }}"></div>
+            <div class="bar-fill debiased" [style.width.%]="(agent.averageScore - agent.averageBiasDelta) * 100" title="Debiased: {{ (agent.averageScore - agent.averageBiasDelta) | number:'1.2-2' }}"></div>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-dot raw"></span> Raw Biased</span>
+          <span class="legend-item"><span class="legend-dot debiased"></span> Debiased</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Fairness Survey Panel ──────────────────────────────────── -->
+    <section class="panel fairness-panel" *ngIf="selectedPost() && !surveySubmitted()">
+      <h3>Fairness Assessment Survey</h3>
+      <p class="panel-desc">How do you perceive the fairness of this analysis? Your feedback helps measure bias impact.</p>
+
+      <div class="survey-form">
+        <div class="survey-question" *ngFor="let q of surveyQuestions">
+          <label class="survey-label">{{ q.label }}</label>
+          <div class="likert-scale" role="radiogroup" [attr.aria-label]="q.label">
+            <button *ngFor="let val of [1,2,3,4,5]"
+                    class="likert-btn"
+                    [class.selected]="surveyRatings()[q.key] === val"
+                    (click)="setSurveyRating(q.key, val)"
+                    [attr.aria-pressed]="surveyRatings()[q.key] === val"
+                    [attr.aria-label]="val + ' out of 5'">
+              {{ val }}
+            </button>
+            <span class="likert-labels">
+              <span>Strongly Disagree</span>
+              <span>Strongly Agree</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="survey-question">
+          <label class="survey-label" for="fairness-comment">Additional comments (optional)</label>
+          <textarea id="fairness-comment" class="survey-textarea"
+                    [value]="surveyComment()"
+                    (input)="surveyComment.set($any($event.target).value)"
+                    placeholder="Share your thoughts on the fairness of this analysis..."
+                    maxlength="2000"></textarea>
+        </div>
+
+        <button class="submit-btn" (click)="submitFairnessSurvey()" [disabled]="!canSubmitSurvey()">
+          Submit Fairness Assessment
+        </button>
+      </div>
+    </section>
+
+    <section class="panel" *ngIf="surveySubmitted()">
+      <div class="survey-thanks">
+        <span class="thanks-icon">✓</span>
+        <p>Thank you for your fairness assessment. Your feedback contributes to bias measurement.</p>
+        <button class="reset-btn" (click)="resetSurvey()">Submit Another Assessment</button>
+      </div>
+    </section>
+
+    <!-- ─── Fairness Survey Results Summary ────────────────────────── -->
+    <section class="panel" *ngIf="fairnessSummary()">
+      <h3>Fairness Feedback Summary</h3>
+      <p class="panel-desc">Aggregated user perceptions of analysis fairness ({{ fairnessSummary()!.responseCount }} responses)</p>
+      <div class="fairness-metrics">
+        <div class="fairness-metric">
+          <span class="fm-label">Original Fairness</span>
+          <div class="fm-bar-track">
+            <div class="fm-bar-fill" [style.width.%]="fairnessSummary()!.avgOriginalFairness / 5 * 100"></div>
+          </div>
+          <span class="fm-value">{{ fairnessSummary()!.avgOriginalFairness | number:'1.1-1' }} / 5</span>
+        </div>
+        <div class="fairness-metric">
+          <span class="fm-label">Non-Biased Fairness</span>
+          <div class="fm-bar-track">
+            <div class="fm-bar-fill accent" [style.width.%]="fairnessSummary()!.avgNonbiasedFairness / 5 * 100"></div>
+          </div>
+          <span class="fm-value">{{ fairnessSummary()!.avgNonbiasedFairness | number:'1.1-1' }} / 5</span>
+        </div>
+        <div class="fairness-metric">
+          <span class="fm-label">Explanation Clarity</span>
+          <div class="fm-bar-track">
+            <div class="fm-bar-fill" [style.width.%]="fairnessSummary()!.avgExplanationClarity / 5 * 100"></div>
+          </div>
+          <span class="fm-value">{{ fairnessSummary()!.avgExplanationClarity | number:'1.1-1' }} / 5</span>
+        </div>
+        <div class="fairness-metric">
+          <span class="fm-label">Trust Impact</span>
+          <div class="fm-bar-track">
+            <div class="fm-bar-fill" [style.width.%]="fairnessSummary()!.avgTrustImpact / 5 * 100"></div>
+          </div>
+          <span class="fm-value">{{ fairnessSummary()!.avgTrustImpact | number:'1.1-1' }} / 5</span>
+        </div>
+        <div class="fairness-metric">
+          <span class="fm-label">Perceived Bias Severity</span>
+          <div class="fm-bar-track">
+            <div class="fm-bar-fill caution" [style.width.%]="fairnessSummary()!.avgPerceivedBias / 5 * 100"></div>
+          </div>
+          <span class="fm-value">{{ fairnessSummary()!.avgPerceivedBias | number:'1.1-1' }} / 5</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Trend Section ──────────────────────────────────────────── -->
+    <section class="panel chart-panel" *ngIf="trends()">
+      <h3>7-Day Bias Trends</h3>
+      <div class="trend-grid">
+        <div class="trend-row header-row">
+          <span>Date</span>
+          <span>Analyzed</span>
+          <span>Flagged</span>
+          <span>Avg Δ</span>
+          <span>Avg Debiased</span>
+        </div>
+        <div class="trend-row" *ngFor="let pt of trends()!.points">
+          <span>{{ pt.date }}</span>
+          <span>{{ pt.totalAnalyzed }}</span>
+          <span class="flagged-count">{{ pt.biasFlaggedCount }}</span>
+          <span>{{ pt.averageBiasDelta | number:'1.3-3' }}</span>
+          <span>{{ pt.averageDebiasedScore | number:'1.3-3' }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Fairness Trends ────────────────────────────────────────── -->
+    <section class="panel chart-panel" *ngIf="fairnessTrends() && fairnessTrends()!.points.length > 0">
+      <h3>Fairness Perception Trends</h3>
+      <p class="panel-desc">How user-perceived fairness has changed over time</p>
+      <div class="trend-grid fairness-trend-grid">
+        <div class="trend-row header-row">
+          <span>Date</span>
+          <span>Responses</span>
+          <span>Orig. Fair</span>
+          <span>NonBias Fair</span>
+          <span>Clarity</span>
+          <span>Trust</span>
+          <span>Bias Sev.</span>
+        </div>
+        <div class="trend-row" *ngFor="let ft of fairnessTrends()!.points">
+          <span>{{ ft.date }}</span>
+          <span>{{ ft.responseCount }}</span>
+          <span>{{ ft.avgOriginalFairness | number:'1.1-1' }}</span>
+          <span>{{ ft.avgNonbiasedFairness | number:'1.1-1' }}</span>
+          <span>{{ ft.avgExplanationClarity | number:'1.1-1' }}</span>
+          <span>{{ ft.avgTrustImpact | number:'1.1-1' }}</span>
+          <span>{{ ft.avgPerceivedBias | number:'1.1-1' }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Bias-Flagged Posts Table ───────────────────────────────── -->
+    <section class="panel">
+      <h3>Bias-Flagged Posts</h3>
+      <p class="panel-desc">Click a row to view decision comparison and factor attribution</p>
+      <div class="flagged-table-wrap">
+        <table class="agent-table">
+          <thead>
+            <tr>
+              <th>Post ID</th>
+              <th>Author</th>
+              <th>Type</th>
+              <th>Raw</th>
+              <th>Baseline</th>
+              <th>Debiased</th>
+              <th>Δ</th>
+              <th>Dominant Agent</th>
+              <th>Region</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let post of getFlaggedPosts()"
+                (click)="selectPost(post)"
+                [class.selected-row]="selectedPost()?.id === post.id"
+                class="clickable-row"
+                role="button"
+                tabindex="0"
+                (keydown.enter)="selectPost(post)"
+                (keydown.space)="selectPost(post); $event.preventDefault()">
+              <td>{{ post.id }}</td>
+              <td>{{ post.author.name }}</td>
+              <td>{{ post.contentType }}</td>
+              <td>{{ post.biasResult!.rawBiasedScore | number:'1.3-3' }}</td>
+              <td>{{ post.biasResult!.baselineNonbiasedScore | number:'1.3-3' }}</td>
+              <td>{{ post.biasResult!.debiasedAdjustedScore | number:'1.3-3' }}</td>
+              <td class="delta-cell">{{ post.biasResult!.biasDelta | number:'1.3-3' }}</td>
+              <td>{{ post.biasResult!.dominantBiasedAgent }}</td>
+              <td>{{ post.biasResult!.favoredRegion }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div *ngIf="getFlaggedPosts().length === 0" class="empty-msg">No bias-flagged posts yet.</div>
+    </section>
+  </div>
+</div>

@@ -64,10 +64,12 @@ orchestrator = get_orchestrator()
 
 # ── Reports & Storage ────────────────────────────────────────────────────────
 from reports import ReportBuilder  # noqa: E402
-from storage import AnalysisRepository  # noqa: E402
+from storage import AnalysisRepository, FairnessStore  # noqa: E402
 
 repo = AnalysisRepository()
+fairness_store = FairnessStore()
 from storage.repository import StoredAnalysis  # noqa: E402
+from storage.fairness_store import FairnessSurveyResponse  # noqa: E402
 
 # ── FastAPI app ──────────────────────────────────────────────────────────────
 API_PREFIX = os.getenv("API_PREFIX", "")  # Set to "/api" on DO App Platform
@@ -241,12 +243,68 @@ class BiasDetectionResponse(BaseModel):
     flaggedItems: list[BiasHighlightResponse]
 
 
+class FactorContributionResponse(BaseModel):
+    factorName: str
+    factorCategory: str
+    rawValue: float
+    weight: float
+    contribution: float
+    contributionPct: float
+    description: str
+
+
+class AgentAttributionResponse(BaseModel):
+    agentName: str
+    region: str | None
+    agentScore: float
+    baselineScore: float
+    totalDelta: float
+    factors: list[FactorContributionResponse]
+    topFactor: str
+    summary: str
+
+
+class FactorAttributionResponse(BaseModel):
+    agentAttributions: list[AgentAttributionResponse]
+    globalTopFactors: list[str]
+    proxyRiskIndicators: list[str]
+    fairnessSummary: str
+
+
+class FairnessSurveyRequest(BaseModel):
+    postId: str
+    originalFairness: int = 3
+    nonbiasedFairness: int = 3
+    explanationClarity: int = 3
+    trustImpact: int = 3
+    perceivedBiasSeverity: int = 3
+    comment: str = ""
+
+    @field_validator("originalFairness", "nonbiasedFairness", "explanationClarity",
+                     "trustImpact", "perceivedBiasSeverity")
+    @classmethod
+    def validate_likert(cls, v: int) -> int:
+        if v < 1 or v > 5:
+            raise ValueError("Rating must be between 1 and 5")
+        return v
+
+    @field_validator("comment")
+    @classmethod
+    def validate_comment(cls, v: str) -> str:
+        if len(v) > 2000:
+            raise ValueError("Comment must be under 2000 characters")
+        if v and _contains_malicious_input(v):
+            raise ValueError("Comment contains disallowed patterns")
+        return v
+
+
 class AnalyzeResponse(BaseModel):
     postId: str
     status: str
     agentScores: list[AgentScoreResponse]
     biasResult: BiasResultResponse
     biasDetection: BiasDetectionResponse | None = None
+    factorAttribution: FactorAttributionResponse | None = None
     mlFeatures: dict = {}
 
 
@@ -326,6 +384,40 @@ def analyze(req: AnalyzeRequest):
             ],
         )
 
+    # ── Build factor attribution response ──
+    factor_attribution_resp = None
+    if state.factor_attribution:
+        fa = state.factor_attribution
+        factor_attribution_resp = FactorAttributionResponse(
+            agentAttributions=[
+                AgentAttributionResponse(
+                    agentName=aa.agent_name,
+                    region=aa.region,
+                    agentScore=aa.agent_score,
+                    baselineScore=aa.baseline_score,
+                    totalDelta=aa.total_delta,
+                    factors=[
+                        FactorContributionResponse(
+                            factorName=fc.factor_name,
+                            factorCategory=fc.factor_category,
+                            rawValue=fc.raw_value,
+                            weight=fc.weight,
+                            contribution=fc.contribution,
+                            contributionPct=fc.contribution_pct,
+                            description=fc.description,
+                        )
+                        for fc in aa.factors
+                    ],
+                    topFactor=aa.top_factor,
+                    summary=aa.summary,
+                )
+                for aa in fa.agent_attributions
+            ],
+            globalTopFactors=fa.global_top_factors,
+            proxyRiskIndicators=fa.proxy_risk_indicators,
+            fairnessSummary=fa.fairness_summary,
+        )
+
     # ── Response ──
     debiased = state.debiased_result
     return AnalyzeResponse(
@@ -355,6 +447,7 @@ def analyze(req: AnalyzeRequest):
             reportPath=f"/reports/{req.postId}",
         ),
         biasDetection=bias_detection,
+        factorAttribution=factor_attribution_resp,
         mlFeatures={k: v for k, v in state.ml_features.items() if not k.startswith("_")},
     )
 
@@ -490,6 +583,75 @@ def dashboard_trends():
             "count": len(day_analyses),
         })
     return points
+
+
+# ── Fairness Survey endpoints ────────────────────────────────────────────────
+
+
+@router.post("/fairness-survey")
+def submit_fairness_survey(req: FairnessSurveyRequest):
+    response = FairnessSurveyResponse(
+        post_id=req.postId,
+        original_fairness=req.originalFairness,
+        nonbiased_fairness=req.nonbiasedFairness,
+        explanation_clarity=req.explanationClarity,
+        trust_impact=req.trustImpact,
+        perceived_bias_severity=req.perceivedBiasSeverity,
+        comment=req.comment,
+    )
+    survey_id = fairness_store.save(response)
+    return {"id": survey_id, "status": "saved"}
+
+
+@router.get("/fairness-survey/{post_id}")
+def get_fairness_surveys(post_id: str):
+    responses = fairness_store.get_by_post(post_id)
+    if not responses:
+        return {"postId": post_id, "responses": [], "summary": None}
+
+    n = len(responses)
+    summary = {
+        "avgOriginalFairness": round(sum(r.original_fairness for r in responses) / n, 2),
+        "avgNonbiasedFairness": round(sum(r.nonbiased_fairness for r in responses) / n, 2),
+        "avgExplanationClarity": round(sum(r.explanation_clarity for r in responses) / n, 2),
+        "avgTrustImpact": round(sum(r.trust_impact for r in responses) / n, 2),
+        "avgPerceivedBias": round(sum(r.perceived_bias_severity for r in responses) / n, 2),
+        "responseCount": n,
+    }
+
+    return {
+        "postId": post_id,
+        "responses": [
+            {
+                "id": r.id,
+                "originalFairness": r.original_fairness,
+                "nonbiasedFairness": r.nonbiased_fairness,
+                "explanationClarity": r.explanation_clarity,
+                "trustImpact": r.trust_impact,
+                "perceivedBiasSeverity": r.perceived_bias_severity,
+                "comment": r.comment,
+                "createdAt": r.created_at.isoformat(),
+            }
+            for r in responses
+        ],
+        "summary": summary,
+    }
+
+
+@router.get("/dashboard/fairness-trends")
+def dashboard_fairness_trends():
+    return [
+        {
+            "date": t.date,
+            "avgOriginalFairness": t.avg_original_fairness,
+            "avgNonbiasedFairness": t.avg_nonbiased_fairness,
+            "avgExplanationClarity": t.avg_explanation_clarity,
+            "avgTrustImpact": t.avg_trust_impact,
+            "avgPerceivedBias": t.avg_perceived_bias,
+            "responseCount": t.response_count,
+        }
+        for t in fairness_store.get_trends(days=7)
+    ]
 
 
 # ── Startup ──────────────────────────────────────────────────────────────────

@@ -45,8 +45,8 @@ import { ErrorToastComponent } from './components/error-toast/error-toast.compon
   styles: [`
     /* AI Influence Notification Bar */
     .ai-influence-bar {
-      background: linear-gradient(90deg, rgba(0,217,255,0.12), rgba(156,39,176,0.12), rgba(0,255,136,0.08));
-      border-bottom: 1px solid rgba(0,217,255,0.2);
+      background: linear-gradient(90deg, var(--cat-a-bg), var(--cat-c-bg), var(--cat-d-bg));
+      border-bottom: 1px solid var(--border-default);
       padding: 0.5rem 2rem;
       animation: fadeInDown 0.5s ease-out;
     }
@@ -56,32 +56,32 @@ import { ErrorToastComponent } from './components/error-toast/error-toast.compon
     }
     .ai-pulse-dot {
       width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-      background: #00d9ff;
+      background: var(--accent-primary);
       animation: pulse 2s ease-in-out infinite;
-      box-shadow: 0 0 8px rgba(0,217,255,0.5);
+      box-shadow: 0 0 8px rgba(88,166,255,0.5);
     }
     .ai-influence-icon { font-size: 1.1rem; flex-shrink: 0; }
     .ai-influence-text {
-      font-size: 0.75rem; color: #ccd6f6; line-height: 1.4; flex: 1;
-      strong { color: #00d9ff; }
+      font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; flex: 1;
+      strong { color: var(--accent-primary); }
     }
     .ai-influence-dismiss {
-      background: none; border: 1px solid rgba(255,255,255,0.1); color: #8892b0;
-      width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 0.7rem;
+      background: none; border: 1px solid var(--border-default); color: var(--text-muted);
+      width: 28px; height: 28px; min-height: 28px; border-radius: 50%; cursor: pointer; font-size: 0.7rem;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
       transition: all 0.2s;
-      &:hover { background: rgba(255,255,255,0.1); color: #e6e6e6; }
+      &:hover { background: var(--bg-hover); color: var(--text-primary); }
     }
     @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
     /* Header */
     .app-header {
-      background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      background: var(--bg-glass);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-default);
       padding: 0 2rem;
       position: sticky; top: 0; z-index: 100;
-      backdrop-filter: blur(10px);
     }
     .header-inner {
       max-width: 1200px; margin: 0 auto;
@@ -92,39 +92,45 @@ import { ErrorToastComponent } from './components/error-toast/error-toast.compon
       display: flex; align-items: center; gap: 0.6rem;
       .brand-icon { font-size: 1.5rem; }
       .brand-name {
-        font-size: 1.15rem; font-weight: 700; color: #e6e6e6;
-        background: linear-gradient(135deg, #00d9ff, #00ff88);
+        font-size: 1.15rem; font-weight: 700;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       }
       .brand-version {
-        font-size: 0.6rem; font-weight: 600; color: #5a6480;
-        background: rgba(255,255,255,0.05); padding: 0.15rem 0.4rem; border-radius: 4px;
+        font-size: 0.6rem; font-weight: 600; color: var(--text-muted);
+        background: var(--bg-hover); padding: 0.15rem 0.4rem; border-radius: var(--radius-sm);
       }
     }
     .header-nav { display: flex; gap: 0.5rem; align-items: center; }
     .nav-badge {
       font-size: 0.72rem; font-weight: 600; padding: 0.3rem 0.8rem;
-      border-radius: 20px;
+      border-radius: var(--radius-full);
       &.collab {
-       background: rgba(156,39,176,0.12); color: #ce93d8; border: 1px solid rgba(156,39,176,0.2);
+        background: var(--cat-c-bg); color: var(--accent-tertiary); border: 1px solid var(--accent-tertiary);
       }
       &.research {
-        background: rgba(0,217,255,0.08); color: #00d9ff;
-        border: 1px solid rgba(0,217,255,0.2);
+        background: var(--cat-a-bg); color: var(--accent-primary);
+        border: 1px solid var(--accent-primary);
       }
       &.live-badge {
         display: flex; align-items: center; gap: 0.35rem;
-        background: rgba(76,175,80,0.1); color: #4caf50;
-        border: 1px solid rgba(76,175,80,0.25); font-size: 0.65rem; font-weight: 700;
+        background: var(--status-confirm-bg); color: var(--status-confirm);
+        border: 1px solid var(--status-confirm); font-size: 0.65rem; font-weight: 700;
         letter-spacing: 0.5px;
       }
     }
     .live-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: #4caf50;
+      width: 6px; height: 6px; border-radius: 50%; background: var(--status-confirm);
       animation: pulse 1.5s ease-in-out infinite;
-      box-shadow: 0 0 6px rgba(76,175,80,0.6);
+      box-shadow: 0 0 6px rgba(86,212,196,0.6);
     }
     main { min-height: calc(100vh - 60px); }
+
+    @media (forced-colors: active) {
+      .app-header, .ai-influence-bar { border-bottom: 1px solid CanvasText; }
+      .nav-badge { border: 1px solid CanvasText; }
+    }
+
     @media (max-width: 600px) {
       .ai-influence-bar { padding: 0.4rem 1rem; }
       .ai-influence-text { font-size: 0.68rem; }

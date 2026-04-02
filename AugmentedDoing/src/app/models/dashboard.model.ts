@@ -49,3 +49,19 @@ export interface PostDrilldown {
   favoredRegion: BiasRegion | null;
   analyzedAt: string;
 }
+
+// ── Fairness Trends ─────────────────────────────────────────────────────────
+
+export interface FairnessTrendPoint {
+  date: string;
+  avgOriginalFairness: number;
+  avgNonbiasedFairness: number;
+  avgExplanationClarity: number;
+  avgTrustImpact: number;
+  avgPerceivedBias: number;
+  responseCount: number;
+}
+
+export interface FairnessTrends {
+  points: FairnessTrendPoint[];
+}

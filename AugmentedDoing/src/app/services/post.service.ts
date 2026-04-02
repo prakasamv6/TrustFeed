@@ -442,17 +442,17 @@ export class PostService {
   getAiConfidenceLevel(post: Post): { level: string; percentage: number; color: string } {
     const total = post.aiGeneratedFeedback.flaggedAsAi + post.aiGeneratedFeedback.flaggedAsHuman;
     if (total === 0) {
-      return { level: 'No votes', percentage: 0, color: '#9e9e9e' };
+      return { level: 'No votes', percentage: 0, color: '#8b949e' };
     }
 
     const aiPercentage = (post.aiGeneratedFeedback.flaggedAsAi / total) * 100;
 
     if (aiPercentage >= 70) {
-      return { level: 'Likely AI', percentage: aiPercentage, color: '#e91e63' };
+      return { level: 'Likely AI', percentage: aiPercentage, color: '#b392f0' };
     } else if (aiPercentage >= 30) {
-      return { level: 'Disputed', percentage: aiPercentage, color: '#ff9800' };
+      return { level: 'Disputed', percentage: aiPercentage, color: '#d4a054' };
     } else {
-      return { level: 'Likely Human', percentage: aiPercentage, color: '#4caf50' };
+      return { level: 'Likely Human', percentage: aiPercentage, color: '#58a6ff' };
     }
   }
 }

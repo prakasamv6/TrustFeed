@@ -447,22 +447,22 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     }
 
     .sidebar-card {
-      background: linear-gradient(145deg, #1e1e2e, #252538);
-      border-radius: 16px;
+      background: var(--bg-glass); backdrop-filter: blur(var(--blur-md));
+      border-radius: var(--radius-lg);
       padding: 1.5rem;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-default);
 
       h3 {
         margin: 0 0 1rem;
         font-size: 1rem;
-        color: #e6e6e6;
+        color: var(--text-primary);
         font-weight: 600;
       }
 
       p {
         margin: 0;
         font-size: 0.875rem;
-        color: #8892b0;
+        color: var(--text-muted);
         line-height: 1.6;
       }
     }
@@ -480,12 +480,12 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
         align-items: center;
         gap: 0.5rem;
         font-size: 0.8rem;
-        color: #ccd6f6;
+        color: var(--text-secondary);
       }
     }
 
-    .ai-list li { color: #e91e63; }
-    .human-list li { color: #4caf50; }
+    .ai-list li { color: var(--accent-red); }
+    .human-list li { color: var(--accent-green); }
 
     .main-feed {
       min-width: 0;
@@ -493,11 +493,11 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     /* Submit Card - Like Create Post */
     .submit-card {
-      background: linear-gradient(145deg, #1e1e2e, #252538);
-      border-radius: 16px;
+      background: var(--bg-glass); backdrop-filter: blur(var(--blur-md));
+      border-radius: var(--radius-lg);
       padding: 1.5rem;
       margin-bottom: 1.5rem;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-default);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     }
 
@@ -519,13 +519,13 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     .submit-title {
       font-weight: 600;
-      color: #e6e6e6;
+      color: var(--text-primary);
       font-size: 1.1rem;
     }
 
     .submit-subtitle {
       font-size: 0.85rem;
-      color: #8892b0;
+      color: var(--text-muted);
     }
 
     .submit-body {
@@ -534,11 +534,11 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     .content-input {
       width: 100%;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
       padding: 1rem;
-      color: #e6e6e6;
+      color: var(--text-primary);
       font-size: 1rem;
       resize: none;
       font-family: inherit;
@@ -547,12 +547,12 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
       &:focus {
         outline: none;
-        border-color: #00d9ff;
-        box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
+        border-color: var(--accent-cyan);
+        box-shadow: 0 0 0 3px var(--info-bg);
       }
 
       &::placeholder {
-        color: #6b7280;
+        color: var(--text-muted);
       }
     }
 
@@ -566,7 +566,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     .source-label {
       font-size: 0.85rem;
-      color: #8892b0;
+      color: var(--text-muted);
       font-weight: 500;
     }
 
@@ -577,9 +577,9 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     }
 
     .source-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #8892b0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      color: var(--text-muted);
       padding: 0.5rem 1rem;
       border-radius: 20px;
       cursor: pointer;
@@ -588,15 +588,18 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       gap: 0.4rem;
       transition: all 0.3s ease;
       font-size: 0.8rem;
+      min-height: var(--min-touch-target);
 
       &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: #ccd6f6;
+        background: var(--bg-hover);
+        color: var(--text-secondary);
       }
 
+      &:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
       &.active {
-        background: linear-gradient(135deg, #00d9ff, #00ff88);
-        color: #0a0a0f;
+        background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+        color: var(--bg-primary);
         font-weight: 600;
         border-color: transparent;
       }
@@ -604,21 +607,21 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     .url-input {
       width: 100%;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
       padding: 0.75rem 1rem;
-      color: #e6e6e6;
+      color: var(--text-primary);
       font-size: 0.875rem;
       margin-top: 0.5rem;
 
       &:focus {
         outline: none;
-        border-color: #00d9ff;
+        border-color: var(--accent-cyan);
       }
 
       &::placeholder {
-        color: #6b7280;
+        color: var(--text-muted);
       }
     }
 
@@ -626,9 +629,9 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     .ai-declaration {
       margin-top: 1rem;
       padding: 1rem;
-      background: rgba(233, 30, 99, 0.05);
-      border: 1px solid rgba(233, 30, 99, 0.15);
-      border-radius: 10px;
+      background: var(--ai-bg);
+      border: 1px solid var(--accent-red);
+      border-radius: var(--radius-md);
     }
 
     .declaration-toggle {
@@ -646,7 +649,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     .toggle-track {
       width: 44px;
       height: 24px;
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--bg-elevated);
       border-radius: 12px;
       position: relative;
       transition: all 0.3s ease;
@@ -659,18 +662,18 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       left: 2px;
       width: 20px;
       height: 20px;
-      background: #6b7280;
+      background: var(--text-muted);
       border-radius: 50%;
       transition: all 0.3s ease;
     }
 
     .declaration-toggle.active .toggle-track {
-      background: linear-gradient(135deg, #e91e63, #9c27b0);
+      background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
     }
 
     .declaration-toggle.active .toggle-thumb {
       left: 22px;
-      background: white;
+      background: #fff;
     }
 
     .toggle-label {
@@ -678,7 +681,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       align-items: center;
       gap: 0.5rem;
       font-size: 0.9rem;
-      color: #ccd6f6;
+      color: var(--text-secondary);
       font-weight: 500;
     }
 
@@ -691,7 +694,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       margin-top: 0.5rem;
       margin-left: 52px;
       font-size: 0.75rem;
-      color: #8892b0;
+      color: var(--text-muted);
     }
 
     .char-info {
@@ -702,8 +705,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     .ai-badge-small {
       font-size: 0.75rem;
-      color: #e91e63;
-      background: rgba(233, 30, 99, 0.15);
+      color: var(--accent-red);
+      background: var(--ai-bg);
       padding: 0.25rem 0.75rem;
       border-radius: 20px;
       font-weight: 500;
@@ -714,18 +717,18 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       justify-content: space-between;
       align-items: center;
       padding-top: 1rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-top: 1px solid var(--border-default);
     }
 
     .char-count {
       font-size: 0.75rem;
-      color: #6b7280;
+      color: var(--text-muted);
     }
 
     .submit-btn {
-      background: linear-gradient(135deg, #00d9ff, #00ff88);
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
       border: none;
-      color: #0a0a0f;
+      color: var(--bg-primary);
       padding: 0.75rem 2rem;
       border-radius: 25px;
       font-weight: 600;
@@ -734,11 +737,14 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       align-items: center;
       gap: 0.5rem;
       transition: all 0.3s ease;
+      min-height: var(--min-touch-target);
 
       &:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(0, 217, 255, 0.4);
+        box-shadow: 0 4px 20px var(--info-bg);
       }
+
+      &:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
       &:disabled {
         opacity: 0.5;
@@ -752,18 +758,18 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       align-items: center;
       margin-bottom: 1.5rem;
       padding-bottom: 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--border-default);
 
       h2 {
         margin: 0;
         font-size: 1.25rem;
-        color: #e6e6e6;
+        color: var(--text-primary);
       }
 
       .post-count {
         font-size: 0.875rem;
-        color: #8892b0;
-        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        background: var(--bg-elevated);
         padding: 0.25rem 0.75rem;
         border-radius: 20px;
       }
@@ -771,11 +777,11 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     /* Review Card - Social Media Style */
     .review-card {
-      background: linear-gradient(145deg, #1e1e2e, #252538);
-      border-radius: 16px;
+      background: var(--bg-glass); backdrop-filter: blur(var(--blur-md));
+      border-radius: var(--radius-lg);
       overflow: hidden;
       margin-bottom: 1.5rem;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-default);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
       transition: all 0.3s ease;
 
@@ -785,21 +791,21 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       }
 
       &.high-ai {
-        border-color: rgba(233, 30, 99, 0.3);
+        border-color: var(--accent-red);
       }
 
       &.high-human {
-        border-color: rgba(76, 175, 80, 0.3);
+        border-color: var(--accent-green);
       }
 
       &.declared-ai {
-        border-color: rgba(233, 30, 99, 0.4);
-        box-shadow: 0 8px 32px rgba(233, 30, 99, 0.15);
+        border-color: var(--accent-red);
+        box-shadow: 0 8px 32px var(--ai-bg);
       }
     }
 
     .ai-declared-banner {
-      background: linear-gradient(135deg, rgba(233, 30, 99, 0.95), rgba(156, 39, 176, 0.95));
+      background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
       padding: 0.6rem 1.5rem;
       display: flex;
       align-items: center;
@@ -812,7 +818,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       .declared-text {
         font-size: 0.8rem;
         font-weight: 600;
-        color: white;
+        color: #fff;
         letter-spacing: 0.5px;
         text-transform: uppercase;
       }
@@ -831,9 +837,9 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     }
 
     .declare-btn {
-      background: rgba(233, 30, 99, 0.1);
-      border: 1px solid rgba(233, 30, 99, 0.3);
-      color: #e91e63;
+      background: var(--ai-bg);
+      border: 1px solid var(--accent-red);
+      color: var(--accent-red);
       padding: 0.5rem 1rem;
       border-radius: 20px;
       cursor: pointer;
@@ -843,15 +849,19 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       font-size: 0.75rem;
       font-weight: 500;
       transition: all 0.3s ease;
+      min-height: var(--min-touch-target);
 
       &:hover {
-        background: rgba(233, 30, 99, 0.2);
+        background: var(--accent-red);
+        color: #fff;
         transform: translateY(-1px);
       }
 
+      &:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
       &.active {
-        background: linear-gradient(135deg, #e91e63, #9c27b0);
-        color: white;
+        background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
+        color: #fff;
         border-color: transparent;
       }
     }
@@ -861,7 +871,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--border-default);
 
       .status-icon {
         font-size: 1.25rem;
@@ -870,7 +880,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       .status-text {
         font-size: 0.85rem;
         font-weight: 600;
-        color: white;
+        color: #fff;
       }
 
       .confidence-percent {
@@ -896,7 +906,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     .source-badge {
       width: 48px;
       height: 48px;
-      border-radius: 12px;
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -907,7 +917,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       }
 
       &.news {
-        background: rgba(255, 152, 0, 0.2);
+        background: var(--warning-bg);
       }
 
       &.twitter {
@@ -915,7 +925,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       }
 
       &.other {
-        background: rgba(158, 158, 158, 0.2);
+        background: var(--bg-elevated);
       }
     }
 
@@ -927,26 +937,27 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     .source-name {
       font-weight: 600;
-      color: #e6e6e6;
+      color: var(--text-primary);
       font-size: 1rem;
     }
 
     .time-info {
       font-size: 0.8rem;
-      color: #8892b0;
+      color: var(--text-muted);
     }
 
     .source-link {
       font-size: 0.8rem;
-      color: #00d9ff;
+      color: var(--accent-cyan);
       text-decoration: none;
       padding: 0.5rem 1rem;
       border-radius: 20px;
-      background: rgba(0, 217, 255, 0.1);
+      background: var(--info-bg);
       transition: all 0.3s ease;
 
       &:hover {
-        background: rgba(0, 217, 255, 0.2);
+        background: var(--accent-cyan);
+        color: var(--bg-primary);
       }
     }
 
@@ -955,7 +966,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     }
 
     .content-text {
-      color: #ccd6f6;
+      color: var(--text-secondary);
       font-size: 1rem;
       line-height: 1.7;
       margin: 0;
@@ -965,8 +976,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     .indicators-section {
       margin: 0 1.5rem 1rem;
       padding: 1rem;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 12px;
+      background: var(--bg-hover);
+      border-radius: var(--radius-md);
     }
 
     .indicator-group {
@@ -983,8 +994,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       display: block;
       margin-bottom: 0.5rem;
 
-      &.ai-title { color: #e91e63; }
-      &.human-title { color: #4caf50; }
+      &.ai-title { color: var(--accent-red); }
+      &.human-title { color: var(--accent-green); }
     }
 
     .indicator-tags {
@@ -999,22 +1010,22 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       font-size: 0.7rem;
 
       &.ai-tag {
-        background: rgba(233, 30, 99, 0.15);
-        color: #e91e63;
+        background: var(--ai-bg);
+        color: var(--accent-red);
       }
 
       &.human-tag {
-        background: rgba(76, 175, 80, 0.15);
-        color: #4caf50;
+        background: var(--human-bg);
+        color: var(--accent-green);
       }
     }
 
     .voting-section {
       margin: 1rem 1.5rem;
       padding: 1rem;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      background: var(--bg-hover);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-default);
     }
 
     .voting-header {
@@ -1023,7 +1034,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     .voting-title {
       font-size: 0.9rem;
-      color: #8892b0;
+      color: var(--text-muted);
       font-weight: 500;
     }
 
@@ -1033,7 +1044,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     .vote-bar {
       height: 32px;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--bg-elevated);
       border-radius: 16px;
       display: flex;
       overflow: hidden;
@@ -1047,15 +1058,15 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       justify-content: center;
       font-size: 0.8rem;
       font-weight: 600;
-      color: white;
+      color: #fff;
       transition: width 0.5s ease;
 
       &.ai-fill {
-        background: linear-gradient(135deg, #e91e63, #9c27b0);
+        background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
       }
 
       &.human-fill {
-        background: linear-gradient(135deg, #4caf50, #8bc34a);
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
       }
     }
 
@@ -1064,8 +1075,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       justify-content: space-between;
       font-size: 0.7rem;
 
-      .ai-label { color: #e91e63; }
-      .human-label { color: #4caf50; }
+      .ai-label { color: var(--accent-red); }
+      .human-label { color: var(--accent-green); }
     }
 
     .vote-actions {
@@ -1073,12 +1084,12 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       align-items: center;
       justify-content: space-between;
       padding-top: 1rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-top: 1px solid var(--border-default);
     }
 
     .vote-prompt {
       font-size: 0.85rem;
-      color: #8892b0;
+      color: var(--text-muted);
     }
 
     .vote-buttons {
@@ -1087,8 +1098,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     }
 
     .vote-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
       padding: 0.6rem 1.25rem;
       border-radius: 25px;
       cursor: pointer;
@@ -1096,23 +1107,26 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       align-items: center;
       gap: 0.5rem;
       transition: all 0.3s ease;
-      color: #8892b0;
+      color: var(--text-muted);
       font-size: 0.85rem;
+      min-height: var(--min-touch-target);
 
       &:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--bg-hover);
         transform: translateY(-1px);
       }
 
+      &:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
       &.ai-vote.active {
-        background: linear-gradient(135deg, #e91e63, #9c27b0);
-        color: white;
+        background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
+        color: #fff;
         border-color: transparent;
       }
 
       &.human-vote.active {
-        background: linear-gradient(135deg, #4caf50, #8bc34a);
-        color: white;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        color: #fff;
         border-color: transparent;
       }
 
@@ -1125,34 +1139,37 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       padding: 1rem 1.5rem;
       display: flex;
       gap: 1rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-top: 1px solid var(--border-default);
     }
 
     .action-btn {
       background: transparent;
       border: none;
-      color: #8892b0;
+      color: var(--text-muted);
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 0.5rem;
       padding: 0.5rem 0.75rem;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       transition: all 0.3s ease;
       font-size: 0.85rem;
+      min-height: var(--min-touch-target);
 
       &:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: #ccd6f6;
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
       }
+
+      &:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
     }
 
     .empty-state {
       text-align: center;
       padding: 4rem 2rem;
-      background: linear-gradient(145deg, #1e1e2e, #252538);
-      border-radius: 16px;
-      border: 1px dashed rgba(255, 255, 255, 0.1);
+      background: var(--bg-glass); backdrop-filter: blur(var(--blur-md));
+      border-radius: var(--radius-lg);
+      border: 1px dashed var(--border-subtle);
 
       .empty-icon {
         font-size: 4rem;
@@ -1162,12 +1179,12 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
       h3 {
         margin: 0 0 0.5rem;
-        color: #e6e6e6;
+        color: var(--text-primary);
       }
 
       p {
         margin: 0;
-        color: #8892b0;
+        color: var(--text-muted);
       }
     }
 
@@ -1182,22 +1199,22 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       .stat-item {
         text-align: center;
         padding: 1rem;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: var(--bg-hover);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-default);
       }
 
       .stat-value {
         display: block;
         font-size: 1.5rem;
         font-weight: 700;
-        color: #00d9ff;
+        color: var(--accent-cyan);
         margin-bottom: 0.25rem;
       }
 
       .stat-label {
         font-size: 0.7rem;
-        color: #8892b0;
+        color: var(--text-muted);
       }
     }
 
@@ -1211,8 +1228,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       display: flex;
       gap: 0.75rem;
       padding: 0.75rem;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 8px;
+      background: var(--bg-hover);
+      border-radius: var(--radius-sm);
 
       .info-icon {
         font-size: 1.5rem;
@@ -1222,14 +1239,14 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       h4 {
         margin: 0 0 0.25rem;
         font-size: 0.875rem;
-        color: #e6e6e6;
+        color: var(--text-primary);
         font-weight: 600;
       }
 
       p {
         margin: 0;
         font-size: 0.75rem;
-        color: #8892b0;
+        color: var(--text-muted);
         line-height: 1.4;
       }
     }
@@ -1245,7 +1262,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       align-items: center;
       gap: 0.75rem;
       padding: 0.75rem;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       font-size: 0.85rem;
 
       &.linkedin {
@@ -1254,8 +1271,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       }
 
       &.news {
-        background: rgba(255, 152, 0, 0.1);
-        color: #ff9800;
+        background: var(--warning-bg);
+        color: var(--accent-orange);
       }
 
       &.twitter {
@@ -1264,8 +1281,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       }
 
       &.other {
-        background: rgba(158, 158, 158, 0.1);
-        color: #9e9e9e;
+        background: var(--bg-elevated);
+        color: var(--text-muted);
       }
     }
 
@@ -1273,9 +1290,9 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     .analysis-section {
       margin: 0 1.5rem 1rem;
       padding: 1rem 1.25rem;
-      background: linear-gradient(135deg, rgba(0, 217, 255, 0.05), rgba(0, 255, 136, 0.03));
-      border-radius: 12px;
-      border: 1px solid rgba(0, 217, 255, 0.12);
+      background: var(--bg-glass); backdrop-filter: blur(var(--blur-sm));
+      border-radius: var(--radius-md);
+      border: 1px solid var(--accent-cyan);
     }
 
     .metrics-bar {
@@ -1296,7 +1313,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     .metric-divider {
       width: 1px;
       height: 40px;
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--border-default);
     }
 
     .metric-ring {
@@ -1313,7 +1330,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
       .circle-bg {
         fill: none;
-        stroke: rgba(255, 255, 255, 0.1);
+        stroke: var(--bg-elevated);
         stroke-width: 3;
       }
 
@@ -1324,12 +1341,12 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
         transition: stroke-dasharray 0.5s ease;
       }
 
-      &.high .circle { stroke: #e91e63; }
-      &.medium .circle { stroke: #ff9800; }
-      &.low .circle { stroke: #4caf50; }
-      &.good .circle { stroke: #4caf50; }
-      &.warning .circle { stroke: #ff9800; }
-      &.poor .circle { stroke: #e91e63; }
+      &.high .circle { stroke: var(--accent-red); }
+      &.medium .circle { stroke: var(--accent-orange); }
+      &.low .circle { stroke: var(--accent-green); }
+      &.good .circle { stroke: var(--accent-green); }
+      &.warning .circle { stroke: var(--accent-orange); }
+      &.poor .circle { stroke: var(--accent-red); }
 
       .ring-value {
         position: absolute;
@@ -1338,7 +1355,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
         transform: translate(-50%, -50%);
         font-size: 0.85rem;
         font-weight: 700;
-        color: #e6e6e6;
+        color: var(--text-primary);
       }
     }
 
@@ -1350,7 +1367,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     .metric-label {
       font-size: 0.75rem;
-      color: #8892b0;
+      color: var(--text-muted);
       font-weight: 500;
     }
 
@@ -1358,12 +1375,12 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       font-size: 0.7rem;
       font-weight: 600;
 
-      &.high { color: #e91e63; }
-      &.medium { color: #ff9800; }
-      &.low { color: #4caf50; }
-      &.good { color: #4caf50; }
-      &.warning { color: #ff9800; }
-      &.poor { color: #e91e63; }
+      &.high { color: var(--accent-red); }
+      &.medium { color: var(--accent-orange); }
+      &.low { color: var(--accent-green); }
+      &.good { color: var(--accent-green); }
+      &.warning { color: var(--accent-orange); }
+      &.poor { color: var(--accent-red); }
     }
 
     .verdict {
@@ -1373,25 +1390,25 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     .verdict-badge {
       width: 48px;
       height: 48px;
-      border-radius: 12px;
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.5rem;
 
       &.ai {
-        background: linear-gradient(135deg, rgba(233, 30, 99, 0.2), rgba(156, 39, 176, 0.2));
-        border: 1px solid rgba(233, 30, 99, 0.3);
+        background: var(--ai-bg);
+        border: 1px solid var(--accent-red);
       }
 
       &.human {
-        background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(139, 195, 74, 0.2));
-        border: 1px solid rgba(76, 175, 80, 0.3);
+        background: var(--human-bg);
+        border: 1px solid var(--accent-green);
       }
 
       &.mixed {
-        background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 193, 7, 0.2));
-        border: 1px solid rgba(255, 152, 0, 0.3);
+        background: var(--warning-bg);
+        border: 1px solid var(--accent-orange);
       }
     }
 
@@ -1399,9 +1416,9 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       font-size: 0.75rem;
       font-weight: 700;
 
-      &.ai { color: #e91e63; }
-      &.human { color: #4caf50; }
-      &.mixed { color: #ff9800; }
+      &.ai { color: var(--accent-red); }
+      &.human { color: var(--accent-green); }
+      &.mixed { color: var(--accent-orange); }
     }
 
     .uncited-alert {
@@ -1410,9 +1427,9 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       gap: 0.5rem;
       margin-top: 0.75rem;
       padding: 0.5rem 0.75rem;
-      background: rgba(255, 152, 0, 0.1);
-      border-radius: 6px;
-      border-left: 3px solid #ff9800;
+      background: var(--warning-bg);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent-orange);
 
       .alert-icon {
         font-size: 0.9rem;
@@ -1420,7 +1437,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
       .alert-text {
         font-size: 0.75rem;
-        color: #ffb74d;
+        color: var(--accent-orange);
       }
     }
 
@@ -1430,7 +1447,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       gap: 0.5rem;
       margin-top: 0.75rem;
       padding-top: 0.75rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-top: 1px solid var(--border-default);
     }
 
     .pattern-tag {
@@ -1444,15 +1461,15 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       transition: all 0.2s ease;
 
       &.positive {
-        background: rgba(76, 175, 80, 0.12);
-        color: #4caf50;
-        border: 1px solid rgba(76, 175, 80, 0.25);
+        background: var(--human-bg);
+        color: var(--accent-green);
+        border: 1px solid var(--accent-green);
       }
 
       &.negative {
-        background: rgba(233, 30, 99, 0.12);
-        color: #e91e63;
-        border: 1px solid rgba(233, 30, 99, 0.25);
+        background: var(--ai-bg);
+        color: var(--accent-red);
+        border: 1px solid var(--accent-red);
       }
 
       &:hover {
@@ -1583,11 +1600,11 @@ export class ContentReviewComponent {
   getBannerGradient(submission: ReviewSubmission): string {
     const aiPercent = this.getAiPercentage(submission);
     if (aiPercent >= 70) {
-      return 'linear-gradient(135deg, rgba(233, 30, 99, 0.9), rgba(156, 39, 176, 0.9))';
+      return 'linear-gradient(135deg, rgba(179, 146, 240, 0.9), rgba(148, 115, 210, 0.9))';
     } else if (aiPercent < 30) {
-      return 'linear-gradient(135deg, rgba(76, 175, 80, 0.9), rgba(139, 195, 74, 0.9))';
+      return 'linear-gradient(135deg, rgba(88, 166, 255, 0.9), rgba(65, 140, 230, 0.9))';
     }
-    return 'linear-gradient(135deg, rgba(255, 152, 0, 0.9), rgba(255, 193, 7, 0.9))';
+    return 'linear-gradient(135deg, rgba(212, 160, 84, 0.9), rgba(190, 140, 60, 0.9))';
   }
 
   getAiPercentage(submission: ReviewSubmission): number {

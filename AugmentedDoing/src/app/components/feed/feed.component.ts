@@ -11,83 +11,118 @@ import { SortMode } from '../../models/post.model';
   standalone: true,
   imports: [CommonModule, PostCardComponent, CreatePostComponent],
   template: `
-    <!-- Circuit Breaker Interstitial Overlay (proposal §Overview: exposure caps & diversity constraints) -->
-    <div class="circuit-breaker-overlay" *ngIf="exposureTracker.circuitBreaker().cooldownActive">
-      <div class="cb-interstitial">
-        <span class="cb-icon">⚡</span>
-        <h2 class="cb-title">Circuit Breaker Activated</h2>
-        <p class="cb-reason">{{ exposureTracker.circuitBreaker().reason }}</p>
-        <div class="cb-stats">
-          <div class="cb-stat">
-            <span class="cb-stat-value">{{ exposureTracker.circuitBreaker().exposureCount }}</span>
-            <span class="cb-stat-label">AI Exposures</span>
+    <!-- Circuit Breaker Interstitial Overlay -->
+    <div
+      class="cb-overlay"
+      *ngIf="exposureTracker.circuitBreaker().cooldownActive"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="cb-title"
+      aria-describedby="cb-desc"
+    >
+      <div class="cb-modal">
+        <div class="cb-icon-wrap" aria-hidden="true">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <h2 id="cb-title" class="cb-title">Circuit Breaker Activated</h2>
+        <p id="cb-desc" class="cb-desc">{{ exposureTracker.circuitBreaker().reason }}</p>
+        <div class="cb-metrics" role="group" aria-label="Exposure metrics">
+          <div class="cb-metric">
+            <span class="cb-metric-val">{{ exposureTracker.circuitBreaker().exposureCount }}</span>
+            <span class="cb-metric-label">AI Exposures</span>
           </div>
-          <div class="cb-stat">
-            <span class="cb-stat-value">{{ exposureTracker.circuitBreaker().diversityScore * 100 | number:'1.0-0' }}%</span>
-            <span class="cb-stat-label">Diversity Score</span>
+          <div class="cb-metric">
+            <span class="cb-metric-val">{{ exposureTracker.circuitBreaker().diversityScore * 100 | number:'1.0-0' }}%</span>
+            <span class="cb-metric-label">Diversity Score</span>
           </div>
-          <div class="cb-stat">
-            <span class="cb-stat-value">{{ exposureTracker.judgmentDrift().level }}</span>
-            <span class="cb-stat-label">Drift Level</span>
+          <div class="cb-metric">
+            <span class="cb-metric-val">{{ exposureTracker.judgmentDrift().level }}</span>
+            <span class="cb-metric-label">Drift Level</span>
           </div>
         </div>
-        <p class="cb-suggestion">Consider browsing human-created content or taking a short break to recalibrate.</p>
-        <button class="cb-acknowledge-btn" (click)="exposureTracker.acknowledgeCooldown()">
+        <p class="cb-advice">Consider browsing human-created content or taking a short break to recalibrate.</p>
+        <button class="cb-btn" (click)="exposureTracker.acknowledgeCooldown()">
           I Understand — Continue Browsing
         </button>
       </div>
     </div>
 
-    <div class="feed-container">
-      <aside class="sidebar left-sidebar">
-        <div class="sidebar-card">
-          <h3>🎯 About TrustFeed</h3>
-          <p>
+    <div class="feed-layout">
+      <!-- Left Sidebar -->
+      <aside class="sidebar sidebar-left" aria-label="About TrustFeed">
+        <div class="card">
+          <div class="card-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <h2 class="card-title">About TrustFeed</h2>
+          </div>
+          <p class="card-text">
             TrustFeed is a proof-of-concept social platform that promotes transparency
             about AI-generated content. Authors can declare if their content is AI-generated,
             and the community can provide feedback.
           </p>
         </div>
 
-        <div class="sidebar-card">
-          <h3>📊 How It Works</h3>
-          <ul class="feature-list">
-            <li>
-              <span class="feature-icon">✍️</span>
+        <div class="card">
+          <div class="card-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2" aria-hidden="true">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <h2 class="card-title">How It Works</h2>
+          </div>
+          <ul class="feature-list" role="list">
+            <li role="listitem">
+              <span class="feature-bullet" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
               <span>Authors toggle AI declaration when posting</span>
             </li>
-            <li>
-              <span class="feature-icon">🔍</span>
+            <li role="listitem">
+              <span class="feature-bullet" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
               <span>Community votes on content authenticity</span>
             </li>
-            <li>
-              <span class="feature-icon">📈</span>
+            <li role="listitem">
+              <span class="feature-bullet" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
               <span>Confidence levels show consensus</span>
             </li>
-            <li>
-              <span class="feature-icon">⚠️</span>
-              <span>Disputed content is flagged</span>
+            <li role="listitem">
+              <span class="feature-bullet" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-orange)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <span>Disputed content is flagged for review</span>
             </li>
           </ul>
         </div>
       </aside>
 
-      <main class="main-feed">
+      <!-- Main Feed -->
+      <main class="feed-main" role="main" aria-label="Content feed">
         <app-create-post />
 
-        <div class="posts-section">
-          <div class="section-header">
-            <h2>{{ getSectionTitle() }}</h2>
-            <div class="header-controls">
-              <select class="sort-select" [value]="currentSort" (change)="onSortChange($event)">
+        <section class="posts-section" aria-label="Posts">
+          <div class="section-bar">
+            <h2 class="section-title">{{ getSectionTitle() }}</h2>
+            <div class="section-controls">
+              <label for="sort-select" class="sr-only">Sort posts by</label>
+              <select id="sort-select" class="sort-select" [value]="currentSort" (change)="onSortChange($event)">
                 <option *ngFor="let s of sortOptions" [value]="s.value">{{ s.label }}</option>
               </select>
-              <span class="post-count">{{ posts().length }} posts</span>
+              <span class="post-count" aria-live="polite">{{ posts().length }} posts</span>
             </div>
           </div>
 
-          <div *ngIf="posts().length === 0" class="empty-state">
-            <span class="empty-icon">📭</span>
+          <div *ngIf="posts().length === 0" class="empty-state" role="status">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" aria-hidden="true">
+              <rect x="2" y="2" width="20" height="20" rx="5"/><line x1="9" y1="10" x2="9.01" y2="10"/>
+              <line x1="15" y1="10" x2="15.01" y2="10"/><path d="M8 15s1.5-2 4-2 4 2 4 2"/>
+            </svg>
             <h3>No posts found</h3>
             <p>Try changing your filter or create a new post!</p>
           </div>
@@ -96,106 +131,145 @@ import { SortMode } from '../../models/post.model';
             *ngFor="let post of posts(); trackBy: trackPost"
             [post]="post"
           />
-        </div>
+        </section>
       </main>
 
-      <aside class="sidebar right-sidebar">
-        <!-- Exposure Monitoring Panel (proposal §Overview: feedback monitoring via micro-probes) -->
-        <div class="sidebar-card exposure-card">
-          <h3>🧠 Exposure Monitor</h3>
-          <div class="exposure-stats">
-            <div class="exposure-stat-row">
-              <span class="exposure-stat-label">AI Exposures</span>
-              <span class="exposure-stat-value" [class.warning]="exposureTracker.aiExposureCount() >= 7">
+      <!-- Right Sidebar -->
+      <aside class="sidebar sidebar-right" aria-label="Monitoring and stats">
+        <!-- Exposure Monitor -->
+        <div class="card card-exposure" role="region" aria-label="Exposure Monitor">
+          <div class="card-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" aria-hidden="true">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            <h2 class="card-title">Exposure Monitor</h2>
+          </div>
+          <div class="monitor-stats">
+            <div class="monitor-row">
+              <span class="monitor-label">AI Exposures</span>
+              <span class="monitor-value" [class.warning]="exposureTracker.aiExposureCount() >= 7"
+                    [attr.aria-label]="exposureTracker.aiExposureCount() + ' of ' + exposureTracker.circuitBreaker().exposureCap + ' AI exposures'">
                 {{ exposureTracker.aiExposureCount() }} / {{ exposureTracker.circuitBreaker().exposureCap }}
               </span>
             </div>
-            <div class="exposure-bar">
-              <div class="exposure-fill" [style.width.%]="(exposureTracker.aiExposureCount() / exposureTracker.circuitBreaker().exposureCap) * 100"
+            <div class="progress-bar" role="progressbar"
+                 [attr.aria-valuenow]="exposureTracker.aiExposureCount()"
+                 [attr.aria-valuemax]="exposureTracker.circuitBreaker().exposureCap"
+                 aria-label="AI exposure progress">
+              <div class="progress-fill"
+                [style.width.%]="(exposureTracker.aiExposureCount() / exposureTracker.circuitBreaker().exposureCap) * 100"
                 [class.warning]="exposureTracker.aiExposureCount() >= 7"
-                [class.danger]="exposureTracker.aiExposureCount() >= 10"
-              ></div>
+                [class.danger]="exposureTracker.aiExposureCount() >= 10"></div>
             </div>
-            <div class="exposure-stat-row">
-              <span class="exposure-stat-label">Diversity Score</span>
-              <span class="exposure-stat-value" [class.warning]="exposureTracker.circuitBreaker().diversityScore < 0.4">
+            <div class="monitor-row">
+              <span class="monitor-label">Diversity Score</span>
+              <span class="monitor-value" [class.warning]="exposureTracker.circuitBreaker().diversityScore < 0.4">
                 {{ exposureTracker.circuitBreaker().diversityScore * 100 | number:'1.0-0' }}%
               </span>
             </div>
-            <div class="drift-indicator">
-              <span class="drift-label">Judgment Drift</span>
-              <span class="drift-level" [class]="'drift-' + exposureTracker.judgmentDrift().level">
+            <div class="monitor-row monitor-drift">
+              <span class="monitor-label">Judgment Drift</span>
+              <span class="drift-badge" [class]="'drift-' + exposureTracker.judgmentDrift().level">
                 {{ exposureTracker.judgmentDrift().level }}
               </span>
             </div>
             <div class="drift-details" *ngIf="exposureTracker.judgmentDrift().level !== 'stable'">
-              <div class="drift-detail-row">
+              <div class="drift-row">
                 <span>Accuracy Shift</span>
                 <span [class.positive]="exposureTracker.judgmentDrift().accuracyShift > 0"
                       [class.negative]="exposureTracker.judgmentDrift().accuracyShift < 0">
                   {{ exposureTracker.judgmentDrift().accuracyShift > 0 ? '+' : '' }}{{ exposureTracker.judgmentDrift().accuracyShift * 100 | number:'1.0-0' }}%
                 </span>
               </div>
-              <div class="drift-detail-row">
+              <div class="drift-row">
                 <span>AI Suspicion</span>
                 <span>{{ exposureTracker.judgmentDrift().aiSuspicionTrend * 100 | number:'1.0-0' }}%</span>
               </div>
-              <div class="drift-detail-row">
+              <div class="drift-row">
                 <span>Consecutive AI</span>
                 <span>{{ exposureTracker.judgmentDrift().consecutiveAiExposures }}</span>
               </div>
             </div>
           </div>
-          <div class="cb-status" *ngIf="exposureTracker.circuitBreaker().triggered">
-            <span class="cb-status-icon">⚡</span>
-            <span class="cb-status-text">Circuit breaker active</span>
+          <div class="cb-active-indicator" *ngIf="exposureTracker.circuitBreaker().triggered" role="alert">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            <span>Circuit breaker active</span>
           </div>
         </div>
 
-        <div class="sidebar-card stats-card">
-          <h3>📈 Platform Stats</h3>
+        <!-- Platform Stats -->
+        <div class="card" role="region" aria-label="Platform statistics">
+          <div class="card-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2" aria-hidden="true">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <h2 class="card-title">Platform Stats</h2>
+          </div>
           <div class="stats-grid">
-            <div class="stat-item">
-              <span class="stat-value">{{ getAiDeclaredCount() }}</span>
-              <span class="stat-label">AI-Declared Posts</span>
+            <div class="stat-card">
+              <span class="stat-num ai-num">{{ getAiDeclaredCount() }}</span>
+              <span class="stat-desc">AI-Declared</span>
             </div>
-            <div class="stat-item">
-              <span class="stat-value">{{ getHumanCount() }}</span>
-              <span class="stat-label">Human Posts</span>
+            <div class="stat-card">
+              <span class="stat-num human-num">{{ getHumanCount() }}</span>
+              <span class="stat-desc">Human Posts</span>
             </div>
-            <div class="stat-item">
-              <span class="stat-value">{{ getDisputedCount() }}</span>
-              <span class="stat-label">Disputed</span>
+            <div class="stat-card">
+              <span class="stat-num warn-num">{{ getDisputedCount() }}</span>
+              <span class="stat-desc">Disputed</span>
             </div>
-            <div class="stat-item">
-              <span class="stat-value">{{ getTotalVotes() }}</span>
-              <span class="stat-label">Total Votes</span>
+            <div class="stat-card">
+              <span class="stat-num">{{ getTotalVotes() }}</span>
+              <span class="stat-desc">Total Votes</span>
             </div>
           </div>
         </div>
 
-        <div class="sidebar-card">
-          <h3>💡 Why This Matters</h3>
-          <div class="info-blocks">
-            <div class="info-block">
-              <span class="info-icon">🛡️</span>
+        <!-- Why This Matters -->
+        <div class="card" role="region" aria-label="Why this matters">
+          <div class="card-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-orange)" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <h2 class="card-title">Why This Matters</h2>
+          </div>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon-wrap shield" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
               <div>
-                <h4>Combat Misinformation</h4>
-                <p>Transparency about AI content helps users make informed decisions.</p>
+                <h3 class="info-name">Combat Misinformation</h3>
+                <p class="info-desc">Transparency about AI content helps users make informed decisions.</p>
               </div>
             </div>
-            <div class="info-block">
-              <span class="info-icon">🤝</span>
+            <div class="info-item">
+              <div class="info-icon-wrap trust" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                </svg>
+              </div>
               <div>
-                <h4>Build Trust</h4>
-                <p>Community verification creates accountability.</p>
+                <h3 class="info-name">Build Trust</h3>
+                <p class="info-desc">Community verification creates accountability.</p>
               </div>
             </div>
-            <div class="info-block">
-              <span class="info-icon">⚖️</span>
+            <div class="info-item">
+              <div class="info-icon-wrap ethics" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 3v18"/><path d="M5.5 6.5l13 11"/><path d="M5.5 17.5l13-11"/>
+                </svg>
+              </div>
               <div>
-                <h4>Ethical AI Use</h4>
-                <p>Encourages responsible disclosure of AI assistance.</p>
+                <h3 class="info-name">Ethical AI Use</h3>
+                <p class="info-desc">Encourages responsible disclosure of AI assistance.</p>
               </div>
             </div>
           </div>
@@ -204,302 +278,361 @@ import { SortMode } from '../../models/post.model';
     </div>
   `,
   styles: [`
-    /* Circuit Breaker Overlay */
-    .circuit-breaker-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.85); z-index: 1000;
-      display: flex; align-items: center; justify-content: center;
+    /* ── Circuit Breaker Overlay ── */
+    .cb-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: var(--z-modal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       backdrop-filter: blur(8px);
     }
-    .cb-interstitial {
-      background: linear-gradient(145deg, #1e1e2e, #252538);
-      border-radius: 20px; padding: 2.5rem; max-width: 500px; width: 90%;
-      text-align: center; border: 1px solid rgba(255,152,0,0.3);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    .cb-modal {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-xl);
+      padding: var(--space-10);
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+      border: 1px solid rgba(210, 153, 34, 0.3);
+      box-shadow: var(--shadow-xl);
     }
-    .cb-icon { font-size: 3rem; display: block; margin-bottom: 1rem; }
-    .cb-title { margin: 0 0 0.75rem; color: #ff9800; font-size: 1.5rem; }
-    .cb-reason { color: #ccd6f6; font-size: 0.9rem; line-height: 1.6; margin: 0 0 1.5rem; }
-    .cb-stats {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;
+    .cb-icon-wrap {
+      width: 64px; height: 64px;
+      margin: 0 auto var(--space-6);
+      border-radius: 50%;
+      background: var(--warning-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-orange);
     }
-    .cb-stat {
-      background: rgba(255,255,255,0.03); border-radius: 12px; padding: 0.75rem;
-      border: 1px solid rgba(255,255,255,0.05);
+    .cb-title {
+      color: var(--accent-orange);
+      font-size: var(--text-xl);
+      font-weight: 700;
+      margin-bottom: var(--space-3);
     }
-    .cb-stat-value { display: block; font-size: 1.25rem; font-weight: 700; color: #ff9800; }
-    .cb-stat-label { font-size: 0.65rem; color: #8892b0; }
-    .cb-suggestion { font-size: 0.8rem; color: #8892b0; margin: 0 0 1.5rem; }
-    .cb-acknowledge-btn {
-      background: linear-gradient(135deg, #ff9800, #ff6d00); color: white;
-      border: none; padding: 0.75rem 2rem; border-radius: 25px; cursor: pointer;
-      font-size: 0.9rem; font-weight: 600; transition: all 0.3s;
-      &:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,152,0,0.3); }
+    .cb-desc {
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+      line-height: 1.6;
+      margin-bottom: var(--space-6);
+    }
+    .cb-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+    .cb-metric {
+      background: var(--bg-elevated);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      border: 1px solid var(--border-subtle);
+    }
+    .cb-metric-val {
+      display: block;
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--accent-orange);
+    }
+    .cb-metric-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+    .cb-advice {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      margin-bottom: var(--space-6);
+    }
+    .cb-btn {
+      background: var(--accent-orange);
+      color: var(--bg-primary);
+      border: none;
+      padding: var(--space-3) var(--space-8);
+      border-radius: var(--radius-full);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      transition: all var(--transition-fast);
+      &:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(210, 153, 34, 0.3); }
     }
 
-    /* Exposure Monitor Sidebar Card */
-    .exposure-card {
-      border: 1px solid rgba(0,217,255,0.15) !important;
-    }
-    .exposure-stats { display: flex; flex-direction: column; gap: 0.6rem; }
-    .exposure-stat-row {
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .exposure-stat-label { font-size: 0.75rem; color: #8892b0; }
-    .exposure-stat-value {
-      font-size: 0.85rem; font-weight: 600; color: #00d9ff;
-      &.warning { color: #ff9800; }
-    }
-    .exposure-bar {
-      height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;
-    }
-    .exposure-fill {
-      height: 100%; background: #00d9ff; border-radius: 3px; transition: width 0.5s;
-      &.warning { background: #ff9800; }
-      &.danger { background: #f44336; }
-    }
-    .drift-indicator {
-      display: flex; justify-content: space-between; align-items: center;
-      padding-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.05);
-    }
-    .drift-label { font-size: 0.75rem; color: #8892b0; }
-    .drift-level {
-      font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 8px;
-      &.drift-stable { background: rgba(76,175,80,0.15); color: #4caf50; }
-      &.drift-mild-drift { background: rgba(255,235,59,0.15); color: #ffeb3b; }
-      &.drift-moderate-drift { background: rgba(255,152,0,0.15); color: #ff9800; }
-      &.drift-significant-drift { background: rgba(244,67,54,0.15); color: #f44336; }
-    }
-    .drift-details {
-      padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.02);
-      border-radius: 8px; display: flex; flex-direction: column; gap: 0.3rem;
-    }
-    .drift-detail-row {
-      display: flex; justify-content: space-between; font-size: 0.68rem; color: #8892b0;
-      .positive { color: #4caf50; }
-      .negative { color: #f44336; }
-    }
-    .cb-status {
-      margin-top: 0.75rem; padding: 0.5rem; background: rgba(255,152,0,0.1);
-      border-radius: 8px; display: flex; align-items: center; gap: 0.4rem;
-      border: 1px solid rgba(255,152,0,0.2);
-    }
-    .cb-status-icon { font-size: 0.9rem; }
-    .cb-status-text { font-size: 0.7rem; color: #ff9800; font-weight: 600; }
-
-    .feed-container {
+    /* ── Layout ── */
+    .feed-layout {
       display: grid;
       grid-template-columns: 280px 1fr 300px;
-      gap: 2rem;
+      gap: var(--space-6);
       max-width: 1400px;
       margin: 0 auto;
-      padding: 2rem;
+      padding: var(--space-6);
     }
 
+    /* ── Sidebar ── */
     .sidebar {
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: var(--space-5);
       position: sticky;
-      top: 100px;
+      top: 120px;
       height: fit-content;
     }
 
-    .sidebar-card {
-      background: linear-gradient(145deg, #1e1e2e, #252538);
-      border-radius: 16px;
-      padding: 1.5rem;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-
-      h3 {
-        margin: 0 0 1rem;
-        font-size: 1rem;
-        color: #e6e6e6;
-        font-weight: 600;
-      }
-
-      p {
-        margin: 0;
-        font-size: 0.875rem;
-        color: #8892b0;
-        line-height: 1.6;
-      }
+    /* ── Card (shared) ── */
+    .card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      border: 1px solid var(--border-default);
+      transition: border-color var(--transition-fast);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+    .card-title {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .card-text {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      line-height: 1.7;
     }
 
+    .card-exposure {
+      border-color: rgba(57, 210, 192, 0.2);
+    }
+
+    /* ── Feature List ── */
     .feature-list {
       list-style: none;
       padding: 0;
-      margin: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
-
+      gap: var(--space-3);
       li {
         display: flex;
         align-items: flex-start;
-        gap: 0.75rem;
-        font-size: 0.8rem;
-        color: #ccd6f6;
-        line-height: 1.4;
-      }
-
-      .feature-icon {
-        font-size: 1rem;
-        flex-shrink: 0;
+        gap: var(--space-3);
+        font-size: var(--text-xs);
+        color: var(--text-secondary);
+        line-height: 1.5;
       }
     }
-
-    .main-feed {
-      min-width: 0;
+    .feature-bullet {
+      flex-shrink: 0;
+      margin-top: 2px;
     }
 
-    .section-header {
+    /* ── Feed Main ── */
+    .feed-main { min-width: 0; }
+
+    .section-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-
-      h2 {
-        margin: 0;
-        font-size: 1.25rem;
-        color: #e6e6e6;
-      }
-
-      .header-controls {
-        display: flex; align-items: center; gap: 0.75rem;
-      }
-
-      .post-count {
-        font-size: 0.875rem;
-        color: #8892b0;
-        background: rgba(255, 255, 255, 0.05);
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-      }
+      margin-bottom: var(--space-5);
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
     }
-
+    .section-title {
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .section-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
     .sort-select {
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      color: #ccd6f6; padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.8rem;
-      cursor: pointer;
-      option { background: #1e1e2e; color: #ccd6f6; }
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-xs);
+      option { background: var(--bg-secondary); color: var(--text-secondary); }
+    }
+    .post-count {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
     }
 
+    /* ── Empty State ── */
     .empty-state {
       text-align: center;
-      padding: 4rem 2rem;
-      background: linear-gradient(145deg, #1e1e2e, #252538);
-      border-radius: 16px;
-      border: 1px dashed rgba(255, 255, 255, 0.1);
-
-      .empty-icon {
-        font-size: 4rem;
-        display: block;
-        margin-bottom: 1rem;
-      }
-
-      h3 {
-        margin: 0 0 0.5rem;
-        color: #e6e6e6;
-      }
-
-      p {
-        margin: 0;
-        color: #8892b0;
-      }
+      padding: var(--space-12) var(--space-8);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      border: 1px dashed var(--border-default);
+      h3 { margin: var(--space-4) 0 var(--space-2); color: var(--text-primary); font-size: var(--text-base); }
+      p { color: var(--text-muted); font-size: var(--text-sm); }
     }
 
-    .stats-card {
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-      }
-
-      .stat-item {
-        text-align: center;
-        padding: 1rem;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-      }
-
-      .stat-value {
-        display: block;
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #00d9ff;
-        margin-bottom: 0.25rem;
-      }
-
-      .stat-label {
-        font-size: 0.7rem;
-        color: #8892b0;
-      }
-    }
-
-    .info-blocks {
+    /* ── Monitor Stats ── */
+    .monitor-stats {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: var(--space-3);
     }
-
-    .info-block {
+    .monitor-row {
       display: flex;
-      gap: 0.75rem;
-      padding: 0.75rem;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 8px;
-
-      .info-icon {
-        font-size: 1.5rem;
-        flex-shrink: 0;
-      }
-
-      h4 {
-        margin: 0 0 0.25rem;
-        font-size: 0.875rem;
-        color: #e6e6e6;
-        font-weight: 600;
-      }
-
-      p {
-        margin: 0;
-        font-size: 0.75rem;
-        color: #8892b0;
-        line-height: 1.4;
-      }
+      justify-content: space-between;
+      align-items: center;
+    }
+    .monitor-label { font-size: var(--text-xs); color: var(--text-muted); }
+    .monitor-value {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--accent-cyan);
+      &.warning { color: var(--accent-orange); }
+    }
+    .progress-bar {
+      height: 6px;
+      background: var(--bg-elevated);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent-cyan);
+      border-radius: 3px;
+      transition: width 0.5s ease;
+      &.warning { background: var(--accent-orange); }
+      &.danger { background: var(--accent-red); }
+    }
+    .monitor-drift {
+      padding-top: var(--space-2);
+      border-top: 1px solid var(--border-subtle);
+    }
+    .drift-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      &.drift-stable { background: var(--human-bg); color: var(--accent-green); }
+      &.drift-mild-drift { background: var(--warning-bg); color: var(--accent-orange); }
+      &.drift-moderate-drift { background: var(--warning-bg); color: var(--accent-orange); }
+      &.drift-significant-drift { background: var(--danger-bg); color: var(--accent-red); }
+    }
+    .drift-details {
+      padding: var(--space-2) var(--space-3);
+      background: var(--bg-elevated);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .drift-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      .positive { color: var(--accent-green); }
+      .negative { color: var(--accent-red); }
+    }
+    .cb-active-indicator {
+      margin-top: var(--space-3);
+      padding: var(--space-2) var(--space-3);
+      background: var(--warning-bg);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      border: 1px solid rgba(210, 153, 34, 0.2);
+      color: var(--accent-orange);
+      font-size: var(--text-xs);
+      font-weight: 600;
     }
 
+    /* ── Stats Grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-3);
+    }
+    .stat-card {
+      text-align: center;
+      padding: var(--space-4);
+      background: var(--bg-elevated);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+    .stat-num {
+      display: block;
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      color: var(--accent-blue);
+      margin-bottom: var(--space-1);
+    }
+    .ai-num { color: var(--ai-color); }
+    .human-num { color: var(--accent-green); }
+    .warn-num { color: var(--accent-orange); }
+    .stat-desc {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+
+    /* ── Info List ── */
+    .info-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .info-item {
+      display: flex;
+      gap: var(--space-3);
+    }
+    .info-icon-wrap {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      &.shield { background: var(--info-bg); color: var(--accent-blue); }
+      &.trust { background: var(--human-bg); color: var(--accent-green); }
+      &.ethics { background: rgba(188, 140, 255, 0.12); color: var(--accent-purple); }
+    }
+    .info-name {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+    .info-desc {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ── Responsive ── */
     @media (max-width: 1200px) {
-      .feed-container {
-        grid-template-columns: 1fr;
-        padding: 1rem;
-      }
-
-      .sidebar {
-        display: none;
-      }
-
-      .left-sidebar, .right-sidebar {
-        position: static;
-      }
-    }
-
-    @media (max-width: 1200px) and (min-width: 769px) {
-      .feed-container {
+      .feed-layout {
         grid-template-columns: 1fr 300px;
+        padding: var(--space-4);
       }
-
-      .left-sidebar {
-        display: none;
+      .sidebar-left { display: none; }
+    }
+    @media (max-width: 768px) {
+      .feed-layout {
+        grid-template-columns: 1fr;
+        padding: var(--space-3);
       }
-
-      .right-sidebar {
-        display: flex;
-      }
+      .sidebar { display: none; }
     }
   `]
 })
@@ -535,14 +668,14 @@ export class FeedComponent {
   getSectionTitle(): string {
     const filter = this.postService.getFilter();
     switch (filter) {
-      case 'ai-generated': return '🤖 AI-Generated Posts';
-      case 'human-created': return '👤 Human-Created Posts';
-      case 'disputed': return '⚠️ Disputed Posts';
-      case 'bias-flagged': return '⚠️ Bias-Flagged Posts';
-      case 'debiased-safe': return '✅ Debiased-Safe Posts';
-      case 'high-region-dominance': return '🌍 High Region Dominance';
-      case 'nonbias-baseline': return '📏 Baseline Posts';
-      default: return '📋 All Posts';
+      case 'ai-generated': return 'AI-Generated Posts';
+      case 'human-created': return 'Human-Created Posts';
+      case 'disputed': return 'Disputed Posts';
+      case 'bias-flagged': return 'Bias-Flagged Posts';
+      case 'debiased-safe': return 'Debiased-Safe Posts';
+      case 'high-region-dominance': return 'High Region Dominance';
+      case 'nonbias-baseline': return 'Baseline Posts';
+      default: return 'All Posts';
     }
   }
 

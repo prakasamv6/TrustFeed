@@ -438,12 +438,12 @@ export class ContentReviewService {
 
   getConfidence(submission: ReviewSubmission): { level: string; percentage: number; color: string } {
     const total = submission.votes.ai + submission.votes.human;
-    if (total === 0) return { level: 'Awaiting Votes', percentage: 50, color: '#9e9e9e' };
+    if (total === 0) return { level: 'Awaiting Votes', percentage: 50, color: '#8b949e' };
 
     const aiPercentage = (submission.votes.ai / total) * 100;
 
-    if (aiPercentage >= 70) return { level: 'Likely AI-Generated', percentage: aiPercentage, color: '#e91e63' };
-    if (aiPercentage >= 30) return { level: 'Uncertain / Mixed', percentage: aiPercentage, color: '#ff9800' };
-    return { level: 'Likely Human-Written', percentage: aiPercentage, color: '#4caf50' };
+    if (aiPercentage >= 70) return { level: 'Likely AI-Generated', percentage: aiPercentage, color: '#b392f0' };
+    if (aiPercentage >= 30) return { level: 'Uncertain / Mixed', percentage: aiPercentage, color: '#d4a054' };
+    return { level: 'Likely Human-Written', percentage: aiPercentage, color: '#58a6ff' };
   }
 }

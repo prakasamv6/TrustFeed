@@ -161,23 +161,23 @@ import { Router } from '@angular/router';
       display: flex;
       justify-content: center;
       padding: 2rem 1rem;
-      background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%);
+      background: var(--bg-primary);
     }
 
     .consent-card {
       max-width: 820px;
       width: 100%;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
       overflow: hidden;
     }
 
     .consent-header {
       text-align: center;
       padding: 2rem 2rem 1.5rem;
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-default);
     }
 
     .header-icon {
@@ -187,7 +187,7 @@ import { Router } from '@angular/router';
     }
 
     .consent-header h1 {
-      color: #fff;
+      color: var(--text-primary);
       font-size: 1.5rem;
       margin: 0 0 0.5rem;
       font-weight: 700;
@@ -196,10 +196,10 @@ import { Router } from '@angular/router';
     .irb-badge {
       display: inline-block;
       padding: 0.35rem 1rem;
-      background: rgba(99, 102, 241, 0.2);
-      border: 1px solid rgba(99, 102, 241, 0.4);
-      border-radius: 20px;
-      color: #a5b4fc;
+      background: var(--cat-a-bg);
+      border: 1px solid var(--accent-primary);
+      border-radius: var(--radius-full);
+      color: var(--accent-primary);
       font-size: 0.8rem;
       font-weight: 600;
       letter-spacing: 0.5px;
@@ -212,23 +212,14 @@ import { Router } from '@angular/router';
       overflow-y: auto;
     }
 
-    .consent-body::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .consent-body::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.03);
-    }
-
-    .consent-body::-webkit-scrollbar-thumb {
-      background: rgba(99, 102, 241, 0.3);
-      border-radius: 3px;
-    }
+    .consent-body::-webkit-scrollbar { width: 6px; }
+    .consent-body::-webkit-scrollbar-track { background: var(--bg-tertiary); }
+    .consent-body::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
 
     .consent-section {
       margin-bottom: 1.5rem;
       padding-bottom: 1.5rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .consent-section:last-child {
@@ -237,7 +228,7 @@ import { Router } from '@angular/router';
     }
 
     .consent-section h2 {
-      color: #e2e8f0;
+      color: var(--text-primary);
       font-size: 1.05rem;
       margin: 0 0 0.75rem;
       display: flex;
@@ -245,50 +236,46 @@ import { Router } from '@angular/router';
       gap: 0.5rem;
     }
 
-    .section-icon {
-      font-size: 1.1rem;
-    }
+    .section-icon { font-size: 1.1rem; }
 
     .consent-section p {
-      color: #94a3b8;
+      color: var(--text-muted);
       font-size: 0.9rem;
       line-height: 1.7;
       margin: 0 0 0.5rem;
     }
 
     .consent-section ul {
-      color: #94a3b8;
+      color: var(--text-muted);
       font-size: 0.9rem;
       line-height: 1.7;
       margin: 0.5rem 0 0;
       padding-left: 1.5rem;
     }
 
-    .consent-section ul li {
-      margin-bottom: 0.4rem;
-    }
+    .consent-section ul li { margin-bottom: 0.4rem; }
 
     .consent-section code {
-      background: rgba(99, 102, 241, 0.15);
+      background: var(--bg-elevated);
       padding: 0.15rem 0.4rem;
       border-radius: 4px;
       font-size: 0.82rem;
-      color: #a5b4fc;
+      color: var(--accent-primary);
     }
 
     .consent-section.highlight {
-      background: rgba(99, 102, 241, 0.06);
-      border: 1px solid rgba(99, 102, 241, 0.15);
-      border-radius: 10px;
+      background: var(--cat-a-bg);
+      border: 1px solid var(--accent-primary);
+      border-radius: var(--radius-md);
       padding: 1.2rem 1.5rem;
       margin-left: -0.5rem;
       margin-right: -0.5rem;
     }
 
     .consent-section.waiver-notice {
-      background: rgba(234, 179, 8, 0.06);
-      border: 1px solid rgba(234, 179, 8, 0.15);
-      border-radius: 10px;
+      background: var(--status-notice-bg);
+      border: 1px solid var(--status-notice);
+      border-radius: var(--radius-md);
       padding: 1.2rem 1.5rem;
       margin-left: -0.5rem;
       margin-right: -0.5rem;
@@ -296,8 +283,8 @@ import { Router } from '@angular/router';
 
     .consent-agreement {
       padding: 1.5rem 2rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.02);
+      border-top: 1px solid var(--border-default);
+      background: var(--bg-tertiary);
     }
 
     .checkbox-label {
@@ -312,25 +299,25 @@ import { Router } from '@angular/router';
       flex-shrink: 0;
       width: 24px;
       height: 24px;
-      border: 2px solid rgba(99, 102, 241, 0.5);
-      border-radius: 6px;
+      border: 2px solid var(--accent-primary);
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
       transition: all 0.2s;
       margin-top: 2px;
-      color: #fff;
+      color: var(--text-inverse);
       font-size: 0.85rem;
       font-weight: 700;
     }
 
     .custom-checkbox.checked {
-      background: #6366f1;
-      border-color: #6366f1;
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
     }
 
     .checkbox-label span:last-child {
-      color: #cbd5e1;
+      color: var(--text-secondary);
       font-size: 0.88rem;
       line-height: 1.6;
     }
@@ -345,19 +332,20 @@ import { Router } from '@angular/router';
       align-items: center;
       gap: 0.5rem;
       padding: 0.9rem 2.5rem;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: #fff;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      color: var(--text-inverse);
       border: none;
-      border-radius: 10px;
+      border-radius: var(--radius-md);
       font-size: 1.05rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s;
+      min-height: var(--min-touch-target);
     }
 
     .proceed-btn:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+      box-shadow: var(--shadow-lg);
     }
 
     .proceed-btn:disabled {
@@ -366,9 +354,16 @@ import { Router } from '@angular/router';
     }
 
     .decline-text {
-      color: #64748b;
+      color: var(--text-muted);
       font-size: 0.8rem;
       margin-top: 1rem;
+    }
+
+    @media (forced-colors: active) {
+      .consent-card { border: 2px solid CanvasText; }
+      .custom-checkbox { border: 2px solid ButtonText; }
+      .custom-checkbox.checked { background: Highlight; }
+      .proceed-btn { border: 2px solid ButtonText; }
     }
 
     @media (max-width: 640px) {

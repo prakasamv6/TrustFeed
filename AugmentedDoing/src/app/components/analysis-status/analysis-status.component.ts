@@ -20,12 +20,15 @@ import { AnalysisStatusType } from '../../models/post.model';
     .status-dot {
       width: 8px; height: 8px; border-radius: 50%;
     }
-    .none { background: rgba(158,158,158,0.15); color: #9e9e9e; .status-dot { background: #9e9e9e; } }
-    .pending { background: rgba(255,152,0,0.15); color: #ff9800; .status-dot { background: #ff9800; animation: pulse 1.5s infinite; } }
-    .running { background: rgba(0,217,255,0.15); color: #00d9ff; .status-dot { background: #00d9ff; animation: pulse 1s infinite; } }
-    .completed { background: rgba(76,175,80,0.15); color: #4caf50; .status-dot { background: #4caf50; } }
-    .failed { background: rgba(233,30,99,0.15); color: #e91e63; .status-dot { background: #e91e63; } }
+    .none { background: var(--bg-hover); color: var(--text-muted); .status-dot { background: var(--text-muted); } }
+    .pending { background: var(--warning-bg); color: var(--accent-orange); .status-dot { background: var(--accent-orange); animation: pulse 1.5s infinite; } }
+    .running { background: var(--info-bg); color: var(--accent-cyan); .status-dot { background: var(--accent-cyan); animation: pulse 1s infinite; } }
+    .completed { background: var(--human-bg); color: var(--accent-green); .status-dot { background: var(--accent-green); } }
+    .failed { background: var(--danger-bg); color: var(--accent-red); .status-dot { background: var(--accent-red); } }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @media (forced-colors: active) {
+      .status-dot { forced-color-adjust: none; }
+    }
   `]
 })
 export class AnalysisStatusComponent {

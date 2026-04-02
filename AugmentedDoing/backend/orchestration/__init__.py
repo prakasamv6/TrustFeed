@@ -78,6 +78,9 @@ class AnalysisState:
     # After bias detection
     bias_report: Any = None           # BiasDetectionReport
 
+    # After factor attribution
+    factor_attribution: Any = None    # FactorAttributionReport
+
     # After explain
     explanation: str = ""
 
@@ -244,6 +247,18 @@ def node_bias_detect(state: AnalysisState) -> AnalysisState:
     return state
 
 
+def node_factor_attribution(state: AnalysisState) -> AnalysisState:
+    """Compute per-feature factor attribution for bias explainability."""
+    from scoring.factor_attribution import compute_factor_attribution
+    state.factor_attribution = compute_factor_attribution(
+        state.regional_scores,
+        state.baseline_score,
+        state.ml_features,
+        state.content_type,
+    )
+    return state
+
+
 def node_explain(state: AnalysisState) -> AnalysisState:
     """Generate human-readable explanation."""
     from scoring.explainability import generate_explanation
@@ -252,6 +267,10 @@ def node_explain(state: AnalysisState) -> AnalysisState:
     # Append bias detector summary
     if state.bias_report:
         explanation += f" [Bias Detector] {state.bias_report.summary}"
+
+    # Append factor attribution summary
+    if state.factor_attribution:
+        explanation += f" [Factor Attribution] {state.factor_attribution.fairness_summary}"
 
     state.explanation = explanation
     return state
@@ -285,6 +304,7 @@ def _build_langgraph():
     graph.add_node("aggregate", node_aggregate)
     graph.add_node("debias", node_debias)
     graph.add_node("bias_detect", node_bias_detect)
+    graph.add_node("factor_attribution", node_factor_attribution)
     graph.add_node("explain", node_explain)
     graph.add_node("report", node_report)
 
@@ -294,7 +314,8 @@ def _build_langgraph():
     graph.add_edge("agents", "aggregate")
     graph.add_edge("aggregate", "debias")
     graph.add_edge("debias", "bias_detect")
-    graph.add_edge("bias_detect", "explain")
+    graph.add_edge("bias_detect", "factor_attribution")
+    graph.add_edge("factor_attribution", "explain")
     graph.add_edge("explain", "report")
     graph.add_edge("report", END)
 
@@ -310,6 +331,7 @@ class _SequentialFallback:
         node_aggregate,
         node_debias,
         node_bias_detect,
+        node_factor_attribution,
         node_explain,
         node_report,
     ]

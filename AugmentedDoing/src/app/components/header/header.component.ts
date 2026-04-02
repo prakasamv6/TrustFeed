@@ -1,428 +1,555 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { PostService } from '../../services/post.service';
 import { ExposureTrackerService } from '../../services/exposure-tracker.service';
+import { AccessibilityService } from '../../services/accessibility.service';
 import { ContentType } from '../../models/post.model';
+import { IconComponent, IconName } from '../icon/icon.component';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive, IconComponent],
   template: `
-    <header class="header">
-      <!-- AI Influence Notification Bar (for investigator) -->
-      <div class="ai-influence-bar" *ngIf="showAiInfluence()">
-        <div class="ai-influence-inner">
-          <span class="ai-pulse-dot"></span>
-          <span class="ai-inf-icon">🧠</span>
-          <span class="ai-inf-text">
-            <strong>AI-Influenced Analysis Active</strong> — 5 regional bias agents + 1 baseline are providing AI-influenced suggestions on all content. All AI suggestions are labeled.
-          </span>
-          <span class="ai-inf-badge">{{ exposureTracker.aiExposureCount() }} items analyzed</span>
-          <button class="ai-inf-dismiss" (click)="showAiInfluence.set(false)">✕</button>
+    <header class="header glass" role="banner">
+      <!-- AI Analysis Active — dismissible info banner -->
+      @if (showAiInfluence()) {
+        <div class="info-banner" role="status" aria-live="polite">
+          <div class="info-banner-inner">
+            <div class="info-banner-left">
+              <span class="pulse-dot" aria-hidden="true"></span>
+              <app-icon name="brain" [size]="16" color="var(--accent-blue)" />
+              <p class="info-banner-text">
+                <strong>AI Analysis Active</strong> — 5 regional bias agents + 1 baseline are analyzing content. All AI suggestions are clearly labeled.
+              </p>
+            </div>
+            <div class="info-banner-right">
+              <span class="info-badge" [attr.aria-label]="exposureTracker.aiExposureCount() + ' items analyzed'">
+                {{ exposureTracker.aiExposureCount() }} analyzed
+              </span>
+              <button
+                class="info-dismiss"
+                (click)="showAiInfluence.set(false)"
+                aria-label="Dismiss notification"
+              >
+                <app-icon name="x-close" [size]="14" />
+              </button>
+            </div>
+          </div>
         </div>
+      }
+
+      <!-- Disclaimer Bar -->
+      <div class="disclaimer-bar" role="alert">
+        <app-icon name="warning" [size]="14" />
+        <span>BIAS SIMULATOR — AI-Influenced Suggestions Are Clearly Marked</span>
       </div>
 
-      <div class="disclaimer-bar">
-        ⚠️ BIAS SIMULATOR — AI-Influenced Suggestions Are Clearly Marked
-      </div>
-      <div class="header-content">
-        <a routerLink="/" class="logo">
-          <span class="logo-icon">🔍</span>
-          <h1>TrustFeed</h1>
-          <span class="logo-version">v2.0</span>
-          <span class="live-badge"><span class="live-dot"></span>LIVE</span>
-          <span class="tagline">Authentic Content, Transparent AI</span>
-        </a>
-
-        <!-- Main Navigation -->
-        <nav class="main-nav">
-          <a 
-            routerLink="/" 
-            routerLinkActive="active" 
-            [routerLinkActiveOptions]="{exact: true}"
-            class="nav-link"
-          >
-            <span class="nav-icon">🏠</span>
-            Feed
-          </a>
-          <a 
-            routerLink="/review" 
-            routerLinkActive="active"
-            class="nav-link review-link"
-          >
-            <span class="nav-icon">📝</span>
-            Content Review
-          </a>
-          <a 
-            routerLink="/dashboard" 
-            routerLinkActive="active"
-            class="nav-link dashboard-link"
-          >
-            <span class="nav-icon">📊</span>
-            Bias Dashboard
-          </a>
-          <a 
-            routerLink="/survey" 
-            routerLinkActive="active"
-            class="nav-link survey-link"
-          >
-            <span class="nav-icon">📋</span>
-            Survey
-            <span class="new-badge">NEW</span>
-          </a>
-        </nav>
-
-        <!-- Filter Nav (only shown on feed page) -->
-        <nav class="filter-nav" *ngIf="isOnFeedPage()">
-          <button
-            *ngFor="let filter of filters"
-            [class.active]="currentFilter === filter.value"
-            (click)="setFilter(filter.value)"
-            class="filter-btn"
-          >
-            <span class="filter-icon">{{ filter.icon }}</span>
-            {{ filter.label }}
-          </button>
-        </nav>
-
-        <div class="header-actions">
-          <!-- Exposure Indicator (proposal §Overview: feedback monitoring) -->
-          <div class="exposure-indicator" *ngIf="isOnFeedPage()" [class.cb-active]="exposureTracker.circuitBreaker().triggered">
-            <span class="exposure-icon" [class]="'drift-' + exposureTracker.judgmentDrift().level">🧠</span>
-            <span class="exposure-count">{{ exposureTracker.aiExposureCount() }} AI</span>
-            <span class="exposure-drift-badge" [class]="'drift-' + exposureTracker.judgmentDrift().level" *ngIf="exposureTracker.judgmentDrift().level !== 'stable'">
-              {{ exposureTracker.judgmentDrift().level }}
+      <!-- Main Header Content -->
+      <div class="header-main">
+        <div class="header-top-row">
+          <!-- Brand -->
+          <a routerLink="/" class="brand" aria-label="TrustFeed home">
+            <div class="brand-logo" aria-hidden="true">
+              <app-icon name="shield" [size]="24" color="white" />
+            </div>
+            <div class="brand-text">
+              <h1 class="brand-name">TrustFeed</h1>
+              <span class="brand-tagline">Authentic Content, Transparent AI</span>
+            </div>
+            <span class="version-badge">v2.0</span>
+            <span class="live-indicator">
+              <span class="live-dot" aria-hidden="true"></span>
+              LIVE
             </span>
-          </div>
+          </a>
 
-          <div class="legend" *ngIf="isOnFeedPage()">
-            <div class="legend-item">
-              <span class="badge ai-badge">AI</span>
-              <span>AI-Generated</span>
-            </div>
-            <div class="legend-item">
-              <span class="badge human-badge">✓</span>
-              <span>Human</span>
-            </div>
-            <div class="legend-item">
-              <span class="badge bias-badge">⚠</span>
-              <span>Bias Flagged</span>
+          <!-- Main Navigation -->
+          <nav class="main-nav" aria-label="Main navigation">
+            <ul class="nav-list" role="list">
+              <li>
+                <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item" [attr.aria-current]="isOnFeedPage() ? 'page' : null">
+                  <app-icon name="activity" [size]="18" />
+                  <span>Feed</span>
+                </a>
+              </li>
+              <li>
+                <a routerLink="/review" routerLinkActive="active" class="nav-item" [attr.aria-current]="router.url === '/review' ? 'page' : null">
+                  <app-icon name="text" [size]="18" />
+                  <span>Content Review</span>
+                </a>
+              </li>
+              <li>
+                <a routerLink="/dashboard" routerLinkActive="active" class="nav-item" [attr.aria-current]="router.url === '/dashboard' ? 'page' : null">
+                  <app-icon name="chart" [size]="18" />
+                  <span>Bias Dashboard</span>
+                </a>
+              </li>
+              <li>
+                <a routerLink="/survey" routerLinkActive="active" class="nav-item survey-item" [attr.aria-current]="router.url === '/survey' ? 'page' : null">
+                  <app-icon name="clipboard" [size]="18" />
+                  <span>Survey</span>
+                  <span class="new-pill" aria-label="New feature">NEW</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+
+          <!-- Header Right Actions -->
+          <div class="header-actions">
+            @if (isOnFeedPage()) {
+              <div
+                class="exposure-chip"
+                [class.triggered]="exposureTracker.circuitBreaker().triggered"
+                role="status"
+                [attr.aria-label]="'AI exposure: ' + exposureTracker.aiExposureCount() + ' items. Drift: ' + exposureTracker.judgmentDrift().level"
+              >
+                <app-icon name="zap" [size]="16" />
+                <span class="exposure-num">{{ exposureTracker.aiExposureCount() }} AI</span>
+                @if (exposureTracker.judgmentDrift().level !== 'stable') {
+                  <span class="drift-chip" [class]="'drift-' + exposureTracker.judgmentDrift().level">
+                    {{ exposureTracker.judgmentDrift().level }}
+                  </span>
+                }
+              </div>
+
+              <div class="legend" role="list" aria-label="Content type legend">
+                <div class="legend-item" role="listitem">
+                  <span class="legend-dot ai-dot" aria-hidden="true"></span>
+                  <span>AI</span>
+                </div>
+                <div class="legend-item" role="listitem">
+                  <span class="legend-dot human-dot" aria-hidden="true"></span>
+                  <span>Human</span>
+                </div>
+                <div class="legend-item" role="listitem">
+                  <span class="legend-dot bias-dot" aria-hidden="true"></span>
+                  <span>Bias Flagged</span>
+                </div>
+              </div>
+            }
+
+            <!-- Toolbar buttons -->
+            <div class="toolbar" role="toolbar" aria-label="Quick actions">
+              <button class="toolbar-btn" (click)="openCommandPalette.emit()" aria-label="Open command palette (Ctrl+K)" title="Command Palette (Ctrl+K)">
+                <app-icon name="command" [size]="18" />
+              </button>
+              <button class="toolbar-btn" (click)="openTransparency.emit()" aria-label="Open transparency panel" title="Transparency">
+                <app-icon name="transparency" [size]="18" />
+              </button>
+              <button class="toolbar-btn" (click)="openSettings.emit()" aria-label="Open settings" title="Settings">
+                <app-icon name="settings" [size]="18" />
+              </button>
+              <button class="toolbar-btn" (click)="toggleTheme()" [attr.aria-label]="a11y.effectiveTheme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'" [title]="a11y.effectiveTheme() === 'dark' ? 'Light mode' : 'Dark mode'">
+                <app-icon [name]="a11y.effectiveTheme() === 'dark' ? 'sun' : 'moon'" [size]="18" />
+              </button>
             </div>
           </div>
         </div>
+
+        <!-- Filter Bar (Feed page) -->
+        @if (isOnFeedPage()) {
+          <nav class="filter-bar" aria-label="Content filters">
+            <div class="filter-scroll" role="radiogroup" aria-label="Filter posts by type">
+              @for (filter of filters; track filter.value) {
+                <button
+                  [class.active]="currentFilter === filter.value"
+                  (click)="setFilter(filter.value)"
+                  class="filter-chip"
+                  role="radio"
+                  [attr.aria-checked]="currentFilter === filter.value"
+                  [attr.aria-label]="'Filter: ' + filter.label"
+                >
+                  <app-icon [name]="filter.icon" [size]="14" />
+                  <span>{{ filter.label }}</span>
+                </button>
+              }
+            </div>
+          </nav>
+        }
       </div>
     </header>
   `,
   styles: [`
     .header {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
       position: sticky;
       top: 0;
-      z-index: 100;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      z-index: var(--z-sticky);
+      border-bottom: 1px solid var(--border-default);
+      backdrop-filter: blur(var(--blur-md));
+      -webkit-backdrop-filter: blur(var(--blur-md));
+      background: var(--bg-glass);
     }
 
-    /* AI Influence Notification Bar */
-    .ai-influence-bar {
-      background: linear-gradient(90deg, rgba(0,217,255,0.1), rgba(156,39,176,0.08), rgba(0,255,136,0.06));
-      border-bottom: 1px solid rgba(0,217,255,0.15);
-      padding: 0.45rem 2rem;
-      animation: fadeInDown 0.5s ease-out;
+    /* ── Info Banner ── */
+    .info-banner {
+      background: var(--info-bg);
+      border-bottom: 1px solid rgba(88, 166, 255, 0.15);
+      padding: var(--space-2) var(--space-6);
+      animation: fadeInUp 0.3s ease-out;
     }
-    .ai-influence-inner {
-      max-width: 1200px; margin: 0 auto;
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-    .ai-pulse-dot {
-      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-      background: #00d9ff; animation: pulseDot 2s ease-in-out infinite;
-      box-shadow: 0 0 8px rgba(0,217,255,0.5);
-    }
-    .ai-inf-icon { font-size: 1rem; flex-shrink: 0; }
-    .ai-inf-text {
-      font-size: 0.72rem; color: #ccd6f6; line-height: 1.3; flex: 1;
-      strong { color: #00d9ff; }
-    }
-    .ai-inf-badge {
-      font-size: 0.6rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 10px;
-      background: rgba(0,217,255,0.1); color: #00d9ff; white-space: nowrap; flex-shrink: 0;
-    }
-    .ai-inf-dismiss {
-      background: none; border: 1px solid rgba(255,255,255,0.1); color: #8892b0;
-      width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 0.65rem;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-      transition: all 0.2s;
-      &:hover { background: rgba(255,255,255,0.1); color: #e6e6e6; }
-    }
-    @keyframes fadeInDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-    .disclaimer-bar {
-      background: linear-gradient(135deg, #ff6b6b, #ff8e53);
-      color: white; text-align: center; padding: 0.3rem;
-      font-size: 0.7rem; font-weight: 700; letter-spacing: 1px;
-    }
-
-    /* LIVE & Version badges */
-    .logo-version {
-      font-size: 0.55rem; font-weight: 600; color: #5a6480;
-      background: rgba(255,255,255,0.08); padding: 0.12rem 0.35rem; border-radius: 4px;
-    }
-    .live-badge {
-      display: inline-flex; align-items: center; gap: 0.3rem;
-      font-size: 0.6rem; font-weight: 700; color: #4caf50; letter-spacing: 0.5px;
-      background: rgba(76,175,80,0.1); border: 1px solid rgba(76,175,80,0.25);
-      padding: 0.15rem 0.5rem; border-radius: 10px;
-    }
-    .live-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: #4caf50;
-      animation: pulseDot 1.5s ease-in-out infinite;
-      box-shadow: 0 0 6px rgba(76,175,80,0.6);
-    }
-
-    .header-content {
-      max-width: 1200px;
+    .info-banner-inner {
+      max-width: 1280px;
       margin: 0 auto;
-      padding: 1rem 2rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 1rem;
+      gap: var(--space-4);
     }
-
-    .logo {
+    .info-banner-left {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      text-decoration: none;
-      cursor: pointer;
-
-      .logo-icon {
-        font-size: 2rem;
-      }
-
-      h1 {
-        margin: 0;
-        font-size: 1.75rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #00d9ff, #00ff88);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-
-      .tagline {
-        font-size: 0.75rem;
-        color: #8892b0;
-        border-left: 1px solid #8892b0;
-        padding-left: 0.75rem;
-        margin-left: 0.5rem;
-      }
+      gap: var(--space-3);
+      min-width: 0;
     }
-
-    .main-nav {
-      display: flex;
-      gap: 0.5rem;
+    .pulse-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      flex-shrink: 0;
+      animation: pulse 2s ease-in-out infinite;
+      box-shadow: 0 0 8px rgba(88, 166, 255, 0.5);
     }
-
-    .nav-link {
+    .info-banner-text {
+      font-size: var(--text-xs);
+      color: var(--text-secondary);
+      line-height: 1.4;
+      strong { color: var(--accent-blue); }
+    }
+    .info-banner-right {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.6rem 1.25rem;
-      border-radius: 25px;
-      text-decoration: none;
-      color: #ccd6f6;
-      font-size: 0.9rem;
+      gap: var(--space-3);
+      flex-shrink: 0;
+    }
+    .info-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent-blue);
+      white-space: nowrap;
+    }
+    .info-dismiss {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border-default);
+      color: var(--text-muted);
+      transition: all var(--transition-fast);
+      &:hover { background: var(--bg-hover); color: var(--text-primary); }
+    }
+
+    /* ── Disclaimer ── */
+    .disclaimer-bar {
+      background: var(--warning-bg);
+      border-bottom: 1px solid rgba(210, 153, 34, 0.2);
+      color: var(--warning-color);
+      text-align: center;
+      padding: var(--space-2) var(--space-4);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+    }
+
+    /* ── Header Main ── */
+    .header-main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: var(--space-4) var(--space-6);
+    }
+    .header-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-6);
+    }
+
+    /* ── Brand ── */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      text-decoration: none !important;
+      flex-shrink: 0;
+    }
+    .brand-logo {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(88, 166, 255, 0.25);
+    }
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .brand-name {
+      font-size: var(--text-xl);
+      font-weight: 800;
+      color: var(--text-primary);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+    .brand-tagline {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .version-badge {
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--accent-green);
+      background: var(--human-bg);
+      border: 1px solid rgba(63, 185, 80, 0.25);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+    }
+    .live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* ── Main Nav ── */
+    .main-nav { display: flex; }
+    .nav-list {
+      display: flex;
+      gap: var(--space-1);
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-lg);
+      text-decoration: none !important;
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
       font-weight: 500;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
+      transition: all var(--transition-fast);
+      position: relative;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        transform: translateY(-2px);
+        background: var(--bg-hover);
+        color: var(--text-primary);
       }
-
       &.active {
-        background: linear-gradient(135deg, #00d9ff, #00ff88);
-        color: #0a0a0f;
+        background: var(--info-bg);
+        color: var(--accent-blue);
         font-weight: 600;
-        border-color: transparent;
-      }
-
-      .nav-icon {
-        font-size: 1rem;
       }
     }
-
-    .review-link {
-      position: relative;
+    .survey-item {
+      &.active {
+        background: rgba(188, 140, 255, 0.12);
+        color: var(--accent-purple);
+      }
     }
-
-    .new-badge {
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      background: linear-gradient(135deg, #ff6b6b, #ff8e53);
-      color: white;
+    .new-pill {
       font-size: 0.55rem;
       font-weight: 700;
-      padding: 0.15rem 0.4rem;
-      border-radius: 8px;
-      text-transform: uppercase;
+      color: white;
+      background: var(--accent-red);
+      padding: 1px 5px;
+      border-radius: var(--radius-full);
       letter-spacing: 0.5px;
+      line-height: 1.4;
     }
 
-    .filter-nav {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .filter-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #ccd6f6;
-      padding: 0.5rem 1rem;
-      border-radius: 25px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.875rem;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        transform: translateY(-2px);
-      }
-
-      &.active {
-        background: linear-gradient(135deg, #00d9ff, #00ff88);
-        color: #0a0a0f;
-        font-weight: 600;
-        border-color: transparent;
-      }
-
-      .filter-icon {
-        font-size: 1rem;
-      }
-    }
-
+    /* ── Header Actions ── */
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: var(--space-4);
     }
-
-    /* Exposure Indicator */
-    .exposure-indicator {
-      display: flex; align-items: center; gap: 0.4rem;
-      padding: 0.35rem 0.75rem; border-radius: 20px;
-      background: rgba(0,217,255,0.08); border: 1px solid rgba(0,217,255,0.15);
-      &.cb-active { background: rgba(255,152,0,0.12); border-color: rgba(255,152,0,0.3); }
+    .exposure-chip {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      font-size: var(--text-xs);
+      color: var(--accent-cyan);
+      &.triggered {
+        background: var(--warning-bg);
+        border-color: rgba(210, 153, 34, 0.3);
+        color: var(--warning-color);
+      }
     }
-    .exposure-icon { font-size: 1rem; }
-    .exposure-count { font-size: 0.72rem; color: #00d9ff; font-weight: 600; }
-    .exposure-drift-badge {
-      font-size: 0.58rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 6px;
-      &.drift-mild-drift { background: rgba(255,235,59,0.15); color: #ffeb3b; }
-      &.drift-moderate-drift { background: rgba(255,152,0,0.15); color: #ff9800; }
-      &.drift-significant-drift { background: rgba(244,67,54,0.15); color: #f44336; }
+    .exposure-num { font-weight: 600; }
+    .drift-chip {
+      font-size: 0.6rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      &.drift-mild-drift { background: rgba(210, 153, 34, 0.15); color: var(--accent-orange); }
+      &.drift-moderate-drift { background: rgba(210, 153, 34, 0.2); color: var(--accent-orange); }
+      &.drift-significant-drift { background: var(--danger-bg); color: var(--accent-red); }
     }
 
     .legend {
       display: flex;
-      gap: 1rem;
-      font-size: 0.75rem;
-      color: #8892b0;
+      gap: var(--space-4);
+      font-size: var(--text-xs);
+      color: var(--text-muted);
     }
-
     .legend-item {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: var(--space-2);
+    }
+    .legend-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .ai-dot { background: var(--ai-color); }
+    .human-dot { background: var(--accent-green); }
+    .bias-dot { background: var(--accent-orange); }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex;
+      gap: var(--space-1);
+      padding: var(--space-1);
+      border-radius: var(--radius-lg);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+    }
+    .toolbar-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      transition: all var(--transition-fast);
+
+      &:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+      }
+      &:focus-visible {
+        outline: 2px solid var(--focus-color);
+        outline-offset: 1px;
+      }
     }
 
-    .badge {
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.625rem;
-      font-weight: 700;
+    /* ── Filter Bar ── */
+    .filter-bar {
+      margin-top: var(--space-4);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--border-subtle);
+    }
+    .filter-scroll {
+      display: flex;
+      gap: var(--space-2);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      &::-webkit-scrollbar { display: none; }
+    }
+    .filter-chip {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-full);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      white-space: nowrap;
+      transition: all var(--transition-fast);
+
+      &:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+        border-color: rgba(240, 246, 252, 0.2);
+      }
+      &.active {
+        background: var(--info-bg);
+        color: var(--accent-blue);
+        border-color: rgba(88, 166, 255, 0.3);
+        font-weight: 600;
+      }
     }
 
-    .ai-badge {
-      background: linear-gradient(135deg, #e91e63, #9c27b0);
-      color: white;
-    }
-
-    .human-badge {
-      background: linear-gradient(135deg, #4caf50, #8bc34a);
-      color: white;
-    }
-
-    .bias-badge {
-      background: linear-gradient(135deg, #ff9800, #ff6d00);
-      color: white;
-    }
-
-    .dashboard-link {
-      position: relative;
-    }
-
-    .survey-link {
-      position: relative;
-      &.active { background: linear-gradient(135deg, #9c27b0, #e91e63); }
+    /* ── Responsive ── */
+    @media (max-width: 1024px) {
+      .brand-tagline { display: none; }
+      .legend { display: none; }
     }
 
     @media (max-width: 768px) {
-      .header {
-        padding: 1rem;
-      }
+      .header-main { padding: var(--space-3) var(--space-4); }
+      .header-top-row { flex-wrap: wrap; gap: var(--space-3); }
+      .main-nav { width: 100%; overflow-x: auto; }
+      .nav-list { width: 100%; justify-content: center; }
+      .nav-item span { display: none; }
+      .nav-item { padding: var(--space-2) var(--space-3); }
+      .version-badge, .live-indicator { display: none; }
+      .toolbar { order: -1; }
+    }
 
-      .header-content {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .logo .tagline {
-        display: none;
-      }
-
-      .filter-nav {
-        overflow-x: auto;
-        padding-bottom: 0.5rem;
-      }
-
-      .main-nav {
-        width: 100%;
-        justify-content: center;
-      }
-
-      .legend {
-        justify-content: center;
-      }
+    @media (forced-colors: active) {
+      .header { border-bottom: 2px solid ButtonText; }
+      .nav-item.active { outline: 2px solid Highlight; }
+      .filter-chip.active { outline: 2px solid Highlight; }
     }
   `]
 })
 export class HeaderComponent {
   private postService = inject(PostService);
-  private router = inject(Router);
+  router = inject(Router);
   exposureTracker = inject(ExposureTrackerService);
+  a11y = inject(AccessibilityService);
+
+  openSettings = output();
+  openTransparency = output();
+  openCommandPalette = output();
+
   showAiInfluence = signal(true);
 
-  filters: { value: ContentType; label: string; icon: string }[] = [
-    { value: 'all', label: 'All Posts', icon: '📋' },
-    { value: 'ai-generated', label: 'AI Generated', icon: '🤖' },
-    { value: 'human-created', label: 'Human Created', icon: '👤' },
-    { value: 'disputed', label: 'Disputed', icon: '⚠️' },
-    { value: 'bias-flagged', label: 'Bias Flagged', icon: '🚩' },
-    { value: 'debiased-safe', label: 'Debiased Safe', icon: '✅' },
-    { value: 'high-region-dominance', label: 'High Dominance', icon: '🌍' },
-    { value: 'nonbias-baseline', label: 'Baseline View', icon: '📏' },
+  filters: { value: ContentType; label: string; icon: IconName }[] = [
+    { value: 'all', label: 'All Posts', icon: 'layout' },
+    { value: 'ai-generated', label: 'AI Generated', icon: 'ai-robot' },
+    { value: 'human-created', label: 'Human Created', icon: 'human' },
+    { value: 'disputed', label: 'Disputed', icon: 'warning' },
+    { value: 'bias-flagged', label: 'Bias Flagged', icon: 'flag' },
+    { value: 'debiased-safe', label: 'Debiased Safe', icon: 'verified' },
+    { value: 'high-region-dominance', label: 'High Dominance', icon: 'globe' },
+    { value: 'nonbias-baseline', label: 'Baseline View', icon: 'target' },
   ];
 
   get currentFilter(): ContentType {
@@ -435,5 +562,10 @@ export class HeaderComponent {
 
   isOnFeedPage(): boolean {
     return this.router.url === '/' || this.router.url === '';
+  }
+
+  toggleTheme(): void {
+    const current = this.a11y.effectiveTheme();
+    this.a11y.setTheme(current === 'dark' ? 'light' : 'dark');
   }
 }

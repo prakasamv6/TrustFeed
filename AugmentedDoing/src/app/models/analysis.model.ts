@@ -50,3 +50,73 @@ export interface AnalysisRequest {
   mediaUrl?: string;
   localFilePath?: string;
 }
+
+// ── Factor Attribution ──────────────────────────────────────────────────────
+
+export type FactorCategory = 'feature_weight' | 'text_sensitivity' | 'bias_direction';
+
+export interface FactorContribution {
+  factorName: string;
+  factorCategory: FactorCategory;
+  rawValue: number;
+  weight: number;
+  contribution: number;
+  contributionPct: number;
+  description: string;
+}
+
+export interface AgentAttribution {
+  agentName: string;
+  region: BiasRegion | null;
+  agentScore: number;
+  baselineScore: number;
+  totalDelta: number;
+  factors: FactorContribution[];
+  topFactor: string;
+  summary: string;
+}
+
+export interface FactorAttributionReport {
+  agentAttributions: AgentAttribution[];
+  globalTopFactors: string[];
+  proxyRiskIndicators: string[];
+  fairnessSummary: string;
+}
+
+// ── Fairness Survey ─────────────────────────────────────────────────────────
+
+export interface FairnessSurveyRequest {
+  postId: string;
+  originalFairness: number;
+  nonbiasedFairness: number;
+  explanationClarity: number;
+  trustImpact: number;
+  perceivedBiasSeverity: number;
+  comment: string;
+}
+
+export interface FairnessSurveyResponseItem {
+  id: string;
+  originalFairness: number;
+  nonbiasedFairness: number;
+  explanationClarity: number;
+  trustImpact: number;
+  perceivedBiasSeverity: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface FairnessSurveySummary {
+  avgOriginalFairness: number;
+  avgNonbiasedFairness: number;
+  avgExplanationClarity: number;
+  avgTrustImpact: number;
+  avgPerceivedBias: number;
+  responseCount: number;
+}
+
+export interface FairnessSurveyResult {
+  postId: string;
+  responses: FairnessSurveyResponseItem[];
+  summary: FairnessSurveySummary | null;
+}

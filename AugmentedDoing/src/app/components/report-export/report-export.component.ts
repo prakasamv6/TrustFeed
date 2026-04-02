@@ -17,10 +17,11 @@ import { environment } from '../../services/environment';
   styles: [`
     .report-actions { display: inline-flex; }
     .report-btn {
-      background: rgba(0,217,255,0.1); border: 1px solid rgba(0,217,255,0.2);
-      color: #00d9ff; padding: 0.35rem 0.75rem; border-radius: 16px;
+      background: var(--info-bg); border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan); padding: 0.35rem 0.75rem; border-radius: 16px;
       cursor: pointer; font-size: 0.75rem; transition: all 0.3s;
-      &:hover { background: rgba(0,217,255,0.2); transform: translateY(-1px); }
+      &:hover { background: var(--accent-cyan); color: var(--bg-primary); transform: translateY(-1px); }
+      &:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
     }
   `]
 })

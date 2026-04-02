@@ -1,47 +1,166 @@
-/* TrustFeed Survey — Global Styles */
+/* TrustFeed Survey — Inclusive, Bias-Free Design System
+   WCAG 2.1 Level AA · Color serves structure, not judgment.
+   Every semantic state uses text labels, icons, and shape alongside color. */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-*, *::before, *::after {
-  box-sizing: border-box;
+/* ── Design Tokens ── */
+:root {
+  /* Neutral Base */
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #1c2128;
+  --bg-elevated: #21262d;
+  --bg-hover: #292e36;
+  --bg-glass: rgba(22, 27, 34, 0.72);
+  --bg-glass-border: rgba(240, 246, 252, 0.08);
+
+  --border-default: rgba(240, 246, 252, 0.1);
+  --border-subtle: rgba(240, 246, 252, 0.06);
+  --border-focus: #58a6ff;
+
+  /* Text (AA-compliant on --bg-primary) */
+  --text-primary: #f0f6fc;
+  --text-secondary: #c9d1d9;
+  --text-muted: #8b949e;
+  --text-placeholder: #6e7681;
+  --text-inverse: #0d1117;
+
+  /* Interaction Accent (for affordance, not persuasion) */
+  --accent-primary: #58a6ff;
+  --accent-secondary: #56d4c4;
+  --accent-tertiary: #b392f0;
+
+  /* Categorical (distinguish data groups, not value) */
+  --cat-a: #58a6ff;
+  --cat-a-bg: rgba(88, 166, 255, 0.12);
+  --cat-b: #d4a054;
+  --cat-b-bg: rgba(212, 160, 84, 0.12);
+  --cat-c: #b392f0;
+  --cat-c-bg: rgba(179, 146, 240, 0.12);
+  --cat-d: #56d4c4;
+  --cat-d-bg: rgba(86, 212, 196, 0.12);
+  --cat-e: #d4868c;
+  --cat-e-bg: rgba(212, 134, 140, 0.12);
+  --cat-f: #7ec69d;
+  --cat-f-bg: rgba(126, 198, 157, 0.12);
+
+  /* Status (restrained; always paired with text label + icon) */
+  --status-info: #58a6ff;
+  --status-info-bg: rgba(88, 166, 255, 0.12);
+  --status-notice: #d4a054;
+  --status-notice-bg: rgba(212, 160, 84, 0.12);
+  --status-critical: #d47766;
+  --status-critical-bg: rgba(212, 119, 102, 0.12);
+  --status-confirm: #56d4c4;
+  --status-confirm-bg: rgba(86, 212, 196, 0.12);
+
+  /* Domain Labels (neutral categorical) */
+  --label-ai: #b392f0;
+  --label-ai-bg: rgba(179, 146, 240, 0.12);
+  --label-human: #58a6ff;
+  --label-human-bg: rgba(88, 166, 255, 0.12);
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+
+  /* Touch targets (WCAG 2.5.5) */
+  --min-touch-target: 44px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
 }
 
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; }
+
 html, body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0a0a0f;
-  color: #ccd6f6;
+  margin: 0; padding: 0;
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   line-height: 1.5;
 }
 
-button { font-family: inherit; }
+button { font-family: inherit; cursor: pointer; min-height: var(--min-touch-target); }
 
-a { color: #00d9ff; text-decoration: none; transition: color 0.3s ease; }
-a:hover { color: #00ff88; text-decoration: none; }
+a {
+  color: var(--accent-primary);
+  text-decoration: underline;
+  text-decoration-color: rgba(88, 166, 255, 0.4);
+  text-underline-offset: 2px;
+  transition: color var(--transition-fast);
+  &:hover { color: var(--accent-secondary); text-decoration-color: var(--accent-secondary); }
+}
 
-::selection { background: rgba(0,217,255,0.3); color: #ffffff; }
-:focus-visible { outline: 2px solid #00d9ff; outline-offset: 2px; }
+::selection { background: rgba(88, 166, 255, 0.3); color: var(--text-primary); }
+:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 
 ::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #0a0a0f; }
-::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #00d9ff, #00ff88); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #00b8d9, #00d975); }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* Animations */
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Animations ── */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 @keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-@keyframes glow { 0%, 100% { box-shadow: 0 0 8px rgba(0,217,255,0.15); } 50% { box-shadow: 0 0 20px rgba(0,217,255,0.35); } }
+@keyframes glow { 0%, 100% { box-shadow: 0 0 8px rgba(88,166,255,0.15); } 50% { box-shadow: 0 0 20px rgba(88,166,255,0.35); } }
 
 .fade-in { animation: fadeIn 0.4s ease-out; }
 .fade-in-down { animation: fadeInDown 0.4s ease-out; }
 .text-gradient {
-  background: linear-gradient(135deg, #00d9ff, #00ff88);
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 
+/* ── Screen reader only ── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0;
+}
+
+/* ── High Contrast Mode ── */
+@media (forced-colors: active) {
+  :root { --border-default: CanvasText; --border-focus: Highlight; }
+  button { border: 1px solid ButtonText; }
+}
