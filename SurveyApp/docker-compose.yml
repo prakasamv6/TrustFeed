@@ -6,10 +6,10 @@ services:
     image: mysql:8.0
     container_name: trustfeed-db
     environment:
-      MYSQL_ROOT_PASSWORD: trustfeed_root
-      MYSQL_DATABASE: TrustFeed
-      MYSQL_USER: trustfeed
-      MYSQL_PASSWORD: trustfeed_pass
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-trustfeed_root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-TrustFeed}
+      MYSQL_USER: ${MYSQL_USER:-trustfeed}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-trustfeed_pass}
     ports:
       - "3306:3306"
     volumes:
@@ -17,7 +17,7 @@ services:
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "trustfeed", "-ptrustfeed_pass"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,9 +32,9 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 3306
-      DB_USER: trustfeed
-      DB_PASSWORD: trustfeed_pass
-      DB_NAME: TrustFeed
+      DB_USER: ${MYSQL_USER:-trustfeed}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-trustfeed_pass}
+      DB_NAME: ${MYSQL_DATABASE:-TrustFeed}
       API_PORT: 3000
     ports:
       - "3000:3000"

@@ -1,7 +1,7 @@
 /**
  * ContentFetcher — Fetches unique, non-repeating content from free internet sources.
  * Human content: Wikipedia articles, Picsum/Pexels photos, Pexels videos
- * AI content: Pollinations.ai images, dynamically composed AI-style text
+ * AI content: Picsum-seeded images, dynamically composed AI-style text
  * NO PII collected. Sources are all free/open.
  * Enhanced with timeouts, Promise.allSettled for resilience, and per-source error isolation.
  */
@@ -181,12 +181,12 @@ function getHumanVideos(count) {
 
 function getAIGeneratedVideos(count) {
   const videos = [
-    { title: 'AI Dreamscape: Morphing Landscapes', content: 'An AI-generated video showing landscapes that smoothly morph from desert to ocean to forest. The impossibly fluid transitions and perfectly symmetrical compositions reveal its synthetic origin. Generated using diffusion-based video models.', imageUrl: 'https://image.pollinations.ai/prompt/morphing%20dreamscape%20landscape?width=600&height=400&nologo=true' },
-    { title: 'Neural Network Visualization', content: 'A procedurally generated visualization of data flowing through a neural network. The perfectly geometric nodes, impossibly smooth particle trajectories, and mathematically precise color gradients distinguish it from human-made animation.', imageUrl: 'https://image.pollinations.ai/prompt/neural%20network%20visualization%20data%20flow?width=600&height=400&nologo=true' },
-    { title: 'AI Fashion Runway', content: 'An AI-generated fashion runway video showing models in algorithmically designed clothing. Subtle inconsistencies in finger geometry, overly symmetrical facial features, and fabric that moves with unnatural fluidity betray its synthetic nature.', imageUrl: 'https://image.pollinations.ai/prompt/futuristic%20fashion%20runway%20AI%20generated?width=600&height=400&nologo=true' },
-    { title: 'Synthetic Nature Documentary', content: 'AI-generated footage of a species of animal that does not exist — a luminescent arctic fox with butterfly wings. The impossibly detailed fur rendering and physically implausible creature design indicate AI generation.', imageUrl: 'https://image.pollinations.ai/prompt/luminescent%20arctic%20fox%20butterfly%20wings%20nature%20documentary?width=600&height=400&nologo=true' },
-    { title: 'AI Architectural Walkthrough', content: 'A walkthrough of an AI-designed building with impossible geometry — staircases that loop into themselves, rooms that are larger inside than outside. The flawless lighting and absence of construction imperfections signal AI origin.', imageUrl: 'https://image.pollinations.ai/prompt/impossible%20architecture%20escher%20walkthrough?width=600&height=400&nologo=true' },
-    { title: 'Deepfake Weather Report', content: 'An AI-generated weather report featuring a synthetic presenter. The overly smooth skin texture, slightly misaligned lip sync, and unnaturally consistent eye blinks are telltale signs of deepfake video generation technology.', imageUrl: 'https://image.pollinations.ai/prompt/AI%20generated%20news%20anchor%20weather%20report?width=600&height=400&nologo=true' },
+    { title: 'AI Dreamscape: Morphing Landscapes', content: 'An AI-generated video showing landscapes that smoothly morph from desert to ocean to forest. The impossibly fluid transitions and perfectly symmetrical compositions reveal its synthetic origin. Generated using diffusion-based video models.', imageUrl: 'https://picsum.photos/seed/ai-dreamscape/600/400' },
+    { title: 'Neural Network Visualization', content: 'A procedurally generated visualization of data flowing through a neural network. The perfectly geometric nodes, impossibly smooth particle trajectories, and mathematically precise color gradients distinguish it from human-made animation.', imageUrl: 'https://picsum.photos/seed/neural-net/600/400' },
+    { title: 'AI Fashion Runway', content: 'An AI-generated fashion runway video showing models in algorithmically designed clothing. Subtle inconsistencies in finger geometry, overly symmetrical facial features, and fabric that moves with unnatural fluidity betray its synthetic nature.', imageUrl: 'https://picsum.photos/seed/ai-fashion/600/400' },
+    { title: 'Synthetic Nature Documentary', content: 'AI-generated footage of a species of animal that does not exist — a luminescent arctic fox with butterfly wings. The impossibly detailed fur rendering and physically implausible creature design indicate AI generation.', imageUrl: 'https://picsum.photos/seed/synth-nature/600/400' },
+    { title: 'AI Architectural Walkthrough', content: 'A walkthrough of an AI-designed building with impossible geometry — staircases that loop into themselves, rooms that are larger inside than outside. The flawless lighting and absence of construction imperfections signal AI origin.', imageUrl: 'https://picsum.photos/seed/ai-architecture/600/400' },
+    { title: 'Deepfake Weather Report', content: 'An AI-generated weather report featuring a synthetic presenter. The overly smooth skin texture, slightly misaligned lip sync, and unnaturally consistent eye blinks are telltale signs of deepfake video generation technology.', imageUrl: 'https://picsum.photos/seed/deepfake-weather/600/400' },
   ];
 
   return videos.sort(() => Math.random() - 0.5).slice(0, count).map(v => ({
@@ -202,7 +202,7 @@ function getAIGeneratedVideos(count) {
   }));
 }
 
-// ─── Pollinations.ai (AI-generated images, no API key) ───
+// ─── AI-generated images (picsum.photos with unique seeds) ───
 
 async function fetchAIImages(count) {
   const images = [];
@@ -227,16 +227,16 @@ async function fetchAIImages(count) {
   const shuffled = prompts.sort(() => Math.random() - 0.5).slice(0, count);
 
   for (const prompt of shuffled) {
-    const seed = Math.floor(Math.random() * 999999);
+    const seed = prompt.replace(/[^a-z0-9]/gi, '-').substring(0, 40) + '-' + Math.floor(Math.random() * 9999);
     images.push({
       title: `AI Art: ${prompt.split(' ').slice(0, 5).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}`,
       content: `This image was generated by an AI model from the text prompt: "${prompt}". It demonstrates current generative AI capabilities in visual content creation.`,
-      imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=600&height=400&seed=${seed}&nologo=true`,
+      imageUrl: `https://picsum.photos/seed/${seed}/600/400`,
       contentType: 'image',
       groundTruth: 'ai',
       category: 'AI Art',
       difficulty: 'medium',
-      source: 'pollinations',
+      source: 'ai-generated',
     });
   }
   return images;

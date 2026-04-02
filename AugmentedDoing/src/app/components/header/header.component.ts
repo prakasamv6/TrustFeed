@@ -51,7 +51,7 @@ import { IconComponent, IconName } from '../icon/icon.component';
           <!-- Brand -->
           <a routerLink="/" class="brand" aria-label="TrustFeed home">
             <div class="brand-logo" aria-hidden="true">
-              <app-icon name="shield" [size]="24" color="white" />
+              <img src="assets/logo.svg" alt="" width="32" height="32" />
             </div>
             <div class="brand-text">
               <h1 class="brand-name">TrustFeed</h1>
