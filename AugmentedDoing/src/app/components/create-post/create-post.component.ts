@@ -5,15 +5,16 @@ import { PostService } from '../../services/post.service';
 import { AnalysisService } from '../../services/analysis.service';
 import { ContentModality } from '../../models/post.model';
 import { IconComponent, IconName } from '../icon/icon.component';
+import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
 
 @Component({
   selector: 'app-create-post',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, ImgFallbackDirective],
   template: `
     <div class="create-post-card card-glass">
       <div class="create-post-header">
-        <img [src]="currentUser.avatarUrl" [alt]="currentUser.name" class="avatar" />
+        <img [src]="currentUser.avatarUrl" [alt]="currentUser.name" class="avatar" appImgFallback="avatar" />
         <div class="user-info">
           <span class="user-name">{{ currentUser.name }}</span>
           <span class="username">&#64;{{ currentUser.username }}</span>

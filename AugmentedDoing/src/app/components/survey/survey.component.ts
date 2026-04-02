@@ -3,11 +3,12 @@ import { DecimalPipe, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SurveyService } from '../../services/survey.service';
 import { SurveyResultsComponent } from '../survey-results/survey-results.component';
+import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
 
 @Component({
   selector: 'app-survey',
   standalone: true,
-  imports: [FormsModule, SurveyResultsComponent, DecimalPipe, UpperCasePipe],
+  imports: [FormsModule, SurveyResultsComponent, DecimalPipe, UpperCasePipe, ImgFallbackDirective],
   template: `
     <!-- Survey Landing / Start Screen -->
     @if (!surveyService.isActive() && !surveyService.isComplete()) {
@@ -142,7 +143,7 @@ import { SurveyResultsComponent } from '../survey-results/survey-results.compone
           <h3 class="item-title">{{ item.title }}</h3>
           <p class="item-content">{{ item.content }}</p>
           @if (item.imageUrl) {
-          <img [src]="item.imageUrl" alt="Survey content image" class="item-image" />
+          <img [src]="item.imageUrl" alt="Survey content image" class="item-image" appImgFallback="survey-item" />
           }
         </div>
 

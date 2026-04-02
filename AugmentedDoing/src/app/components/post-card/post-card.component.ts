@@ -9,11 +9,12 @@ import { AnalysisStatusComponent } from '../analysis-status/analysis-status.comp
 import { BiasDetailsModalComponent } from '../bias-details-modal/bias-details-modal.component';
 import { ReportExportComponent } from '../report-export/report-export.component';
 import { IconComponent } from '../icon/icon.component';
+import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
 
 @Component({
   selector: 'app-post-card',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, UpperCasePipe, AnalysisStatusComponent, BiasDetailsModalComponent, ReportExportComponent, IconComponent],
+  imports: [DatePipe, DecimalPipe, UpperCasePipe, AnalysisStatusComponent, BiasDetailsModalComponent, ReportExportComponent, IconComponent, ImgFallbackDirective],
   template: `
     <article class="post-card" [class.ai-generated]="post.isAiGenerated" [class.bias-flagged]="post.biasResult?.favoritismFlag" [class.ai-analyzed]="post.aiAnalyzed"
              [attr.aria-label]="'Post by ' + post.author.name">
@@ -61,7 +62,7 @@ import { IconComponent } from '../icon/icon.component';
       <header class="post-header">
         <div class="author-section">
           <div class="avatar-ring" [class.ai-ring]="post.isAiGenerated" [class.human-ring]="!post.isAiGenerated">
-            <img [src]="post.author.avatarUrl" [alt]="'Avatar of ' + post.author.name" class="avatar" />
+            <img [src]="post.author.avatarUrl" [alt]="'Avatar of ' + post.author.name" class="avatar" appImgFallback="avatar" />
           </div>
           <div class="author-info">
             <div class="author-name-row">
@@ -126,7 +127,7 @@ import { IconComponent } from '../icon/icon.component';
       <div class="post-content">
         <p class="content-text">{{ post.content }}</p>
         @if (post.imageUrl) {
-        <img [src]="post.imageUrl" [alt]="'Image posted by ' + post.author.name" class="post-image" loading="lazy" />
+        <img [src]="post.imageUrl" [alt]="'Image posted by ' + post.author.name" class="post-image" loading="lazy" appImgFallback="post-image" />
         }
       </div>
 

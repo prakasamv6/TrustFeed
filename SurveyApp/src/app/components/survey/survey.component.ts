@@ -4,11 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { SurveyService } from '../../services/survey.service';
 import { SurveyResultsComponent } from '../survey-results/survey-results.component';
 import { ErrorNotificationService } from '../../services/error-notification.service';
+import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
+import { VideoFallbackDirective } from '../../utils/video-fallback.directive';
 
 @Component({
   selector: 'app-survey',
   standalone: true,
-  imports: [FormsModule, SurveyResultsComponent, DecimalPipe, UpperCasePipe],
+  imports: [FormsModule, SurveyResultsComponent, DecimalPipe, UpperCasePipe, ImgFallbackDirective, VideoFallbackDirective],
   template: `
     <!-- Survey Landing / Start Screen -->
     @if (!surveyService.isActive() && !surveyService.isComplete() && !surveyService.loading()) {
@@ -159,18 +161,18 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
           <h3 class="item-title">{{ item.title }}</h3>
           <p class="item-content">{{ item.content }}</p>
           @if (item.imageUrl && item.contentType !== 'video') {
-          <img [src]="item.imageUrl" alt="Survey content image" class="item-image" />
+          <img [src]="item.imageUrl" alt="Survey content image" class="item-image" appImgFallback="survey-item" />
           }
           @if (item.contentType === 'video' && item.videoUrl) {
           <div class="item-video-wrap">
-            <video controls [poster]="item.imageUrl || ''" class="item-video">
+            <video controls [poster]="item.imageUrl || ''" class="item-video" appVideoFallback="survey-video">
               <source [src]="item.videoUrl" type="video/mp4">
               Your browser does not support video playback.
             </video>
           </div>
           }
           @if (item.contentType === 'video' && !item.videoUrl && item.imageUrl) {
-          <img [src]="item.imageUrl" alt="Video thumbnail" class="item-image" />
+          <img [src]="item.imageUrl" alt="Video thumbnail" class="item-image" appImgFallback="video-thumbnail" />
           }
         </div>
 
@@ -208,10 +210,10 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
               @if (av.analysisImageUrl || av.analysisVideoUrl) {
               <div class="hint-media">
                 @if (av.analysisMediaType === 'video' && av.analysisVideoUrl) {
-                <video [src]="av.analysisVideoUrl" [poster]="av.analysisImageUrl" controls muted class="agent-media-video"></video>
+                <video [src]="av.analysisVideoUrl" [poster]="av.analysisImageUrl" controls muted class="agent-media-video" appVideoFallback="agent-video" [agentRegion]="av.region"></video>
                 }
                 @if (av.analysisMediaType === 'image' && av.analysisImageUrl) {
-                <img [src]="av.analysisImageUrl" alt="Agent analysis media" class="agent-media-img" loading="lazy" />
+                <img [src]="av.analysisImageUrl" alt="Agent analysis media" class="agent-media-img" loading="lazy" appImgFallback="agent-media" [agentRegion]="av.region" />
                 }
               </div>
               }
@@ -256,10 +258,10 @@ import { ErrorNotificationService } from '../../services/error-notification.serv
                 @if (av.analysisImageUrl || av.analysisVideoUrl) {
                 <div class="agent-review-media">
                   @if (av.analysisMediaType === 'video' && av.analysisVideoUrl) {
-                  <video [src]="av.analysisVideoUrl" [poster]="av.analysisImageUrl" controls muted class="agent-media-video"></video>
+                  <video [src]="av.analysisVideoUrl" [poster]="av.analysisImageUrl" controls muted class="agent-media-video" appVideoFallback="agent-review-video" [agentRegion]="av.region"></video>
                   }
                   @if (av.analysisMediaType === 'image' && av.analysisImageUrl) {
-                  <img [src]="av.analysisImageUrl" alt="Agent analysis media" class="agent-media-img" loading="lazy" />
+                  <img [src]="av.analysisImageUrl" alt="Agent analysis media" class="agent-media-img" loading="lazy" appImgFallback="agent-review-media" [agentRegion]="av.region" />
                   }
                 </div>
                 }

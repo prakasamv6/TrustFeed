@@ -692,6 +692,50 @@ app.use((err, _req, res, _next) => {
   });
 });
 
+// ─── Broken Media Reporting & Auto-Fix ───
+
+const brokenMediaStore = [];
+const urlReplacements = new Map();
+
+app.post('/api/report-broken-media', (req, res) => {
+  const { brokenUrl, context, agentRegion } = req.body || {};
+  if (!brokenUrl || typeof brokenUrl !== 'string' || brokenUrl.length > 2000) {
+    return res.status(400).json({ error: 'Invalid brokenUrl' });
+  }
+  if (!brokenUrl.startsWith('http://') && !brokenUrl.startsWith('https://')) {
+    return res.status(400).json({ error: 'brokenUrl must start with http(s)://' });
+  }
+
+  // Return cached fix if already reported
+  if (urlReplacements.has(brokenUrl)) {
+    return res.json({ status: 'already-fixed', brokenUrl, replacementUrl: urlReplacements.get(brokenUrl) });
+  }
+
+  // Generate deterministic replacement via hash seed
+  const crypto = require('crypto');
+  const seed = crypto.createHash('md5').update(brokenUrl).digest('hex').slice(0, 12);
+  const replacementUrl = `https://picsum.photos/seed/${seed}/600/400`;
+
+  urlReplacements.set(brokenUrl, replacementUrl);
+  brokenMediaStore.push({
+    brokenUrl,
+    replacementUrl,
+    context: (context || '').slice(0, 200),
+    agentRegion: (agentRegion || '').slice(0, 200),
+    reportedAt: new Date().toISOString(),
+  });
+
+  res.json({ status: 'fixed', brokenUrl, replacementUrl, agentRegion: agentRegion || '' });
+});
+
+app.get('/api/broken-media', (_req, res) => {
+  res.json({
+    totalReports: brokenMediaStore.length,
+    reports: brokenMediaStore.slice(-50),
+    activeReplacements: urlReplacements.size,
+  });
+});
+
 // ─── Start Server with Graceful Shutdown ───
 
 const PORT = process.env.API_PORT || 3000;

@@ -986,6 +986,90 @@ def get_corrective_actions(post_id: str):
 
 # ── Startup ──────────────────────────────────────────────────────────────────
 
+# ── Broken Media Reporting & Auto-Fix ────────────────────────────────────────
+
+_broken_media_store: list[dict] = []
+_url_replacements: dict[str, str] = {}   # original_url → replacement_url
+
+
+class BrokenMediaReport(BaseModel):
+    brokenUrl: str
+    context: str = ""       # e.g. "post-image", "agent-media", "survey-item"
+    agentRegion: str = ""   # which regional agent was involved, if any
+
+    @field_validator("brokenUrl")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        if not v or len(v) > 2000:
+            raise ValueError("brokenUrl must be 1-2000 characters")
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("brokenUrl must start with http:// or https://")
+        return v
+
+    @field_validator("context", "agentRegion")
+    @classmethod
+    def validate_text_fields(cls, v: str) -> str:
+        if len(v) > 200:
+            raise ValueError("field must be under 200 characters")
+        if v and _contains_malicious_input(v):
+            raise ValueError("field contains disallowed patterns")
+        return v
+
+
+def _generate_replacement_url(broken_url: str, context: str) -> str:
+    """Generate a deterministic replacement using picsum.photos seed."""
+    import hashlib
+    seed = hashlib.md5(broken_url.encode()).hexdigest()[:12]
+    return f"https://picsum.photos/seed/{seed}/600/400"
+
+
+@router.post("/report-broken-media")
+def report_broken_media(req: BrokenMediaReport):
+    """Report a broken media URL. The system auto-generates a working replacement."""
+    # Check if we already have a fix for this URL
+    if req.brokenUrl in _url_replacements:
+        return {
+            "status": "already-fixed",
+            "brokenUrl": req.brokenUrl,
+            "replacementUrl": _url_replacements[req.brokenUrl],
+        }
+
+    replacement = _generate_replacement_url(req.brokenUrl, req.context)
+    _url_replacements[req.brokenUrl] = replacement
+    _broken_media_store.append({
+        "brokenUrl": req.brokenUrl,
+        "replacementUrl": replacement,
+        "context": req.context,
+        "agentRegion": req.agentRegion,
+        "reportedAt": datetime.now(timezone.utc).isoformat(),
+    })
+
+    return {
+        "status": "fixed",
+        "brokenUrl": req.brokenUrl,
+        "replacementUrl": replacement,
+        "agentRegion": req.agentRegion,
+    }
+
+
+@router.get("/broken-media")
+def get_broken_media():
+    """Get all reported broken media URLs and their replacements."""
+    return {
+        "totalReports": len(_broken_media_store),
+        "reports": _broken_media_store[-50:],  # last 50
+        "activeReplacements": len(_url_replacements),
+    }
+
+
+@router.get("/media-replacement")
+def get_media_replacement(url: str):
+    """Check if a broken URL has a known replacement."""
+    if url in _url_replacements:
+        return {"found": True, "replacementUrl": _url_replacements[url]}
+    return {"found": False}
+
+
 # Register the router with all API routes
 app.include_router(router)
 
