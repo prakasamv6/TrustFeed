@@ -4,7 +4,7 @@ import { Observable, of, delay } from 'rxjs';
 import { environment } from './environment';
 import {
   DashboardSummary, DashboardAgentStats, DashboardTrends,
-  AgentStat, TrendPoint, PostDrilldown
+  AgentStat, TrendPoint, PostDrilldown, SurveyCompletionStats
 } from '../models/dashboard.model';
 import { AgentName, BiasRegion } from '../models/analysis.model';
 
@@ -27,6 +27,11 @@ export class DashboardService {
   getTrends(): Observable<DashboardTrends> {
     if (this.mockMode) return of(this.mockTrends()).pipe(delay(400));
     return this.http.get<DashboardTrends>(`${this.apiBase}/dashboard/trends`);
+  }
+
+  getSurveyCompletionStats(): Observable<SurveyCompletionStats> {
+    if (this.mockMode) return of(this.mockSurveyCompletionStats()).pipe(delay(400));
+    return this.http.get<SurveyCompletionStats>(`${this.apiBase}/survey-stats`);
   }
 
   private mockSummary(): DashboardSummary {
@@ -67,5 +72,35 @@ export class DashboardService {
       });
     }
     return { points };
+  }
+
+  private mockSurveyCompletionStats(): SurveyCompletionStats {
+    const recentCompletions: { date: string; completedCount: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      recentCompletions.push({
+        date: d.toISOString().split('T')[0],
+        completedCount: 1 + Math.floor(Math.random() * 5),
+      });
+    }
+    return {
+      totalSessions: 42,
+      completedSessions: 36,
+      inProgressSessions: 6,
+      completionRate: 0.857,
+      avgAccuracy: 0.6833,
+      avgItemsPerSession: 10,
+      byMode: [
+        { mode: 'Solo', sessions: 20, avgAccuracy: 0.625 },
+        { mode: 'Human-AI Collab', sessions: 16, avgAccuracy: 0.75 },
+      ],
+      byDifficulty: [
+        { difficulty: 'Easy', total: 120, correct: 96, accuracy: 0.80 },
+        { difficulty: 'Medium', total: 120, correct: 78, accuracy: 0.65 },
+        { difficulty: 'Hard', total: 120, correct: 60, accuracy: 0.50 },
+      ],
+      recentCompletions,
+    };
   }
 }

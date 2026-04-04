@@ -215,46 +215,48 @@ import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
 
     .toggle-btn {
       position: relative;
-      width: 48px;
-      height: 26px;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
       background: var(--bg-hover);
-      border: 2px solid var(--border-default);
-      border-radius: 9999px;
+      border: 1.5px solid var(--border-default);
+      border-radius: 12px;
       cursor: pointer;
-      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
       flex-shrink: 0;
       padding: 0;
       appearance: none;
       -webkit-appearance: none;
+      vertical-align: middle;
 
       &:hover {
         border-color: var(--text-muted);
+        background: var(--bg-elevated);
       }
 
       &.ai-active {
         background: var(--accent-primary);
         border-color: var(--accent-primary);
-        box-shadow: 0 0 0 3px rgba(188, 140, 255, 0.2);
+        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
       }
 
       .toggle-slider {
         position: absolute;
-        top: 50%;
-        left: 3px;
+        top: 2px;
+        left: 2px;
         width: 18px;
         height: 18px;
         background: var(--text-muted);
         border-radius: 50%;
-        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-        transform: translateY(-50%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         pointer-events: none;
       }
 
       &.ai-active .toggle-slider {
-        transform: translate(22px, -50%);
+        transform: translateX(20px);
         background: #fff;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
       }
 
       &:focus-visible {

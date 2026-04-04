@@ -764,6 +764,172 @@
   padding: 2rem;
 }
 
+/* ─── Survey Completion Report ─────────────────────────────── */
+
+.survey-completion-panel {
+  h4 {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+  }
+}
+
+.survey-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.survey-kpi {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid var(--border-subtle);
+
+  .survey-kpi-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+  }
+
+  .survey-kpi-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  &.completed .survey-kpi-value { color: var(--status-confirm); }
+  &.in-progress .survey-kpi-value { color: var(--status-notice); }
+  &.rate .survey-kpi-value { color: var(--accent-secondary); }
+}
+
+.completion-progress {
+  margin-bottom: 1.5rem;
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.4rem;
+  }
+
+  .progress-track {
+    height: 24px;
+    background: var(--bg-elevated);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 12px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--status-confirm));
+    transition: width 0.6s ease;
+  }
+}
+
+.survey-details-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.survey-detail-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--bg-hover);
+
+  &:last-child { border-bottom: none; }
+
+  .detail-label {
+    width: 110px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .detail-sessions {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .detail-accuracy {
+    margin-left: auto;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+  }
+
+  .detail-bar-track {
+    flex: 1;
+    height: 12px;
+    background: var(--bg-primary);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .detail-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: var(--accent-primary);
+    transition: width 0.5s ease;
+  }
+}
+
+.recent-completions {
+  .completions-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    justify-content: center;
+    padding: 0.5rem 0;
+    min-height: 120px;
+  }
+}
+
+.completion-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+
+  .completion-bar {
+    width: 36px;
+    min-height: 4px;
+    background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 4px 4px 0 0;
+    transition: height 0.4s ease;
+  }
+
+  .completion-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .completion-date {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+  }
+}
+
 /* ─── Responsive ──────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
@@ -773,6 +939,8 @@
   .compare-arrow { transform: rotate(90deg); text-align: center; }
   .factor-bar-row .factor-name { width: 100px; }
   .fairness-metric .fm-label { width: 120px; }
+  .survey-details-row { grid-template-columns: 1fr; }
+  .survey-kpi-row { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (forced-colors: active) {

@@ -410,6 +410,94 @@
     </section>
     }
 
+    <!-- ─── Survey Completion Report ──────────────────────────────── -->
+    @let sc = surveyCompletionStats();
+    @if (sc) {
+    <section class="panel survey-completion-panel">
+      <h3>Survey Completion Report</h3>
+      <p class="panel-desc">Overview of how many users have completed the AI content detection survey</p>
+
+      <!-- KPI row -->
+      <div class="survey-kpi-row">
+        <div class="survey-kpi">
+          <span class="survey-kpi-value">{{ sc.totalSessions }}</span>
+          <span class="survey-kpi-label">Total Sessions</span>
+        </div>
+        <div class="survey-kpi completed">
+          <span class="survey-kpi-value">{{ sc.completedSessions }}</span>
+          <span class="survey-kpi-label">Completed</span>
+        </div>
+        <div class="survey-kpi in-progress">
+          <span class="survey-kpi-value">{{ sc.inProgressSessions }}</span>
+          <span class="survey-kpi-label">In Progress</span>
+        </div>
+        <div class="survey-kpi rate">
+          <span class="survey-kpi-value">{{ sc.completionRate | percent:'1.0-1' }}</span>
+          <span class="survey-kpi-label">Completion Rate</span>
+        </div>
+        <div class="survey-kpi">
+          <span class="survey-kpi-value">{{ sc.avgAccuracy | percent:'1.0-1' }}</span>
+          <span class="survey-kpi-label">Avg Accuracy</span>
+        </div>
+        <div class="survey-kpi">
+          <span class="survey-kpi-value">{{ sc.avgItemsPerSession }}</span>
+          <span class="survey-kpi-label">Avg Items/Session</span>
+        </div>
+      </div>
+
+      <!-- Completion progress bar -->
+      <div class="completion-progress">
+        <div class="progress-label">
+          <span>{{ sc.completedSessions }} of {{ sc.totalSessions }} users completed</span>
+          <span>{{ sc.completionRate | percent:'1.0-1' }}</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="sc.completionRate * 100"></div>
+        </div>
+      </div>
+
+      <!-- Section row: Mode breakdown + Difficulty breakdown -->
+      <div class="survey-details-row">
+        <div class="survey-detail-card">
+          <h4>By Mode</h4>
+          @for (m of sc.byMode; track m.mode) {
+          <div class="detail-row">
+            <span class="detail-label">{{ m.mode }}</span>
+            <span class="detail-sessions">{{ m.sessions }} sessions</span>
+            <span class="detail-accuracy">{{ m.avgAccuracy | percent:'1.0-1' }} accuracy</span>
+          </div>
+          }
+        </div>
+        <div class="survey-detail-card">
+          <h4>By Difficulty</h4>
+          @for (d of sc.byDifficulty; track d.difficulty) {
+          <div class="detail-row">
+            <span class="detail-label">{{ d.difficulty }}</span>
+            <div class="detail-bar-track">
+              <div class="detail-bar-fill" [style.width.%]="d.accuracy * 100"></div>
+            </div>
+            <span class="detail-accuracy">{{ d.correct }}/{{ d.total }} ({{ d.accuracy | percent:'1.0-0' }})</span>
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- Recent completions trend -->
+      <div class="recent-completions">
+        <h4>Recent Daily Completions</h4>
+        <div class="completions-chart">
+          @for (rc of sc.recentCompletions; track rc.date) {
+          <div class="completion-bar-col">
+            <div class="completion-bar" [style.height.px]="rc.completedCount * 16"></div>
+            <span class="completion-count">{{ rc.completedCount }}</span>
+            <span class="completion-date">{{ rc.date.slice(5) }}</span>
+          </div>
+          }
+        </div>
+      </div>
+    </section>
+    }
+
     <!-- ─── Bias-Flagged Posts Table ───────────────────────────────── -->
     <section class="panel">
       <h3>Bias-Flagged Posts</h3>

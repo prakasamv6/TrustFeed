@@ -198,7 +198,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
               <!-- Main Metrics Bar -->
               <div class="metrics-bar">
                 <div class="metric-item">
-                  <div class="metric-ring" [class.high]="submission.analysis.aiInfluenceScore >= 70" [class.medium]="submission.analysis.aiInfluenceScore >= 40 && submission.analysis.aiInfluenceScore < 70" [class.low]="submission.analysis.aiInfluenceScore < 40">
+                  <div class="metric-ring" [class.range-upper]="submission.analysis.aiInfluenceScore >= 70" [class.range-mid]="submission.analysis.aiInfluenceScore >= 40 && submission.analysis.aiInfluenceScore < 70" [class.range-lower]="submission.analysis.aiInfluenceScore < 40">
                     <svg viewBox="0 0 36 36" class="circular-chart">
                       <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
                       <path class="circle" [attr.stroke-dasharray]="submission.analysis.aiInfluenceScore + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
@@ -207,8 +207,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
                   </div>
                   <div class="metric-text">
                     <span class="metric-label">AI Influence</span>
-                    <span class="metric-sublabel" [class.high]="submission.analysis.aiInfluenceScore >= 70" [class.medium]="submission.analysis.aiInfluenceScore >= 40 && submission.analysis.aiInfluenceScore < 70" [class.low]="submission.analysis.aiInfluenceScore < 40">
-                      {{ submission.analysis.aiInfluenceScore >= 70 ? 'High' : (submission.analysis.aiInfluenceScore >= 40 ? 'Medium' : 'Low') }}
+                    <span class="metric-sublabel" [class.range-upper]="submission.analysis.aiInfluenceScore >= 70" [class.range-mid]="submission.analysis.aiInfluenceScore >= 40 && submission.analysis.aiInfluenceScore < 70" [class.range-lower]="submission.analysis.aiInfluenceScore < 40">
+                      {{ submission.analysis.aiInfluenceScore >= 70 ? 'Upper' : (submission.analysis.aiInfluenceScore >= 40 ? 'Mid' : 'Lower') }}
                     </span>
                   </div>
                 </div>
@@ -216,7 +216,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
                 <div class="metric-divider"></div>
 
                 <div class="metric-item">
-                  <div class="metric-ring" [class.high]="submission.analysis.aiPatternPercentage >= 70" [class.medium]="submission.analysis.aiPatternPercentage >= 40 && submission.analysis.aiPatternPercentage < 70" [class.low]="submission.analysis.aiPatternPercentage < 40">
+                  <div class="metric-ring" [class.range-upper]="submission.analysis.aiPatternPercentage >= 70" [class.range-mid]="submission.analysis.aiPatternPercentage >= 40 && submission.analysis.aiPatternPercentage < 70" [class.range-lower]="submission.analysis.aiPatternPercentage < 40">
                     <svg viewBox="0 0 36 36" class="circular-chart">
                       <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
                       <path class="circle" [attr.stroke-dasharray]="submission.analysis.aiPatternPercentage + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
@@ -225,7 +225,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
                   </div>
                   <div class="metric-text">
                     <span class="metric-label">AI Patterns</span>
-                    <span class="metric-sublabel" [class.high]="submission.analysis.aiPatternPercentage >= 70" [class.medium]="submission.analysis.aiPatternPercentage >= 40 && submission.analysis.aiPatternPercentage < 70" [class.low]="submission.analysis.aiPatternPercentage < 40">
+                    <span class="metric-sublabel" [class.range-upper]="submission.analysis.aiPatternPercentage >= 70" [class.range-mid]="submission.analysis.aiPatternPercentage >= 40 && submission.analysis.aiPatternPercentage < 70" [class.range-lower]="submission.analysis.aiPatternPercentage < 40">
                       {{ getDetectedPatternsCount(submission) }} detected
                     </span>
                   </div>
@@ -234,7 +234,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
                 <div class="metric-divider"></div>
 
                 <div class="metric-item">
-                  <div class="metric-ring citation" [class.good]="submission.analysis.citationAnalysis.citationScore >= 70" [class.warning]="submission.analysis.citationAnalysis.citationScore >= 40 && submission.analysis.citationAnalysis.citationScore < 70" [class.poor]="submission.analysis.citationAnalysis.citationScore < 40">
+                  <div class="metric-ring citation" [class.rank-upper]="submission.analysis.citationAnalysis.citationScore >= 70" [class.rank-mid]="submission.analysis.citationAnalysis.citationScore >= 40 && submission.analysis.citationAnalysis.citationScore < 70" [class.rank-lower]="submission.analysis.citationAnalysis.citationScore < 40">
                     <svg viewBox="0 0 36 36" class="circular-chart">
                       <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
                       <path class="circle" [attr.stroke-dasharray]="submission.analysis.citationAnalysis.citationScore + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
@@ -243,7 +243,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
                   </div>
                   <div class="metric-text">
                     <span class="metric-label">Citations</span>
-                    <span class="metric-sublabel citation-sub" [class.good]="submission.analysis.citationAnalysis.citationScore >= 70" [class.warning]="submission.analysis.citationAnalysis.citationScore >= 40 && submission.analysis.citationAnalysis.citationScore < 70" [class.poor]="submission.analysis.citationAnalysis.citationScore < 40">
+                    <span class="metric-sublabel citation-sub" [class.rank-upper]="submission.analysis.citationAnalysis.citationScore >= 70" [class.rank-mid]="submission.analysis.citationAnalysis.citationScore >= 40 && submission.analysis.citationAnalysis.citationScore < 70" [class.rank-lower]="submission.analysis.citationAnalysis.citationScore < 40">
                       {{ submission.analysis.citationAnalysis.citedClaims }}/{{ submission.analysis.citationAnalysis.totalClaims }} cited
                     </span>
                   </div>
@@ -276,7 +276,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
               <div class="pattern-tags">
                 @for (pattern of submission.analysis.patterns; track $index) {
                   @if (pattern.detected) {
-                  <span class="pattern-tag" [class.positive]="pattern.weight < 0" [class.negative]="pattern.weight > 0">
+                  <span class="pattern-tag" [class.weight-decrease]="pattern.weight < 0" [class.weight-increase]="pattern.weight > 0">
                     {{ pattern.weight < 0 ? '✓' : '!' }} {{ pattern.category }}
                     <span class="tag-weight">{{ pattern.weight > 0 ? '+' : '' }}{{ pattern.weight }}</span>
                   </span>
@@ -504,8 +504,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       }
     }
 
-    .ai-list li { color: var(--accent-red); }
-    .human-list li { color: var(--accent-green); }
+    .ai-list li { color: var(--label-ai); }
+    .human-list li { color: var(--label-human); }
 
     .main-feed {
       min-width: 0;
@@ -618,7 +618,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       &:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
       &.active {
-        background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
         color: var(--bg-primary);
         font-weight: 600;
         border-color: transparent;
@@ -649,8 +649,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     .ai-declaration {
       margin-top: 1rem;
       padding: 1rem;
-      background: var(--ai-bg);
-      border: 1px solid var(--accent-red);
+      background: var(--label-ai-bg);
+      border: 1px solid var(--label-ai);
       border-radius: var(--radius-md);
     }
 
@@ -688,7 +688,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     }
 
     .declaration-toggle.active .toggle-track {
-      background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
+      background: linear-gradient(135deg, var(--label-ai), var(--accent-tertiary));
     }
 
     .declaration-toggle.active .toggle-thumb {
@@ -725,8 +725,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
     .ai-badge-small {
       font-size: 0.75rem;
-      color: var(--accent-red);
-      background: var(--ai-bg);
+      color: var(--label-ai);
+      background: var(--label-ai-bg);
       padding: 0.25rem 0.75rem;
       border-radius: 20px;
       font-weight: 500;
@@ -746,7 +746,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     }
 
     .submit-btn {
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
       border: none;
       color: var(--bg-primary);
       padding: 0.75rem 2rem;
@@ -811,21 +811,21 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       }
 
       &.high-ai {
-        border-color: var(--accent-red);
+        border-color: var(--label-ai);
       }
 
       &.high-human {
-        border-color: var(--accent-green);
+        border-color: var(--label-human);
       }
 
       &.declared-ai {
-        border-color: var(--accent-red);
-        box-shadow: 0 8px 32px var(--ai-bg);
+        border-color: var(--label-ai);
+        box-shadow: 0 8px 32px var(--label-ai-bg);
       }
     }
 
     .ai-declared-banner {
-      background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
+      background: linear-gradient(135deg, var(--label-ai), var(--accent-tertiary));
       padding: 0.6rem 1.5rem;
       display: flex;
       align-items: center;
@@ -857,9 +857,9 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
     }
 
     .declare-btn {
-      background: var(--ai-bg);
-      border: 1px solid var(--accent-red);
-      color: var(--accent-red);
+      background: var(--label-ai-bg);
+      border: 1px solid var(--label-ai);
+      color: var(--label-ai);
       padding: 0.5rem 1rem;
       border-radius: 20px;
       cursor: pointer;
@@ -872,7 +872,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       min-height: var(--min-touch-target);
 
       &:hover {
-        background: var(--accent-red);
+        background: var(--label-ai);
         color: #fff;
         transform: translateY(-1px);
       }
@@ -880,7 +880,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       &:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
       &.active {
-        background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
+        background: linear-gradient(135deg, var(--label-ai), var(--accent-tertiary));
         color: #fff;
         border-color: transparent;
       }
@@ -937,7 +937,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       }
 
       &.news {
-        background: var(--warning-bg);
+        background: var(--cat-b-bg);
       }
 
       &.twitter {
@@ -1014,8 +1014,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       display: block;
       margin-bottom: 0.5rem;
 
-      &.ai-title { color: var(--accent-red); }
-      &.human-title { color: var(--accent-green); }
+      &.ai-title { color: var(--label-ai); }
+      &.human-title { color: var(--label-human); }
     }
 
     .indicator-tags {
@@ -1030,13 +1030,13 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       font-size: 0.7rem;
 
       &.ai-tag {
-        background: var(--ai-bg);
-        color: var(--accent-red);
+        background: var(--label-ai-bg);
+        color: var(--label-ai);
       }
 
       &.human-tag {
-        background: var(--human-bg);
-        color: var(--accent-green);
+        background: var(--label-human-bg);
+        color: var(--label-human);
       }
     }
 
@@ -1082,11 +1082,11 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       transition: width 0.5s ease;
 
       &.ai-fill {
-        background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
+        background: linear-gradient(135deg, var(--label-ai), var(--accent-tertiary));
       }
 
       &.human-fill {
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        background: linear-gradient(135deg, var(--label-human), var(--accent-secondary));
       }
     }
 
@@ -1095,8 +1095,8 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       justify-content: space-between;
       font-size: 0.7rem;
 
-      .ai-label { color: var(--accent-red); }
-      .human-label { color: var(--accent-green); }
+      .ai-label { color: var(--label-ai); }
+      .human-label { color: var(--label-human); }
     }
 
     .vote-actions {
@@ -1139,13 +1139,13 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       &:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
       &.ai-vote.active {
-        background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
+        background: linear-gradient(135deg, var(--label-ai), var(--accent-tertiary));
         color: #fff;
         border-color: transparent;
       }
 
       &.human-vote.active {
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        background: linear-gradient(135deg, var(--label-human), var(--accent-secondary));
         color: #fff;
         border-color: transparent;
       }
@@ -1287,17 +1287,17 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
       &.linkedin {
         background: rgba(0, 119, 181, 0.1);
-        color: #0077b5;
+        color: var(--cat-a);
       }
 
       &.news {
-        background: var(--warning-bg);
-        color: var(--accent-orange);
+        background: var(--cat-b-bg);
+        color: var(--cat-b);
       }
 
       &.twitter {
         background: rgba(29, 161, 242, 0.1);
-        color: #1da1f2;
+        color: var(--cat-d);
       }
 
       &.other {
@@ -1361,12 +1361,12 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
         transition: stroke-dasharray 0.5s ease;
       }
 
-      &.high .circle { stroke: var(--accent-red); }
-      &.medium .circle { stroke: var(--accent-orange); }
-      &.low .circle { stroke: var(--accent-green); }
-      &.good .circle { stroke: var(--accent-green); }
-      &.warning .circle { stroke: var(--accent-orange); }
-      &.poor .circle { stroke: var(--accent-red); }
+      &.range-upper .circle { stroke: var(--cat-e); }
+      &.range-mid .circle { stroke: var(--cat-b); }
+      &.range-lower .circle { stroke: var(--cat-a); }
+      &.rank-upper .circle { stroke: var(--cat-d); }
+      &.rank-mid .circle { stroke: var(--cat-b); }
+      &.rank-lower .circle { stroke: var(--cat-e); }
 
       .ring-value {
         position: absolute;
@@ -1395,12 +1395,12 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       font-size: 0.7rem;
       font-weight: 600;
 
-      &.high { color: var(--accent-red); }
-      &.medium { color: var(--accent-orange); }
-      &.low { color: var(--accent-green); }
-      &.good { color: var(--accent-green); }
-      &.warning { color: var(--accent-orange); }
-      &.poor { color: var(--accent-red); }
+      &.range-upper { color: var(--cat-e); }
+      &.range-mid { color: var(--cat-b); }
+      &.range-lower { color: var(--cat-a); }
+      &.rank-upper { color: var(--cat-d); }
+      &.rank-mid { color: var(--cat-b); }
+      &.rank-lower { color: var(--cat-e); }
     }
 
     .verdict {
@@ -1417,18 +1417,18 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       font-size: 1.5rem;
 
       &.ai {
-        background: var(--ai-bg);
-        border: 1px solid var(--accent-red);
+        background: var(--label-ai-bg);
+        border: 1px solid var(--label-ai);
       }
 
       &.human {
-        background: var(--human-bg);
-        border: 1px solid var(--accent-green);
+        background: var(--label-human-bg);
+        border: 1px solid var(--label-human);
       }
 
       &.mixed {
-        background: var(--warning-bg);
-        border: 1px solid var(--accent-orange);
+        background: var(--cat-b-bg);
+        border: 1px solid var(--cat-b);
       }
     }
 
@@ -1436,9 +1436,9 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       font-size: 0.75rem;
       font-weight: 700;
 
-      &.ai { color: var(--accent-red); }
-      &.human { color: var(--accent-green); }
-      &.mixed { color: var(--accent-orange); }
+      &.ai { color: var(--label-ai); }
+      &.human { color: var(--label-human); }
+      &.mixed { color: var(--cat-b); }
     }
 
     .uncited-alert {
@@ -1447,9 +1447,9 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       gap: 0.5rem;
       margin-top: 0.75rem;
       padding: 0.5rem 0.75rem;
-      background: var(--warning-bg);
+      background: var(--cat-b-bg);
       border-radius: var(--radius-sm);
-      border-left: 3px solid var(--accent-orange);
+      border-left: 3px solid var(--cat-b);
 
       .alert-icon {
         font-size: 0.9rem;
@@ -1457,7 +1457,7 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
 
       .alert-text {
         font-size: 0.75rem;
-        color: var(--accent-orange);
+        color: var(--cat-b);
       }
     }
 
@@ -1480,16 +1480,16 @@ import { ContentReviewService, ReviewSubmission } from '../../services/content-r
       font-weight: 500;
       transition: all 0.2s ease;
 
-      &.positive {
-        background: var(--human-bg);
-        color: var(--accent-green);
-        border: 1px solid var(--accent-green);
+      &.weight-decrease {
+        background: var(--cat-d-bg);
+        color: var(--cat-d);
+        border: 1px solid var(--cat-d);
       }
 
-      &.negative {
-        background: var(--ai-bg);
-        color: var(--accent-red);
-        border: 1px solid var(--accent-red);
+      &.weight-increase {
+        background: var(--cat-b-bg);
+        color: var(--cat-b);
+        border: 1px solid var(--cat-b);
       }
 
       &:hover {

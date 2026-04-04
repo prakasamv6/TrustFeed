@@ -5,7 +5,7 @@ import { PostService } from '../../services/post.service';
 import { FairnessSurveyService } from '../../services/fairness-survey.service';
 import {
   DashboardSummary, DashboardAgentStats, DashboardTrends,
-  FairnessTrends,
+  FairnessTrends, SurveyCompletionStats,
 } from '../../models/dashboard.model';
 import {
   FactorAttributionReport, FairnessSurveySummary,
@@ -37,6 +37,7 @@ export class BiasDashboardComponent implements OnInit {
   agentStats = signal<DashboardAgentStats | null>(null);
   trends = signal<DashboardTrends | null>(null);
   fairnessTrends = signal<FairnessTrends | null>(null);
+  surveyCompletionStats = signal<SurveyCompletionStats | null>(null);
 
   // Selected post for drill-down
   selectedPost = signal<Post | null>(null);
@@ -67,6 +68,7 @@ export class BiasDashboardComponent implements OnInit {
     this.dashboardService.getAgentStats().subscribe(s => this.agentStats.set(s));
     this.dashboardService.getTrends().subscribe(t => this.trends.set(t));
     this.fairnessService.getFairnessTrends().subscribe(t => this.fairnessTrends.set(t));
+    this.dashboardService.getSurveyCompletionStats().subscribe(s => this.surveyCompletionStats.set(s));
 
     // Auto-select first flagged post if available
     const flagged = this.getFlaggedPosts();

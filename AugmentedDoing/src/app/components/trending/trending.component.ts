@@ -59,15 +59,25 @@ export class TrendingComponent implements OnInit {
     }
   }
 
+  getSeverityIcon(severity: string): string {
+    switch (severity) {
+      case 'broken': return '⚡';
+      case 'critical': return '⛔';
+      case 'warning': return '△';
+      case 'watch': return '○';
+      default: return '✓';
+    }
+  }
+
   getTrustBarWidth(score: number): string {
     return `${Math.max(0, Math.min(100, score))}%`;
   }
 
   getTrustColor(score: number): string {
-    if (score >= 80) return 'var(--status-confirm, #2ea043)';
-    if (score >= 60) return 'var(--accent-primary, #58a6ff)';
-    if (score >= 40) return 'var(--status-notice, #d4a054)';
-    return 'var(--status-critical, #f85149)';
+    if (score >= 80) return 'var(--status-confirm)';
+    if (score >= 60) return 'var(--accent-primary)';
+    if (score >= 40) return 'var(--status-notice)';
+    return 'var(--status-critical)';
   }
 
   getAiRatioWidth(ratio: number): string {
@@ -75,10 +85,10 @@ export class TrendingComponent implements OnInit {
   }
 
   getAiRatioColor(ratio: number): string {
-    if (ratio >= 0.75) return 'var(--status-critical, #f85149)';
-    if (ratio >= 0.50) return 'var(--status-notice, #d4a054)';
-    if (ratio >= 0.25) return 'var(--accent-primary, #58a6ff)';
-    return 'var(--status-confirm, #2ea043)';
+    if (ratio >= 0.75) return 'var(--status-critical)';
+    if (ratio >= 0.50) return 'var(--status-notice)';
+    if (ratio >= 0.25) return 'var(--accent-primary)';
+    return 'var(--status-confirm)';
   }
 
   manualBreak(topic: TrendingTopic): void {

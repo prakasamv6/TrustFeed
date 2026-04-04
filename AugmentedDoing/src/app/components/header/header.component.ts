@@ -64,9 +64,20 @@ import { IconComponent, IconName } from '../icon/icon.component';
             </span>
           </a>
 
+          <!-- Mobile menu toggle -->
+          <button
+            class="menu-toggle"
+            (click)="mobileMenuOpen.set(!mobileMenuOpen())"
+            [attr.aria-expanded]="mobileMenuOpen()"
+            aria-controls="main-nav-list"
+            aria-label="Toggle navigation menu"
+          >
+            <app-icon [name]="mobileMenuOpen() ? 'x-close' : 'menu'" [size]="22" />
+          </button>
+
           <!-- Main Navigation -->
-          <nav class="main-nav" aria-label="Main navigation">
-            <ul class="nav-list" role="list">
+          <nav class="main-nav" [class.open]="mobileMenuOpen()" aria-label="Main navigation">
+            <ul id="main-nav-list" class="nav-list" role="list">
               <li>
                 <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item" [attr.aria-current]="isOnFeedPage() ? 'page' : null">
                   <app-icon name="activity" [size]="18" />
@@ -348,12 +359,31 @@ import { IconComponent, IconName } from '../icon/icon.component';
       animation: pulse 1.5s ease-in-out infinite;
     }
 
+    /* ── Mobile menu toggle ── */
+    .menu-toggle {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-default);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      flex-shrink: 0;
+      &:hover { background: var(--bg-hover); color: var(--text-primary); }
+      &:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 1px; }
+    }
+
     /* ── Main Nav ── */
     .main-nav {
       display: flex;
       flex: 1 1 auto;
       justify-content: center;
       min-width: 0;
+      overflow: hidden;
     }
     .nav-list {
       display: flex;
@@ -364,6 +394,10 @@ import { IconComponent, IconName } from '../icon/icon.component';
       background: var(--bg-elevated);
       border-radius: var(--radius-lg);
       border: 1px solid var(--border-subtle);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      &::-webkit-scrollbar { display: none; }
     }
     .nav-item {
       display: flex;
@@ -533,41 +567,68 @@ import { IconComponent, IconName } from '../icon/icon.component';
     }
 
     /* ── Responsive ── */
+
+    /* Large tablets / small desktops: collapse nav text, hide tagline */
     @media (max-width: 1200px) {
       .nav-item { padding: var(--space-2); font-size: 0.75rem; }
-      .nav-item span { display: none; }
+      .nav-item span:not(.new-pill) { display: none; }
       .brand-tagline { display: none; }
-    }
-
-    @media (max-width: 1024px) {
       .legend { display: none; }
-      .exposure-chip .drift-chip { display: none; }
     }
 
+    /* Tablets: hide extras, tighten spacing */
+    @media (max-width: 1024px) {
+      .exposure-chip .drift-chip { display: none; }
+      .header-actions { gap: var(--space-2); }
+      .version-badge, .live-indicator { display: none; }
+      .nav-list { gap: 1px; padding: 2px; }
+      .nav-item { padding: var(--space-1) var(--space-2); }
+      .new-pill { display: none; }
+    }
+
+    /* Switch to hamburger menu layout */
     @media (max-width: 768px) {
       .header-main { padding: var(--space-2) var(--space-3); }
       .header-top-row { flex-wrap: wrap; gap: var(--space-2); }
-      .main-nav { order: 3; width: 100%; overflow-x: auto; }
+
+      .menu-toggle { display: flex; order: -1; }
+
+      .main-nav {
+        display: none;
+        order: 3;
+        width: 100%;
+        &.open { display: flex; }
+      }
       .nav-list {
         width: 100%;
-        justify-content: space-around;
-        background: transparent;
-        border: none;
-        padding: 0;
+        flex-direction: column;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        padding: var(--space-2);
+        gap: 2px;
       }
-      .nav-item { flex: 1; justify-content: center; }
-      .nav-item span { display: none; }
-      .version-badge, .live-indicator { display: none; }
-      .exposure-chip { font-size: 0.6rem; }
+      .nav-item {
+        width: 100%;
+        padding: var(--space-3);
+        border-radius: var(--radius-md);
+        span:not(.new-pill) { display: inline; }
+      }
+      .new-pill { display: inline; }
+
+      .brand { flex: 1; min-width: 0; }
+      .header-actions { margin-left: auto; }
+      .exposure-chip { font-size: 0.6rem; padding: var(--space-1) var(--space-2); }
       .toolbar-btn { width: 28px; height: 28px; }
       .filter-bar { margin-top: var(--space-2); padding-top: var(--space-2); }
       .filter-chip { font-size: 0.65rem; padding: var(--space-1) var(--space-2); }
     }
 
+    /* Small phones */
     @media (max-width: 480px) {
       .brand-text { display: none; }
-      .new-pill { display: none; }
       .toolbar { gap: 0; }
+      .exposure-chip { display: none; }
     }
 
     @media (forced-colors: active) {
@@ -588,6 +649,7 @@ export class HeaderComponent {
   openCommandPalette = output();
 
   showAiInfluence = signal(true);
+  mobileMenuOpen = signal(false);
 
   filters: { value: ContentType; label: string; icon: IconName }[] = [
     { value: 'all', label: 'All Posts', icon: 'layout' },

@@ -21,13 +21,13 @@
           <span class="stat-label">Topics</span>
         </div>
         @if (trendingService.brokenCount() > 0) {
-        <div class="stat-chip danger">
+        <div class="stat-chip severity-broken">
           <span class="stat-value">{{ trendingService.brokenCount() }}</span>
           <span class="stat-label">Broken</span>
         </div>
         }
         @if (trendingService.warningCount() > 0) {
-        <div class="stat-chip warning">
+        <div class="stat-chip severity-warning">
           <span class="stat-value">{{ trendingService.warningCount() }}</span>
           <span class="stat-label">Warnings</span>
         </div>
@@ -56,15 +56,17 @@
             [class]="getSeverityClass(topic.breakSeverity)"
             [class.selected]="selectedTopic()?.topic === topic.topic"
             (click)="selectTopic(topic)"
-            [attr.aria-label]="topic.topic + ' — Trust: ' + topic.trustScore + '/100'"
+            (keydown.enter)="selectTopic(topic)"
+            (keydown.space)="selectTopic(topic); $event.preventDefault()"
+            [attr.aria-label]="topic.topic + ' — Status: ' + getSeverityLabel(topic.breakSeverity) + ', Trust: ' + topic.trustScore + '/100'"
             tabindex="0"
             role="button"
           >
-            <!-- Circuit breaker badge -->
+            <!-- Circuit breaker badge — icon + text (not color alone) -->
             <div class="topic-badge-row">
               <span class="topic-name">{{ topic.topic }}</span>
-              <span class="severity-badge" [class]="getSeverityClass(topic.breakSeverity)">
-                {{ getSeverityLabel(topic.breakSeverity) }}
+              <span class="severity-badge" [class]="getSeverityClass(topic.breakSeverity)" role="status">
+                {{ getSeverityIcon(topic.breakSeverity) }} {{ getSeverityLabel(topic.breakSeverity) }}
               </span>
             </div>
 
@@ -105,7 +107,7 @@
                 <span>AI Content</span>
                 <span class="bar-value">{{ topic.aiContentRatio | percent:'1.0-0' }}</span>
               </div>
-              <div class="bar-track">
+              <div class="bar-track" role="progressbar" [attr.aria-valuenow]="topic.aiContentRatio * 100" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'AI content ratio: ' + (topic.aiContentRatio | percent:'1.0-0')">
                 <div class="bar-fill" [style.width]="getAiRatioWidth(topic.aiContentRatio)" [style.background]="getAiRatioColor(topic.aiContentRatio)"></div>
               </div>
             </div>
@@ -115,10 +117,10 @@
               <div class="bar-group">
                 <div class="bar-label">
                   <span>Coordination</span>
-                  <span class="bar-value coordination-score">{{ topic.coordinationScore | percent:'1.0-0' }}</span>
+                  <span class="bar-value">{{ topic.coordinationScore | percent:'1.0-0' }}</span>
                 </div>
-                <div class="bar-track">
-                  <div class="bar-fill coordination-fill" [style.width]="getAiRatioWidth(topic.coordinationScore)"></div>
+                <div class="bar-track" role="progressbar" [attr.aria-valuenow]="topic.coordinationScore * 100" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'Coordination score: ' + (topic.coordinationScore | percent:'1.0-0')">
+                  <div class="bar-fill" [style.width]="getAiRatioWidth(topic.coordinationScore)" [style.background]="'var(--status-notice)'"></div>
                 </div>
               </div>
             }

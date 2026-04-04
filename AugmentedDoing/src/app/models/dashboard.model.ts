@@ -65,3 +65,17 @@ export interface FairnessTrendPoint {
 export interface FairnessTrends {
   points: FairnessTrendPoint[];
 }
+
+// ── Survey Completion Stats ─────────────────────────────────────────────────
+
+export interface SurveyCompletionStats {
+  totalSessions: number;
+  completedSessions: number;
+  inProgressSessions: number;
+  completionRate: number;
+  avgAccuracy: number;
+  avgItemsPerSession: number;
+  byMode: { mode: string; sessions: number; avgAccuracy: number }[];
+  byDifficulty: { difficulty: string; total: number; correct: number; accuracy: number }[];
+  recentCompletions: { date: string; completedCount: number }[];
+}

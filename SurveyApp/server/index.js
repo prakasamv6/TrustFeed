@@ -620,6 +620,82 @@ app.get('/api/sessions/:id', async (req, res) => {
   }
 });
 
+// ─── GET /api/survey-stats — Survey completion report (no PII) ───
+
+app.get('/api/survey-stats', async (req, res) => {
+  try {
+    if (dbAvailable) {
+      const [total] = await pool.execute(
+        'SELECT COUNT(*) AS count FROM survey_sessions'
+      );
+      const [completed] = await pool.execute(
+        'SELECT COUNT(*) AS count FROM survey_sessions WHERE completed_at IS NOT NULL'
+      );
+      const [inProgress] = await pool.execute(
+        'SELECT COUNT(*) AS count FROM survey_sessions WHERE completed_at IS NULL'
+      );
+      const [avgStats] = await pool.execute(
+        `SELECT ROUND(AVG(human_accuracy), 4) AS avg_accuracy,
+                ROUND(AVG(item_count), 1) AS avg_items
+         FROM survey_sessions WHERE completed_at IS NOT NULL`
+      );
+      const [byMode] = await pool.execute(
+        `SELECT CASE WHEN collab_mode THEN 'Human-AI Collab' ELSE 'Solo' END AS mode,
+                COUNT(*) AS sessions, ROUND(AVG(human_accuracy), 4) AS avg_accuracy
+         FROM survey_sessions WHERE completed_at IS NOT NULL GROUP BY collab_mode`
+      );
+      const [byDifficulty] = await pool.execute(
+        `SELECT item_difficulty AS difficulty, COUNT(*) AS total,
+                SUM(is_correct) AS correct,
+                ROUND(SUM(is_correct) / COUNT(*), 4) AS accuracy
+         FROM survey_responses GROUP BY item_difficulty`
+      );
+      const [recentCompletions] = await pool.execute(
+        `SELECT DATE(completed_at) AS date, COUNT(*) AS completed_count
+         FROM survey_sessions WHERE completed_at IS NOT NULL
+           AND completed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+         GROUP BY DATE(completed_at) ORDER BY date`
+      );
+
+      const totalCount = total[0].count;
+      const completedCount = completed[0].count;
+
+      res.json({
+        totalSessions: totalCount,
+        completedSessions: completedCount,
+        inProgressSessions: inProgress[0].count,
+        completionRate: totalCount > 0 ? completedCount / totalCount : 0,
+        avgAccuracy: avgStats[0].avg_accuracy || 0,
+        avgItemsPerSession: avgStats[0].avg_items || 0,
+        byMode: byMode.map(r => ({ mode: r.mode, sessions: r.sessions, avgAccuracy: r.avg_accuracy })),
+        byDifficulty: byDifficulty.map(r => ({ difficulty: r.difficulty, total: r.total, correct: r.correct, accuracy: r.accuracy })),
+        recentCompletions: recentCompletions.map(r => ({ date: r.date, completedCount: r.completed_count })),
+      });
+    } else {
+      const allSessions = [...memStore.sessions.values()];
+      const completed = allSessions.filter(s => s.completedAt);
+      const totalCount = allSessions.length;
+      const completedCount = completed.length;
+
+      res.json({
+        totalSessions: totalCount,
+        completedSessions: completedCount,
+        inProgressSessions: totalCount - completedCount,
+        completionRate: totalCount > 0 ? completedCount / totalCount : 0,
+        avgAccuracy: 0,
+        avgItemsPerSession: 0,
+        byMode: [],
+        byDifficulty: [],
+        recentCompletions: [],
+        note: 'Database not connected — showing in-memory data only.',
+      });
+    }
+  } catch (err) {
+    console.error('GET /api/survey-stats error:', err.message);
+    res.status(500).json({ error: 'Server error', message: 'Survey stats temporarily unavailable.' });
+  }
+});
+
 // ─── GET /api/analytics — Aggregate statistics (no PII) ───
 
 app.get('/api/analytics', async (req, res) => {
