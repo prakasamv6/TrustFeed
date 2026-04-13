@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev --legacy-peer-deps
 
-COPY index.js content-fetcher.js ./
+COPY index.js content-fetcher.js ca-certificate.crt ./
 
 EXPOSE 3000
 

@@ -9,6 +9,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
 const { fetchUniqueContent } = require('./content-fetcher');
 
 const app = express();
@@ -159,21 +161,23 @@ app.use(inputGuard);
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306', 10),
-  user: process.env.DB_USER || 'trustfeed',
-  password: process.env.DB_PASSWORD || 'trustfeed_pass',
-  database: process.env.DB_NAME || 'TrustFeed',
+  user: process.env.DB_USER || 'doadmin',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'defaultdb',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
   connectTimeout: 10000,
 };
 
-// Digital Ocean Managed MySQL requires SSL
+// Digital Ocean Managed MySQL requires SSL with CA certificate
 if (process.env.DB_SSL === 'true') {
-  dbConfig.ssl = { rejectUnauthorized: process.env.DB_CA_CERT ? true : false };
-  if (process.env.DB_CA_CERT) {
-    dbConfig.ssl.ca = process.env.DB_CA_CERT;
-  }
+  const caPath = path.join(__dirname, 'ca-certificate.crt');
+  const caContents = fs.existsSync(caPath) ? fs.readFileSync(caPath, 'utf8') : null;
+  dbConfig.ssl = {
+    rejectUnauthorized: true,
+    ca: caContents || undefined,
+  };
 }
 
 const pool = mysql.createPool(dbConfig);

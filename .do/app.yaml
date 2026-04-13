@@ -6,11 +6,6 @@
 name: trustfeed-survey
 region: nyc
 
-databases:
-  - name: db
-    engine: MYSQL
-    version: "8"
-
 services:
   # ─── Survey Angular Frontend (nginx) ───
   - name: survey-frontend
@@ -50,25 +45,20 @@ services:
       period_seconds: 30
     envs:
       - key: DB_HOST
-        scope: RUN_TIME
-        value: ${db.HOSTNAME}
+        type: SECRET
+        value: "SET_IN_DASHBOARD"
       - key: DB_PORT
-        scope: RUN_TIME
-        value: ${db.PORT}
+        value: "25060"
       - key: DB_USER
-        scope: RUN_TIME
-        value: ${db.USERNAME}
+        type: SECRET
+        value: "SET_IN_DASHBOARD"
       - key: DB_PASSWORD
-        scope: RUN_TIME
-        value: ${db.PASSWORD}
+        type: SECRET
+        value: "SET_IN_DASHBOARD"
       - key: DB_NAME
-        scope: RUN_TIME
-        value: ${db.DATABASE}
+        value: "defaultdb"
       - key: DB_SSL
         value: "true"
-      - key: DB_CA_CERT
-        scope: RUN_TIME
-        value: ${db.CA_CERT}
       - key: API_PORT
         value: "3000"
       - key: CORS_ORIGINS
