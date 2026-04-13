@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, delay } from 'rxjs';
+import { Observable, of, delay, catchError } from 'rxjs';
 import { environment } from './environment';
 import {
   DashboardSummary, DashboardAgentStats, DashboardTrends,
@@ -30,8 +30,14 @@ export class DashboardService {
   }
 
   getSurveyCompletionStats(): Observable<SurveyCompletionStats> {
-    if (this.mockMode) return of(this.mockSurveyCompletionStats()).pipe(delay(400));
-    return this.http.get<SurveyCompletionStats>(`${this.apiBase}/survey-stats`);
+    // Always fetch live survey data from the Survey API (not mock)
+    const surveyUrl = environment.surveyApiUrl || 'https://trustfeed-survey-ealep.ondigitalocean.app';
+    return this.http.get<SurveyCompletionStats>(`${surveyUrl}/api/survey-stats`).pipe(
+      catchError(() => {
+        // Fallback to Core proxy if direct fails
+        return this.http.get<SurveyCompletionStats>(`${this.apiBase}/survey-stats`);
+      })
+    );
   }
 
   private mockSummary(): DashboardSummary {
