@@ -2,13 +2,17 @@
 # Digital Ocean App Platform — TrustFeed Survey
 # Deploy:  doctl apps create --spec SurveyApp/.do/app.yaml
 #
-# Database: Create managed MySQL separately:
-#   doctl databases create trustfeed-db --engine mysql --version 8 --size db-s-1vcpu-1gb --region nyc1
-# Then update DB_HOST/DB_USER/DB_PASSWORD env vars.
+# Database: Dev MySQL database auto-provisioned by App Platform.
+# Tables are auto-created on first server start.
 # ─────────────────────────────────────────────────────────
 
 name: trustfeed-survey
 region: nyc
+
+databases:
+  - name: db
+    engine: MYSQL
+    version: "8"
 
 services:
   # ─── Angular Frontend (nginx) ───
@@ -45,20 +49,25 @@ services:
         preserve_path_prefix: true
     envs:
       - key: DB_HOST
-        type: SECRET
-        value: "REPLACE_AFTER_DB_CREATION"
+        scope: RUN_TIME
+        value: ${db.HOSTNAME}
       - key: DB_PORT
-        value: "25060"
+        scope: RUN_TIME
+        value: ${db.PORT}
       - key: DB_USER
-        type: SECRET
-        value: "REPLACE_AFTER_DB_CREATION"
+        scope: RUN_TIME
+        value: ${db.USERNAME}
       - key: DB_PASSWORD
-        type: SECRET
-        value: "REPLACE_AFTER_DB_CREATION"
+        scope: RUN_TIME
+        value: ${db.PASSWORD}
       - key: DB_NAME
-        value: "TrustFeed"
+        scope: RUN_TIME
+        value: ${db.DATABASE}
       - key: DB_SSL
         value: "true"
+      - key: DB_CA_CERT
+        scope: RUN_TIME
+        value: ${db.CA_CERT}
       - key: API_PORT
         value: "3000"
       - key: CORS_ORIGINS

@@ -170,10 +170,109 @@ const dbConfig = {
 
 // Digital Ocean Managed MySQL requires SSL
 if (process.env.DB_SSL === 'true') {
-  dbConfig.ssl = { rejectUnauthorized: true };
+  dbConfig.ssl = { rejectUnauthorized: process.env.DB_CA_CERT ? true : false };
+  if (process.env.DB_CA_CERT) {
+    dbConfig.ssl.ca = process.env.DB_CA_CERT;
+  }
 }
 
 const pool = mysql.createPool(dbConfig);
+
+// ─── Auto-migrate: create tables if they don't exist ───
+async function runMigrations() {
+  try {
+    await pool.query('SELECT 1');
+    console.log('DB connected — running auto-migration...');
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS survey_sessions (
+        session_id        VARCHAR(64) PRIMARY KEY,
+        started_at        DATETIME NOT NULL,
+        completed_at      DATETIME DEFAULT NULL,
+        collab_mode       BOOLEAN NOT NULL DEFAULT FALSE,
+        item_count        INT NOT NULL,
+        human_correct     INT DEFAULT NULL,
+        human_accuracy    DECIMAL(5,4) DEFAULT NULL,
+        human_ai_count    INT DEFAULT NULL,
+        human_human_count INT DEFAULT NULL,
+        actual_ai_count   INT DEFAULT NULL,
+        actual_human_count INT DEFAULT NULL,
+        created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS survey_responses (
+        id                INT AUTO_INCREMENT PRIMARY KEY,
+        session_id        VARCHAR(64) NOT NULL,
+        item_index        INT NOT NULL,
+        item_title        VARCHAR(255) NOT NULL,
+        item_category     VARCHAR(64) NOT NULL,
+        item_difficulty   ENUM('easy','medium','hard') NOT NULL,
+        content_type      VARCHAR(16) NOT NULL DEFAULT 'text',
+        ground_truth      ENUM('ai','human') NOT NULL,
+        human_verdict     ENUM('ai','human') NOT NULL,
+        human_confidence  TINYINT NOT NULL,
+        human_reasoning   TEXT DEFAULT NULL,
+        is_correct        BOOLEAN GENERATED ALWAYS AS (human_verdict = ground_truth) STORED,
+        created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_response_session FOREIGN KEY (session_id) REFERENCES survey_sessions(session_id) ON DELETE CASCADE,
+        UNIQUE KEY uq_session_item (session_id, item_index)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS agent_verdicts (
+        id                INT AUTO_INCREMENT PRIMARY KEY,
+        session_id        VARCHAR(64) NOT NULL,
+        item_index        INT NOT NULL,
+        agent_region      ENUM('Africa','Asia','Europe','Americas','Oceania') NOT NULL,
+        verdict           ENUM('ai','human') NOT NULL,
+        confidence        DECIMAL(4,2) NOT NULL,
+        reasoning         TEXT NOT NULL,
+        ground_truth      ENUM('ai','human') NOT NULL,
+        is_correct        BOOLEAN GENERATED ALWAYS AS (verdict = ground_truth) STORED,
+        created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_verdict_session FOREIGN KEY (session_id) REFERENCES survey_sessions(session_id) ON DELETE CASCADE,
+        UNIQUE KEY uq_session_item_agent (session_id, item_index, agent_region)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS agent_results (
+        id                INT AUTO_INCREMENT PRIMARY KEY,
+        session_id        VARCHAR(64) NOT NULL,
+        agent_region      ENUM('Africa','Asia','Europe','Americas','Oceania') NOT NULL,
+        correct_count     INT NOT NULL,
+        accuracy          DECIMAL(5,4) NOT NULL,
+        ai_count          INT NOT NULL,
+        human_count       INT NOT NULL,
+        avg_confidence    DECIMAL(4,2) NOT NULL,
+        created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_agent_result_session FOREIGN KEY (session_id) REFERENCES survey_sessions(session_id) ON DELETE CASCADE,
+        UNIQUE KEY uq_session_agent (session_id, agent_region)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS agreement_matrix (
+        id                INT AUTO_INCREMENT PRIMARY KEY,
+        session_id        VARCHAR(64) NOT NULL,
+        agent_region      ENUM('Africa','Asia','Europe','Americas','Oceania') NOT NULL,
+        agreement_rate    DECIMAL(5,4) NOT NULL,
+        created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_agreement_session FOREIGN KEY (session_id) REFERENCES survey_sessions(session_id) ON DELETE CASCADE,
+        UNIQUE KEY uq_session_agreement (session_id, agent_region)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    console.log('Auto-migration complete — all tables ready.');
+  } catch (err) {
+    console.warn('Auto-migration skipped (DB not available):', err.message);
+  }
+}
+
+runMigrations();
 
 // ─── In-memory fallback when MySQL is not available ───
 const memStore = {
