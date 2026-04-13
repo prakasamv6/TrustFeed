@@ -112,7 +112,10 @@ def _extract_opencv_features(img_array) -> dict:
 
 
 class ImageAnalyzer:
-    """Analyze images for AI-generation likelihood using OpenCV + HF Vision."""
+    """Analyze images for AI-generation likelihood.
+
+    Priority: mock → OpenAI GPT-4o Vision → OpenCV + HuggingFace fallback.
+    """
 
     @staticmethod
     def analyze(
@@ -143,7 +146,34 @@ class ImageAnalyzer:
                 resolution=(1024, 768),
             )
 
-        # ── Live mode ──
+        # ── Live mode: try OpenRouter Vision first ──
+        from analyzers.openai_service import analyze_image as openai_analyze_image
+
+        openai_result = openai_analyze_image(
+            image_url=media_url,
+            image_path=local_path,
+        )
+        if openai_result is not None:
+            return ImageAnalysisResult(
+                raw_score=round(openai_result.ai_probability, 4),
+                features={
+                    "openai_confidence": openai_result.confidence,
+                    "openai_reasoning": openai_result.reasoning,
+                    "openai_artifacts": openai_result.detected_artifacts,
+                    "style_classification": openai_result.style_classification,
+                    # Provide placeholder forensic features so downstream code works
+                    "laplacian_variance": 0.0,
+                    "edge_density": 0.0,
+                    "freq_ratio": 0.0,
+                    "color_uniformity": 0.0,
+                    "block_artifact_score": 0.0,
+                    "resolution": (0, 0),
+                },
+                model_name="openrouter-gpt-4o-vision",
+                resolution=(0, 0),
+            )
+
+        # ── Fallback: OpenCV + HuggingFace ──
         import cv2
         import numpy as np
 

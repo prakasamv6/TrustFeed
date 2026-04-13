@@ -20,6 +20,11 @@ services:
     instance_size_slug: basic-xxs
     routes:
       - path: /
+    envs:
+      - key: TRUSTFEED_LIVE
+        value: "true"
+      - key: SURVEY_API_URL
+        value: "https://trustfeed-survey-ealep.ondigitalocean.app"
     health_check:
       http_path: /health
       initial_delay_seconds: 10
@@ -50,3 +55,5 @@ services:
         value: "*"
       - key: API_PREFIX
         value: "/api"
+      - key: SURVEY_API_URL
+        value: "https://trustfeed-survey-ealep.ondigitalocean.app"

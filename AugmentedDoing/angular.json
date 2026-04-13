@@ -50,7 +50,8 @@
             "assets": [
               "src/favicon.ico",
               "src/favicon.svg",
-              "src/assets"
+              "src/assets",
+              "src/runtime-config.js"
             ],
             "styles": [
               "src/styles.scss"

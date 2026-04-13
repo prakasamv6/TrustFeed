@@ -1,4 +1,6 @@
-\documentclass[manuscript,review,nonacm]{acmart}
+\documentclass[acmlarge,screen,nonacm]{acmart}
+\AtBeginDocument{%
+  \providecommand\BibTeX{{Bib\TeX}}}
 
 \usepackage{booktabs}
 \usepackage{graphicx}
@@ -7,12 +9,13 @@
 \usepackage{enumitem}
 \usepackage{hyperref}
 \usepackage{xcolor}
+\usepackage{multirow}
 
 \setcopyright{none}
 
 \begin{document}
 
-\title{TrustFeed: Default AI-Origin Disclosure, Public Notification, and Circuit Breakers for Human-Centered Authenticity Governance on Social Platforms}
+\title[TrustFeed]{TrustFeed: Baseline-Anchored Bias Observability for AI-Origin Disclosure and Contestable Authenticity Governance on Social Platforms}
 
 \author{Prakasam Venkatachalam}
 \affiliation{%
@@ -24,10 +27,14 @@
 }
 \email{pvenkat6@charlotte.edu}
 
+\renewcommand{\shortauthors}{Venkatachalam}
+
 \begin{abstract}
+Generative AI has made synthetic text, images, and video ordinary components of social feeds, while platform responses remain fragmented across weak labels, hidden metadata, and brittle detector-centric interventions. This creates a human-centered governance problem: users need origin cues, platforms need contestable workflows, and researchers need ways to inspect how algorithmic judgments vary across perspectives rather than treating a single model output as authoritative. This paper presents \textbf{TrustFeed}, a deployed two-application prototype for AI-origin disclosure, community contestation, and authenticity observability.
 
-Generative models are moving synthetic text, images, audio, and video into ordinary social feeds faster than users can reliably detect them. Yet the dominant platform response still treats AI disclosure as optional, sporadic, weakly visible, or disconnected from downstream user action. This paper argues that AI-origin disclosure should become a platform primitive, analogous to origin and ingredient labeling in food systems: informative rather than moralizing, process-focused rather than quality-certifying, and visible by default rather than buried in metadata. We present TrustFeed, a human-centered architecture and proof-of-concept platform that combines (1) default visible disclosure of AI-generated or AI-assisted content, (2) public notification and community verification when users believe a post is synthetic, and (3) an exposure-aware circuit breaker that intervenes when synthetic saturation, dispute, or judgment drift exceeds a safe threshold. Grounded in a repository-based Angular prototype with creator disclosure, visual AI badges, community voting, confidence indicators, filtering, and platform statistics, the paper extends the artifact into a broader governance methodology integrating provenance signals, contestability, and friction-based interventions. Drawing on legacy and recent work on misinformation diffusion, deepfake detection, provenance standards, community fact-checking, human-AI feedback loops, and synthetic-media labeling, we synthesize a design framework for platform accountability. The paper contributes a disclosure taxonomy, a formal circuit-breaker risk model, and an empirical evaluation protocol comparing no-label, disclosure-only, disclosure-plus-public-notification, and full circuit-breaker conditions. TrustFeed is positioned not as a binary AI detector, but as a platform-safety architecture for preserving human judgment under conditions of pervasive synthetic media.
+TrustFeed's central technical contribution is a \textbf{baseline-anchored bias observability architecture}. Instead of treating multiple agent outputs as votes toward a final truth label, TrustFeed compares several perspective-conditioned agents against a non-bias baseline agent, then computes disagreement, bias delta, dominance, and debiased scores with factor-level attribution. This design makes model disagreement inspectable and contestable at the feed interface. Around that observability core, the system implements three governance mechanisms: (1) default AI-origin disclosure in the main post viewport, (2) public notification and community verification for contested content, and (3) trend-level circuit breakers that slow amplification when synthetic ratio, coordination, and trust signals exceed configured thresholds. The prototype comprises a core social-feed platform (Angular front end, FastAPI/Python backend) and a companion survey application (Angular/Express/MySQL) for human evaluation without storing personally identifiable information.
 
+The paper makes four contributions. First, it reframes AI disclosure as a platform interface primitive rather than a buried compliance feature. Second, it introduces baseline-anchored bias observability as a governance-oriented alternative to black-box ensemble scoring. Third, it describes a working artifact that integrates disclosure, contestation, multimodal analysis, dashboard observability, and survey instrumentation into one research platform. Fourth, it clarifies an evidence model that distinguishes implemented capabilities from forward-looking research extensions. TrustFeed is therefore positioned not as a universal AI detector, but as a prototype-backed socio-technical framework for studying how disclosure, contestation, and observability can preserve human judgment under pervasive synthetic media.
 \end{abstract}
 
 \begin{CCSXML}
@@ -54,275 +61,273 @@ Generative models are moving synthetic text, images, audio, and video into ordin
 \ccsdesc[300]{Computing methodologies~Machine learning}
 \ccsdesc[300]{Information systems~Social networking sites}
 
-\keywords{AI-generated content, content provenance, disclosure labels, human-in-the-loop AI, community verification, misinformation, deepfakes, circuit breakers, social media governance}
+\keywords{AI-generated content, authenticity governance, content provenance, disclosure labels, community verification, observability, bias attribution, circuit breakers, social media governance}
 
 \maketitle
 
-
 \section{Introduction}
 
-Synthetic media is no longer exceptional. Text, images, audio, and video produced wholly or partly by generative models are now embedded in everyday social browsing, recommendation systems, and messaging environments. At the same time, classic misinformation research has shown that false content spreads farther and faster than true content online, particularly in politically salient contexts \cite{lazer2018sciencefake, vosoughi2018spread}. Generative AI increases the scale, speed, and aesthetic plausibility of this problem by sharply lowering the cost of producing persuasive, personalized, and visually convincing content \cite{goldstein2023generative, tolosana2020deepfakes}. 
+Synthetic media is now part of ordinary platform use. Text, images, audio, and video generated wholly or partly by machine learning systems appear in social feeds, messaging threads, and recommender surfaces at a scale that exceeds ordinary users' ability to identify them reliably \cite{lazer2018sciencefake, vosoughi2018spread, tolosana2020deepfakes}. The platform question is therefore no longer whether synthetic content exists, but how social systems should communicate origin, uncertainty, and contestation once human-authored and machine-generated content are interleaved in the same feed.
 
-The central policy and design question is therefore no longer whether platforms should respond to synthetic content, but \emph{how}. Current responses remain fragmented. Some systems rely on fragile media forensics or watermarking \cite{kirchenbauer2023watermark}; some apply limited labels whose effects vary with wording and placement \cite{aslett2022labels, li2024aigclabels, wittenberg2025labeling}; some provenance initiatives expose rich metadata, but only when platforms surface it effectively \cite{c2pa2025spec, cai2026howitworks}. Meanwhile, human users are poor and highly variable detectors of deepfakes and other synthetic media, especially in ecologically realistic settings \cite{somoray2025deepfake}. Label-only interventions can help identify that something is AI-generated, but often do not strongly reduce credibility beliefs or engagement by themselves \cite{aslett2022labels, li2024aigclabels, wittenberg2025labeling}. 
+Current responses remain incomplete. Some systems rely on fragile watermarking or media forensics \cite{kirchenbauer2023watermark}. Some provide labels whose effects depend heavily on wording, placement, and information density \cite{aslett2022labels, li2024aigclabels, wittenberg2025labeling, gamage2025labeling}. Provenance initiatives such as C2PA and Content Credentials provide an important substrate, but the existence of machine-readable provenance does not by itself solve the interface problem of when, where, and how to surface origin cues in a platform experience \cite{c2pa2025spec, cai2026howitworks}. At the same time, recent work suggests that repeated exposure to AI outputs can alter human perceptual, emotional, and social judgments, raising the stakes for feed-level governance rather than item-level labeling alone \cite{glickman2025feedback}.
 
-This paper advances a stronger thesis: \textbf{AI-origin disclosure should be the default interaction contract for synthetic content on public digital platforms.} In the same way that food systems distinguish between categories such as organic and non-organic as a matter of disclosure rather than taste, social platforms should visibly indicate whether content is AI-generated, AI-assisted, human-declared, or provenance-unavailable. This is not a claim that AI-generated content is inherently lower quality, deceptive, or prohibited. It is a claim that the production process is a material fact users deserve to know before they decide whether to believe, share, or rely on content.
+This paper argues for a stronger design position: \textbf{AI-origin disclosure should be a platform interface primitive, and authenticity governance should be built around contestable observability rather than opaque detector outputs.} In practical terms, users should not have to hunt for metadata in order to know how content was made, and platforms should not present a single model score as if it were the last word on authenticity. Instead, platforms should expose origin claims, community disagreement, and model disagreement in ways that are legible, actionable, and auditable.
 
-Default disclosure alone, however, is insufficient. Research on human--AI feedback loops shows that repeated interaction with AI outputs can alter and amplify human perceptual, emotional, and social judgments \cite{glickman2025feedback}. Research on community fact-checking suggests that crowd annotation can increase trust in corrective context and, in some settings, reduce the diffusion of false information \cite{drolsbach2024community, slaughter2025community}. These findings motivate a broader architecture in which disclosure is paired with contestability, community input, and friction-based safety interventions. 
+We present \textbf{TrustFeed}, a deployed two-application prototype that operationalizes that thesis. TrustFeed Core is a social-feed application that surfaces author-side AI declaration, post-level AI badges, community verification controls, transparency panels, bias observability dashboards, and trend-level circuit breakers. TrustFeed Survey is a companion application that records human judgments, confidence ratings, and agent outputs in a privacy-preserving evaluation workflow. The prototype integrates multimodal analyzers, a six-signal AI-content scoring engine, public notification, topic-level safeguards, and a dashboard layer for feed observability.
 
-We therefore present \textbf{TrustFeed}, a human-centered authenticity governance framework grounded in an existing Angular proof-of-concept repository. The current artifact already supports creator-side AI declaration, visible AI badges, community voting, confidence labels, filtering, and summary metrics \cite{trustfeedrepo}. We extend that artifact conceptually into a full platform methodology with three pillars:
+The manuscript's central contribution is not merely that TrustFeed is implemented. The central novelty is a \textbf{baseline-anchored bias observability architecture}. Rather than interpreting multiple agent outputs as a democratic vote over truth, TrustFeed uses one non-bias baseline agent as a stable reference and compares it to several \emph{perspective agents} configured to stress-test how authenticity scoring changes under different feature sensitivities. The system then exposes bias delta, disagreement, dominance, debiased score, and factor attribution to the interface. This makes disagreement inspectable and makes bias itself a first-class governance signal.
 
-\begin{enumerate}
-    \item \textbf{Default AI-origin disclosure}: the platform surfaces an origin label for every item by default, rather than only when users search for metadata.
-    \item \textbf{Public notification and community verification}: users can notify or contest whether content is AI-generated, and the platform aggregates those signals into a revisable confidence state.
-    \item \textbf{Circuit breakers}: the platform monitors synthetic-content saturation, dispute, and judgment drift and applies progressive friction when exposure becomes risky.
+The paper makes four contributions:
+\begin{enumerate}[leftmargin=1.5em]
+    \item It reframes AI-origin disclosure from a buried compliance feature into a platform interface primitive.
+    \item It introduces baseline-anchored bias observability as a governance-oriented alternative to black-box ensemble scoring.
+    \item It describes a working two-application artifact that integrates disclosure, contestation, multimodal analysis, dashboard observability, and survey instrumentation into one research platform.
+    \item It clarifies an evidence model by distinguishing implemented capabilities from forward-looking research extensions, especially for exposure-aware circuit breakers.
 \end{enumerate}
 
-The contributions of this paper are fourfold. First, it reframes AI disclosure from a compliance afterthought into a platform primitive. Second, it synthesizes provenance, community notification, and circuit-breaking into one human-centered architecture. Third, it formalizes an exposure-aware circuit-breaker methodology for social platforms. Fourth, it proposes an evaluation protocol suitable for testing whether these interventions improve authenticity judgments, trust calibration, and sharing restraint relative to simpler label-only baselines.
+This framing intentionally narrows the claim surface. TrustFeed is not presented as a universal AI detector or a completed causal evaluation. It is a prototype-backed socio-technical framework for studying how disclosure, contestation, and observability can preserve human judgment under conditions of pervasive synthetic media.
 
 \section{Background and Related Work}
 
-\subsection{Misinformation diffusion and synthetic media}
+\subsection{Synthetic media, misinformation, and labeling}
 
-Legacy misinformation research established the structural conditions that make platform-scale deception dangerous. Lazer et al.\ argued that the contemporary information ecosystem rewards novelty, virality, and low-friction sharing, thereby creating fertile conditions for fake news \cite{lazer2018sciencefake}. Vosoughi et al.\ found that false news diffused farther, faster, deeper, and more broadly than true news on Twitter, with especially strong effects in political content \cite{vosoughi2018spread}. These findings matter because generative AI can now mass-produce the kinds of emotionally engaging and novel-looking artifacts that exploit these dynamics \cite{goldstein2023generative}. 
+Misinformation research has established that false content can spread farther and faster than true content online, particularly when novelty and frictionless sharing are rewarded by platform dynamics \cite{lazer2018sciencefake, vosoughi2018spread}. Generative AI increases the scale and plausibility of that problem by lowering the cost of producing persuasive and personalized content \cite{goldstein2023generative}. At the same time, human performance in deepfake detection is uneven and context-sensitive \cite{tolosana2020deepfakes, somoray2025deepfake}, which weakens strategies that rely solely on end-user vigilance.
 
-Deepfake research further shows that synthetic audiovisual media is increasingly difficult to detect reliably through unaided human judgment or purely technical means \cite{tolosana2020deepfakes, somoray2025deepfake}. Human performance varies substantially by task, medium, training, and contextual cues \cite{somoray2025deepfake}. This makes a governance strategy based solely on end-user vigilance unrealistic.
+Research on labels and warnings offers a mixed picture. Visible labels can help users identify AI-generated content, but label presence alone often does not strongly reduce engagement or misperception \cite{aslett2022labels, li2024aigclabels, wittenberg2025labeling}. Label design also matters substantially: iconography, information density, and wording influence whether users understand and trust the signal \cite{gamage2025labeling}. These findings motivate disclosure systems that are not only visible, but embedded in a broader governance workflow.
 
-\subsection{Labels, warnings, and provenance}
+\subsection{Provenance, contestability, and community verification}
 
-A growing body of work has evaluated credibility labels and AI-generated-content labels. Aslett et al.\ found that news credibility labels had limited average effects on news-diet quality and did not reduce misperceptions overall, though some subgroup effects appeared \cite{aslett2022labels}. Li and Yang found that AIGC labels minimally affected perceived accuracy, message credibility, and sharing intention overall, although they did help users distinguish AI-generated from human-generated content \cite{li2024aigclabels}. Wittenberg et al.\ showed that labels clarifying how content was made and labels highlighting misleading potential can reduce belief in claims, but simple ``generated using AI'' labels have limited impact on engagement intentions \cite{wittenberg2025labeling}. Gamage et al.\ further showed that label design details---including iconography, wording, positioning, and information density---materially affect whether users trust the label \cite{gamage2025labeling}. 
+Content provenance initiatives such as C2PA and Content Credentials provide structured ways to bind origin information to media assets \cite{c2pa2025spec, cai2026howitworks}. Policy developments, including the EU AI Act and subsequent guidance on marking and labeling AI-generated content, further reinforce disclosure as a normative direction \cite{euai2024, eucommission2026}. But provenance data has limited value if it remains buried in secondary menus or specialized tooling. A human-centered platform must surface provenance in an interface that ordinary users can act upon.
 
-These studies suggest a consistent pattern: visible labels matter, but \emph{label presence alone is not enough}. Labels need to be tied to a broader decision-support and governance flow. Provenance standards such as Content Credentials and the C2PA specification provide a promising substrate here. They define a cryptographically bound structure for recording an asset's provenance and are increasingly framed as a ``nutrition label'' for digital media \cite{c2pa2025spec, cai2026howitworks}. At the policy level, the EU AI Act established transparency obligations for certain AI-generated and AI-manipulated content, and the European Commission has since advanced a code of practice specifically on marking and labeling AI-generated content \cite{euai2024, eucommission2026}. These developments reinforce the normative direction toward disclosure, but they do not by themselves solve the user-experience problem of how disclosure should appear and how platforms should react after disclosure.
+Research on community-based fact-checking suggests that public contestation can play a constructive role. Community Notes-style interventions can increase trust in corrective context and can reduce engagement with false information in some settings \cite{drolsbach2024community, slaughter2025community}. More broadly, human-AI interaction guidelines emphasize calibration, clear explanations, and reversible actions \cite{amershi2019guidelines}. Taken together, these works support authenticity systems that combine machine judgment, user declaration, public notification, and revisable state rather than relying on one hidden model output.
 
-\subsection{Human-in-the-loop verification and community annotation}
+\subsection{Why observability matters}
 
-Research on fact-checking consistently points toward hybrid systems rather than fully automated ones. Nakov et al.\ surveyed automated fact-checking as assistance for human fact-checkers rather than as a full replacement \cite{nakov2021factchecking}. Amershi et al.'s human--AI interaction guidelines similarly emphasize clear communication, reversible actions, and calibrated trust \cite{amershi2019guidelines}. Community-based fact-checking adds a second layer of human oversight. Drolsbach et al.\ found that community notes can increase trust in fact-checks relative to some expert-flag formats \cite{drolsbach2024community}. Slaughter et al.\ later showed that attached Community Notes reduced reposts, likes, replies, and views for false information online \cite{slaughter2025community}. 
+Most authenticity systems still optimize for classification accuracy or detector performance. TrustFeed instead starts from a governance question: what must users and moderators be able to \emph{see} in order to reason well under uncertainty? This paper treats observability as the missing connective tissue between disclosure and action. The goal is not to produce one authoritative authenticity score, but to make disagreement, bias, and contestation visible in a way that supports better downstream judgment. This observability stance also aligns with evidence that human-AI feedback loops can amplify judgment drift over repeated exposure \cite{glickman2025feedback, spearing2025countering}.
 
-These results support the idea that public notification by ordinary users should be treated as a first-class design component. A platform should not only tell users that content is AI-generated; it should also let users notify the platform and other viewers when they believe a post is synthetic or misleading, and it should attach that signal to downstream visibility and risk management.
+\section{Design Thesis}
 
-\subsection{Feedback loops, judgment drift, and the case for circuit breakers}
+TrustFeed is built on three claims.
 
-The most important recent development for this paper is evidence that AI systems can reshape human judgment over time. Glickman and Sharot showed that human--AI interactions can amplify biases and internalize them in human decision-making, producing a snowball effect in which small AI errors become larger human biases \cite{glickman2025feedback}. This finding is highly relevant to social-media feeds, where repeated exposure rather than single-item persuasion often drives normalization. Spearing et al.\ similarly found that AI-generated misinformation can be persuasive and that multiple countermeasures may be needed to negate its effects \cite{spearing2025countering}. 
+\textbf{First,} origin information is a material property of public digital content. Users should not need forensic expertise to know whether the expressive core of a post was AI-generated, AI-assisted, human-declared, unavailable, or disputed.
 
-These results motivate a move from \emph{content-level} intervention to \emph{exposure-level} intervention. In other words, the platform should not wait for each item to be individually adjudicated before acting. It should monitor the cumulative risk that a user's feed is becoming oversaturated with synthetic, disputed, or high-risk content, and it should intervene when that risk exceeds a threshold. We call this intervention a \emph{circuit breaker}.
+\textbf{Second,} authenticity is not only a detection problem; it is a contestable governance problem. Creator declarations, public notifications, provenance cues, and model outputs can disagree, and platforms should surface that disagreement rather than hiding it behind a single confidence score.
 
-\section{Design Thesis and System Requirements}
+\textbf{Third,} the right unit of intervention is often the \emph{feed}, not the isolated item. If synthetic or disputed content accumulates in a stream, the resulting exposure regime can matter as much as any individual post. This motivates circuit-breaker logic as a platform safeguard, even if the stronger user-level exposure model remains future work.
 
-TrustFeed is built around a normative and operational thesis: \textbf{users should never have to infer AI origin when the platform can disclose it, and platforms should never remain passive when cumulative synthetic exposure begins to erode judgment.} This thesis yields four system requirements.
+These claims yield four system requirements:
+\begin{enumerate}[leftmargin=1.5em]
+    \item \textbf{Disclosure by default:} every public post should surface an origin state in the primary viewport.
+    \item \textbf{Contestability by design:} viewers must be able to notify or dispute origin claims.
+    \item \textbf{Observability, not opacity:} model disagreement and bias should be inspectable rather than hidden.
+    \item \textbf{Feed-level safeguards:} platforms need mechanisms to slow amplification when risky synthetic concentration emerges.
+\end{enumerate}
 
-\subsection{R1: Disclosure by default, not by exception}
+\section{System Overview}
 
-Every public post should surface a visible origin state. The state should be informative rather than accusatory and should distinguish creation-process categories instead of collapsing them into a single binary. We propose the taxonomy in Table~\ref{tab:taxonomy}.
+TrustFeed is realized as two deployed applications on DigitalOcean App Platform:
+\begin{itemize}[leftmargin=1.5em]
+    \item \textbf{TrustFeed Core}, a social-feed platform built with Angular and a FastAPI/Python backend.
+    \item \textbf{TrustFeed Survey}, a companion evaluation application built with Angular, Express.js, and MySQL.
+\end{itemize}
+
+TrustFeed Core supports author-side AI declaration, inline origin badges, confidence states, community voting, transparency panels, bias dashboards, trend monitoring, and corrective actions. TrustFeed Survey presents content to human participants, captures authenticity judgments and confidence, and records corresponding agent outputs without storing personally identifiable information.
+
+The system integrates multimodal analysis for text, image, and video, a six-signal AI-content scoring engine, dashboard endpoints for descriptive observability, and trend-level circuit breakers for suspicious topic escalation. The survey application provides a path toward controlled comparative evaluation without conflating architecture with already-established causal performance.
+
+\subsection{Implemented capabilities vs. forward-looking extensions}
+
+A core weakness in many prototype papers is ambiguity about what is already implemented versus what is proposed. Table~\ref{tab:status} makes that boundary explicit.
 
 \begin{table}[t]
-\caption{Default disclosure taxonomy for public digital content}
-\label{tab:taxonomy}
-\begin{tabular}{p{3.2cm}p{9.2cm}}
+\caption{Capability status and evidence model}
+\label{tab:status}
+\begin{tabular}{p{4.2cm}p{2.5cm}p{6.2cm}}
 \toprule
-\textbf{State} & \textbf{Meaning} \\
+\textbf{Capability} & \textbf{Status} & \textbf{Evidence type} \\
 \midrule
-AI-generated & Core expressive content was generated by an AI system. \\
-AI-assisted & AI materially assisted creation or transformation, but human authorship remains substantial. \\
-Human-declared & Uploader declares no material AI generation or transformation. \\
-Provenance unavailable & The platform lacks reliable origin metadata or declaration. \\
-Disputed & Community and system signals conflict strongly enough to require caution. \\
+Author AI declaration and inline origin badge & Implemented & Deployed UI in TrustFeed Core \\
+Community voting and dispute states & Implemented & Live interaction flow and backend endpoints \\
+Transparency panel and factor attribution drill-down & Implemented & Deployed UI plus JSON reports \\
+Baseline-anchored bias observability metrics & Implemented & Backend scoring pipeline and dashboard endpoints \\
+Trend-level topic circuit breaker & Implemented & Rule-based backend monitoring and corrective actions \\
+Human evaluation survey app & Implemented & Separate deployed application and database schema \\
+User-level exposure-aware circuit breaker & Proposed & Formal model and interaction concept only \\
+Cryptographic provenance verification pipeline & Partial / future & Interface-ready concept, not full end-to-end enforcement \\
+Controlled causal user-study claims & Future work & Validation agenda, not completed results \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-This taxonomy is intentionally closer to origin labeling than to moderation labeling. It tells users \emph{how the content came into being}; it does not, by itself, assert truth, quality, or policy violation.
+This table is important because it keeps the manuscript honest while preserving the distinctiveness of the implemented artifact.
 
-\subsection{R2: Public notification and contestability}
+\section{Baseline-Anchored Bias Observability}
 
-Disclosure must remain contestable. Users need a lightweight way to notify the platform that a post appears AI-generated or AI-manipulated even when the uploader did not disclose it. TrustFeed therefore includes a public ``Notify AI-generated'' action that complements creator declaration. This mirrors the logic of community notes and other citizen fact-checking systems: platform intelligence is improved when the public can attach structured signals to contested content \cite{drolsbach2024community, slaughter2025community}. 
+\subsection{Why this is the paper's distinctive contribution}
 
-\subsection{R3: Provenance should be surfaced, not buried}
+The paper's strongest differentiator is its bias observability architecture. Most multi-model or multi-agent systems either average outputs or stage them as a majority vote. That approach may hide systematic disagreement and make it harder to understand whether variance is caused by model sensitivity, proxy features, or strategic weighting. TrustFeed instead makes disagreement visible by design.
 
-Cryptographic provenance is valuable only if ordinary users can see and act on it. TrustFeed treats C2PA-style metadata and related provenance receipts as evidence sources, but collapses them into simple interface states: a visible label, a confidence summary, and a drill-down panel for users who want more detail \cite{c2pa2025spec, cai2026howitworks}. This design follows long-standing human-centered AI guidance to reveal relevant system information in understandable form and at the right time \cite{amershi2019guidelines}.
+The system runs several \emph{perspective agents} alongside one \emph{non-bias baseline agent}. The perspective agents are not presented as true regional cognition models. They are better understood as parameterized stress-test lenses that vary feature sensitivity and directional bias so that the system can inspect how authenticity scoring changes under different assumptions. This reframing is deliberate: it avoids overstating what the agents represent while preserving their utility as governance instruments.
 
-\subsection{R4: Platforms must manage cumulative exposure risk}
+\subsection{Architecture}
 
-Because the harm of synthetic media is cumulative as well as item-specific, platforms need exposure-aware safeguards. TrustFeed therefore introduces a circuit breaker that activates when synthetic-content saturation, dispute intensity, and judgment drift rise above configurable thresholds. The intervention is designed to reduce passive scrolling and to insert reflective friction before repeated exposure can normalize suspect content \cite{glickman2025feedback}.
+The backend dispatches content to six parallel agents: five perspective-conditioned agents and one non-bias baseline. The baseline passes through the raw model output without perspective-specific adjustment. Each perspective agent modifies the score using feature weights, text sensitivities, and directional intensity terms. The baseline then acts as the reference point for all downstream observability metrics.
 
-\section{TrustFeed Architecture}
+For each item, TrustFeed computes:
+\begin{align}
+\text{biasDelta} &= |s_{\text{raw}} - s_{\text{baseline}}| \\
+\text{debiased} &= s_{\text{baseline}} + \text{clamp}(s_{\text{raw}} - s_{\text{baseline}}, -r_{\max}, r_{\max}) \\
+\text{BAI} &= s_{\text{raw}} / s_{\text{baseline}} \\
+\text{disagreement} &= \sigma_p(s_1, \ldots, s_5, s_{\text{baseline}}) \\
+\text{dominance} &= \max(s_i) - \bar{s}_{\text{perspective}}
+\end{align}
+where $r_{\max}=0.05$ caps residual adjustment and $\sigma_p$ is the population standard deviation across all agent scores.
 
-\subsection{Current proof-of-concept artifact}
+The system further decomposes divergence into factor-level attributions, allowing the interface to show which features most strongly influenced the deviation from baseline. This makes bias itself observable, not merely inferred after the fact.
 
-The repository-backed TrustFeed prototype is an Angular application with standalone components, TypeScript, SCSS, and Angular Signals. Its implemented features include an AI declaration toggle during post creation, visible AI badges on posts, community voting on whether content ``Looks AI'' or ``Looks Human,'' aggregated confidence labels such as ``Likely AI'' and ``Disputed,'' content filtering, and platform statistics \cite{trustfeedrepo}. These features establish the core interaction pattern: disclosure, community feedback, and lightweight authenticity signals embedded directly in the feed.
+\subsection{Why the baseline matters}
 
-\subsection{From artifact to research architecture}
-
-This paper treats the repository as the nucleus of a broader platform-safety architecture. Figure~\ref{fig:architecture} is described textually because the current submission is artifact-centered rather than diagram-heavy. The architecture has five layers:
-
-\begin{enumerate}
-    \item \textbf{Origin capture layer}: creator declarations, platform-side generation flags, and machine-readable provenance metadata.
-    \item \textbf{Public notification layer}: user reports, vote distributions, and dispute indicators.
-    \item \textbf{Interpretation layer}: synthesis of origin evidence into a default visible state and confidence explanation.
-    \item \textbf{Exposure analytics layer}: rolling measures of saturation, dispute, diversity, and judgment drift.
-    \item \textbf{Intervention layer}: circuit-breaker responses, downranking, share friction, and escalation for high-risk topics.
+The non-bias baseline agent plays three roles:
+\begin{enumerate}[leftmargin=1.5em]
+    \item \textbf{Calibration anchor:} it provides a reference against which perspective-conditioned inflation or deflation can be bounded.
+    \item \textbf{Audit anchor:} it lets the system classify disagreement into interpretable categories rather than treating variance as random noise.
+    \item \textbf{Explanation anchor:} it enables factor attribution by tying divergence to specific features rather than leaving disagreement opaque.
 \end{enumerate}
 
-TrustFeed therefore shifts the unit of governance from the isolated post to the \emph{post-with-context}: its provenance, its contestation status, and its contribution to a user's cumulative exposure profile.
+This is the paper's core novelty claim. TrustFeed is not distinctive simply because it uses multiple agents. It is unique because it uses a baseline-anchored observability model to make disagreement explicit, attributable, and contestable.
 
-\subsection{UI model: disclosure like a market label, not a hidden forensic flag}
+\section{Interface and Interaction Design}
 
-The food-label analogy is not cosmetic. In consumer markets, labels are expected to be fast, visible, and informative. Users do not inspect a molecular assay to learn whether a product is organic; they rely on a default disclosure channel that is legible at the point of decision. TrustFeed applies the same interaction logic to social media. Each post should display an origin ribbon or badge in the main viewport, not in a secondary settings panel. Users should also be able to open a deeper provenance card if they need more detail, including who declared the state, whether the state is backed by machine-readable provenance, and whether the public has challenged the declaration.
+\subsection{Default disclosure states}
 
-\subsection{Public notification flow}
+TrustFeed uses a disclosure taxonomy that distinguishes creation process rather than collapsing content into a single binary verdict. The main states are \emph{AI-generated}, \emph{AI-assisted}, \emph{Human-declared}, \emph{Provenance unavailable}, and \emph{Disputed}. This taxonomy is closer to origin labeling than to moderation labeling: it communicates how content came into being without itself asserting falsity or policy violation.
 
-When a viewer believes a post is AI-generated or AI-manipulated, the viewer can trigger ``Notify AI-generated.'' That action increments a structured signal rather than a free-form complaint count. Specifically, it contributes to:
+\subsection{Contestability workflow}
 
-\begin{itemize}
-    \item a community suspicion score;
-    \item a dispute ratio between creator declaration and community interpretation;
-    \item a moderation queue for high-risk posts;
-    \item training data for future interface and risk-model tuning.
-\end{itemize}
+Each post supports community verification actions. Viewers can vote that a post appears AI-generated, human-authored, disputed, or misleading. Those inputs update post-level summaries and contribute to the community signal used by the trust analysis endpoint. Uploaders can revise their own declaration, and moderator or provenance evidence can revise the visible state. The interface therefore treats authenticity as a revisable condition rather than a terminal classification.
 
-The flow is contestable in both directions. Uploaders can revise their declaration; moderators or trusted reviewers can override it; and provenance evidence can raise or lower confidence. The goal is not to deputize the crowd as the final truth authority, but to make the public an active signal source in authenticity governance.
+\subsection{Transparency and dashboard observability}
 
-\section{Circuit Breaker Methodology}
+TrustFeed's interface includes a transparency panel and dashboard layer. At the post level, users can inspect agent scores, factor attributions, and corrective-action recommendations. At the feed level, dashboards summarize total analyses, bias delta, flagged count, and rolling trends. These dashboards are not presented as proof of detector accuracy. Their role is to make the state of the feed inspectable to users and researchers.
 
-\subsection{Why a circuit breaker is necessary}
+\section{Implementation Summary}
 
-Labeling each post independently does not address the systemic problem that users experience feeds as streams. A user who sees ten synthetic or disputed posts in a row is not facing ten isolated decisions; the user is entering a potentially distorting exposure regime. Because repeated AI interaction can alter human judgments and amplify bias \cite{glickman2025feedback}, platforms need a mechanism analogous to volatility pauses in financial markets: when the information stream becomes abnormally risky, the system should momentarily slow it down.
+The implementation is intentionally summarized rather than exhaustively catalogued in the main text.
 
-\subsection{Signal design}
+\textbf{Front end.} TrustFeed Core is an Angular single-page application with standalone components for feed rendering, post cards, post creation, review panels, transparency views, dashboards, and accessibility controls. TrustFeed Survey is a separate Angular interface for structured human evaluation.
 
-For a user $u$ over a rolling window $w$ of recent impressions, TrustFeed computes the following normalized signals:
+\textbf{Back end.} The Core API is implemented in FastAPI/Python and exposes endpoints for analysis, detection, trending, community flagging, and dashboards. The survey API is implemented in Express.js with MySQL persistence.
 
+\textbf{Analysis pipeline.} The backend orchestrates an eight-node LangGraph DAG that prepares content, fans out to agents, aggregates scores, debiases against the baseline, performs bias detection, attributes factors, generates explanation text, and builds a downloadable report.
+
+\textbf{Content analyzers.} The prototype supports text, image, and video. Text analysis uses RoBERTa-derived features; image analysis uses OpenCV and Vision Transformer features; video analysis aggregates frame-level signals.
+
+\textbf{AI-content scoring.} TrustFeed implements a six-signal weighted engine that combines linguistic, structural, statistical, community, author declaration, and multi-agent signals into an AI-likelihood estimate and a corresponding trust score.
+
+\textbf{Platform safeguards.} The system includes a fully implemented trend-level circuit breaker that monitors topic velocity, AI-content ratio, coordination, author diversity, and composite trust score.
+
+This level of detail is sufficient to understand the system while keeping the manuscript focused on the paper's distinct contribution.
+
+\section{Trend-Level Circuit Breakers}
+
+The manuscript distinguishes clearly between implemented and proposed circuit-breaker mechanisms.
+
+\subsection{Implemented: trend-level topic breaker}
+
+TrustFeed currently implements a \textbf{topic-level} circuit breaker. For each trending topic, the backend monitors five signals: posting velocity, AI-content ratio, coordination score, author diversity, and trust score. When configured thresholds are crossed, the system can suppress the topic from the trending feed, add an under-review state, throttle engagement, and notify moderators.
+
+This feature is implemented and constitutes the systems contribution at the circuit-breaker layer.
+
+\subsection{Proposed: user-level exposure-aware breaker}
+
+The stronger \textbf{user-level} exposure model remains future work. In that model, circuit-breaker risk is defined over a rolling window of impressions:
 \begin{align}
 A(u,w) &= \frac{\text{AI-labeled impressions}}{\text{total impressions}} \\
 D(u,w) &= \frac{\text{disputed impressions}}{\text{total impressions}} \\
 V(u,w) &= 1 - \frac{H(\text{source categories})}{\log K} \\
-J(u,w) &= \left| \hat{p}_{u,w} - b_u \right| \\
+J(u,w) &= |\hat{p}_{u,w} - b_u| \\
 P(u,w) &= \frac{\text{public-interest synthetic impressions}}{\text{total impressions}}
 \end{align}
-
-where $A$ is the AI saturation ratio, $D$ is the dispute ratio, $V$ is the inverse diversity score based on normalized entropy over source categories, $J$ is the judgment-drift term comparing current probe performance or judgment tendency $\hat{p}_{u,w}$ to the user's own recent baseline $b_u$, and $P$ measures the share of synthetic content touching public-interest topics such as elections, public health, identity-based claims, emergency events, or civic conflict.
-
-The overall circuit-breaker risk is:
-
+with
 \begin{equation}
-\mathrm{CBR}(u,w) = \alpha A(u,w) + \beta D(u,w) + \gamma V(u,w) + \delta J(u,w) + \epsilon P(u,w),
+\mathrm{CBR}(u,w) = \alpha A(u,w) + \beta D(u,w) + \gamma V(u,w) + \delta J(u,w) + \epsilon P(u,w).
 \end{equation}
 
-with nonnegative weights $\alpha,\beta,\gamma,\delta,\epsilon$ set by policy and tuned empirically. This formulation is intentionally interpretable: each term corresponds to a risk that can be explained to users and auditors.
+This formal model is retained because it is conceptually important, but it is treated explicitly as a research extension rather than a completed deployment claim.
 
-\subsection{Trigger tiers}
+\section{Evidence Model and Evaluation Strategy}
 
-TrustFeed uses progressive intervention rather than a single hard stop. Table~\ref{tab:tiers} summarizes the tiers.
+The paper's main methodological challenge is evidence mismatch, so the evidence model is made explicit here.
 
-\begin{table}[t]
-\caption{Proposed circuit-breaker intervention tiers}
-\label{tab:tiers}
-\begin{tabular}{p{2.1cm}p{3.1cm}p{7.4cm}}
-\toprule
-\textbf{Tier} & \textbf{Trigger condition} & \textbf{Intervention} \\
-\midrule
-Tier 0 & $\mathrm{CBR} < \tau_1$ & No intervention beyond standard disclosure. \\
-Tier 1 & $\tau_1 \le \mathrm{CBR} < \tau_2$ & Inline notice explaining elevated synthetic exposure; inject more human-declared and provenance-backed content. \\
-Tier 2 & $\tau_2 \le \mathrm{CBR} < \tau_3$ & Share friction, slower feed refresh, and mandatory provenance card on disputed posts. \\
-Tier 3 & $\mathrm{CBR} \ge \tau_3$ or repeated high-risk public-interest exposure & Full-screen pause, temporary suppression of recommender acceleration, escalation to trusted review for top disputed posts. \\
-\bottomrule
-\end{tabular}
-\end{table}
+\subsection{What the paper currently demonstrates}
 
-The design intentionally favors \emph{friction} over outright removal. Friction preserves user agency while interrupting passive consumption loops. In public-interest contexts, however, escalation and temporary throttling may be justified because the externality cost is higher.
-
-\subsection{Judgment-drift measurement}
-
-Judgment drift is the hardest signal because it refers to a change in the user's decision quality or tendency over time. TrustFeed proposes two mechanisms:
-
-\begin{enumerate}
-    \item \textbf{Micro-probes}: occasional low-burden authenticity probes embedded in the feed to estimate whether the user is over-accepting or over-rejecting synthetic content.
-    \item \textbf{Behavioral baselines}: comparison of current classification tendencies with the user's own recent historical baseline, rather than with a population-wide norm.
+The manuscript can currently support four kinds of evidence:
+\begin{enumerate}[leftmargin=1.5em]
+    \item \textbf{Artifact evidence:} the system exists as two deployed applications with implemented disclosure, contestation, dashboard, and trend-breaker features.
+    \item \textbf{Architectural evidence:} the backend pipeline, scoring logic, and survey instrumentation are concrete rather than speculative.
+    \item \textbf{Observability evidence:} dashboards and reports expose descriptive platform state, including disagreement and bias metrics.
+    \item \textbf{Methodological evidence:} the survey application provides a ready pathway for controlled comparative evaluation.
 \end{enumerate}
 
-This design choice matters ethically. A circuit breaker should not punish users for disagreeing with majority opinion. It should activate when there is evidence that the user's own judgment process is becoming less calibrated under concentrated synthetic exposure.
+\subsection{What the paper does not yet claim}
 
-\subsection{Why circuit breakers complement labels}
+The paper does \emph{not} claim completed causal proof that TrustFeed improves authenticity judgment, reduces misinformation, or eliminates harmful bias. It also does not claim that the perspective agents model real geographic cognition or that the AI-content detector provides ground-truth authorship attribution in all contexts.
 
-The empirical literature suggests that simple labels often improve recognition without strongly reducing engagement \cite{li2024aigclabels, wittenberg2025labeling}. A circuit breaker addresses that gap by shifting the intervention target. Instead of asking a label to both inform and de-amplify, the system assigns distinct responsibilities to distinct components:
-\begin{itemize}
-    \item labels disclose process;
-    \item public notification adds contestability;
-    \item provenance adds evidence;
-    \item circuit breakers manage cumulative exposure and engagement risk.
-\end{itemize}
+\subsection{Conference-appropriate evaluation agenda}
 
-\section{Evaluation Methodology}
-
-Because the current TrustFeed repository is a proof-of-concept front-end artifact rather than a completed experimental platform, the appropriate empirical stance is a forward-looking evaluation design rather than a fabricated results section. We propose a mixed-method program with three hypotheses.
-
-\subsection{Research hypotheses}
-
-\textbf{H1.} Default AI-origin disclosure will improve users' ability to identify synthetic content relative to a no-label baseline.
-
-\textbf{H2.} Disclosure combined with public notification and community verification will improve trust calibration more than disclosure alone.
-
-\textbf{H3.} Disclosure combined with circuit breakers will reduce willingness to share disputed synthetic content under repeated-exposure conditions more than any label-only condition.
-
-\subsection{Experimental conditions}
-
-Participants would interact with a realistic feed simulator under four conditions:
-
-\begin{enumerate}
-    \item \textbf{No label}: synthetic and non-synthetic content appear without origin disclosures.
-    \item \textbf{Disclosure only}: posts carry default origin labels.
-    \item \textbf{Disclosure + public notification}: posts carry origin labels and community-contestation signals.
-    \item \textbf{Full TrustFeed}: origin labels, public notification, provenance drill-down, and circuit-breaker interventions.
+A strong next-step evaluation would test four conditions:
+\begin{enumerate}[leftmargin=1.5em]
+    \item no label,
+    \item disclosure only,
+    \item disclosure plus contestation,
+    \item disclosure plus contestation plus circuit-breaker friction.
 \end{enumerate}
+The primary outcome would be authenticity judgment accuracy; secondary outcomes would include trust calibration, sharing restraint, perceived agency, and appeal fairness.
 
-A repeated-exposure manipulation would vary the concentration of synthetic content and the share of disputed public-interest items in the feed.
+This agenda is retained because it shows that the paper is ready for empirical follow-through, but the manuscript now clearly treats it as an evaluation plan rather than a disguised results section.
 
-\subsection{Outcome measures}
+\section{Governance and Safeguards}
 
-The primary outcome is \textbf{authenticity judgment accuracy}. Secondary outcomes include:
+TrustFeed is not only an interface artifact. It also encodes governance obligations.
 
-\begin{itemize}
-    \item \textbf{trust calibration}: alignment between user confidence and correctness;
-    \item \textbf{sharing restraint}: self-reported and behavioral willingness to like, repost, or forward;
-    \item \textbf{label comprehension}: whether users correctly interpret each disclosure state;
-    \item \textbf{perceived agency}: whether users feel informed rather than manipulated by the intervention;
-    \item \textbf{fatigue and reactance}: whether the system becomes annoying or is ignored over time.
-\end{itemize}
+\textbf{Privacy and minimization.} The survey application stores no personally identifiable information, and exposure-related signals are framed as retention-bounded, purpose-specific measures.
 
-The study should include qualitative interviews and diary components to understand how people interpret labels such as ``AI-assisted'' versus ``AI-generated,'' and whether the organic/non-organic analogy helps or hinders mental models.
+\textbf{Appeals and revisions.} Any disputed origin state requires an explanation and a revision path, otherwise contestability becomes unilateral.
 
-\subsection{Why this evaluation design matters}
+\textbf{Abuse resistance.} Public notification is vulnerable to brigading and coordinated gaming; rate limiting, aggregation, and anomaly monitoring are therefore part of the design.
 
-This evaluation design addresses three weaknesses in prior work. First, many label studies test isolated labels outside a realistic feed environment \cite{li2024aigclabels}. Second, engagement effects are often measured without cumulative-exposure manipulation \cite{wittenberg2025labeling}. Third, provenance systems are often studied as technical standards rather than public interfaces \cite{c2pa2025spec}. TrustFeed instead treats authenticity governance as a feed-level human-centered systems problem.
+\textbf{Accessibility.} Disclosure states should not be conveyed by color alone. Iconography, wording, and accessible controls remain part of the artifact.
 
-\section{Discussion}
+\textbf{Calibration drift.} Thresholds and weighting rules cannot be assumed stable as synthetic media practices evolve.
 
-\subsection{From detection to accountability}
-
-TrustFeed deliberately avoids framing authenticity as a contest between perfect AI detectors and perfect human perception. Both are limited \cite{somoray2025deepfake, kirchenbauer2023watermark}. The more durable objective is accountability: content should carry an origin state, the public should be able to contest that state, and the platform should slow down when exposure conditions become risky. This is a shift from \emph{forensic certainty} to \emph{governance sufficiency}.
-
-\subsection{Disclosure is not censorship}
-
-A recurring concern is that mandatory AI-origin disclosure may stigmatize legitimate creative or assistive AI use. TrustFeed addresses this by separating disclosure from moral judgment. A visible ``AI-assisted'' label does not imply low quality, misinformation, or policy violation. It is analogous to market disclosure: users get to know what they are consuming and then decide what to do with that information. This process-based framing aligns better with the empirical literature showing that labels are most useful as informational devices when they are clear and well-designed \cite{gamage2025labeling, wittenberg2025labeling}.
-
-\subsection{Public notification as democratic platform sensing}
-
-Allowing the public to notify that content is AI-generated operationalizes a minimal form of participatory governance. It does not replace professional review or cryptographic provenance. Instead, it creates an additional sensing channel that can surface failures in creator disclosure, reveal patterns the platform missed, and improve user trust when paired with transparent explanation \cite{drolsbach2024community, slaughter2025community}. The design challenge is to prevent brigading and low-quality reports, which is why public notification must be aggregated, reputation-aware, and contestable.
-
-\subsection{The circuit breaker as a platform-safety primitive}
-
-The strongest conceptual contribution of this paper is the circuit breaker. Social platforms already optimize dynamically for watch time, clicks, and relevance. There is no principled reason they cannot also optimize for authenticity safety. A circuit breaker is a modest but powerful expression of that idea: when the platform detects that a user is entering a regime of unusually high synthetic saturation and contestation, it temporarily privileges reflection over speed.
+These safeguards matter because authenticity governance requires institutional discipline, not only technical novelty.
 
 \section{Limitations}
 
-This paper has four limitations. First, the current TrustFeed repository implements disclosure and community signaling, but not the full provenance and circuit-breaker stack; those components are specified here as an extension of the artifact rather than a completed deployment \cite{trustfeedrepo}. Second, the paper is a design-and-methodology contribution, not an empirical validation paper, and therefore does not claim finished user-study results. Third, provenance infrastructure remains uneven across tools and platforms, so some content will necessarily remain in a provenance-unavailable state even under a better design regime \cite{c2pa2025spec}. Fourth, any circuit-breaker system introduces normative choices about thresholds, public-interest categories, and intervention severity; those choices require transparent governance and iterative auditing.
+TrustFeed should be interpreted as a \emph{prototype-backed human-centered authenticity governance system}, not as a production-ready provenance platform, a universal AI detector, or a completed intervention study.
+
+First, the present work is strongest as an interface, workflow, and observability contribution. It shows how origin signals, public contestation, and model disagreement can be surfaced in a social-feed context, but it does not yet implement a full end-to-end provenance enforcement stack with cross-platform interoperability.
+
+Second, the system's visible states -- including \emph{Likely AI}, \emph{Likely Human}, and \emph{Disputed} -- are decision-support cues under uncertainty, not forensic verdicts. Creator declarations may be inaccurate, community signals may be noisy, and provenance may be absent.
+
+Third, the perspective agents should not be overinterpreted as representations of real regional cognition. In this paper they are more defensibly understood as \emph{stress-test lenses} used to expose scoring sensitivity relative to a non-bias baseline.
+
+Fourth, dashboard outputs are descriptive observability measures, not causal evidence that the system improves epistemic outcomes. Stronger behavioral claims still require controlled evaluation.
+
+Fifth, the user-level exposure-aware circuit breaker remains a formalized research proposal rather than a fully validated intervention mechanism.
+
+Finally, TrustFeed should not be framed as anti-AI. Its contribution is to make origin more visible, disagreement more actionable, and feed conditions more governable in environments where synthetic and human-authored content increasingly coexist.
 
 \section{Conclusion}
 
-The synthetic-media era requires more than forensic detectors and sporadic labels. It requires a new default for public digital content: visible AI-origin disclosure, contestable community notification, and exposure-aware platform safeguards. TrustFeed advances this agenda by arguing that disclosure should be treated like origin labeling in mature consumer systems---always present, easy to understand, and separate from downstream quality judgments. Building on a proof-of-concept repository that already supports creator declaration, AI badges, and community voting, this paper develops a broader architecture in which provenance is surfaced, the public can notify suspected AI content, and a circuit breaker intervenes when synthetic exposure becomes risky. 
+The synthetic-media era requires more than weak labels and hidden provenance metadata. It requires platform designs that expose origin, support contestation, and make model disagreement inspectable where users actually make decisions. TrustFeed advances this agenda through a deployed two-application prototype for disclosure, community verification, dashboard observability, and trend-level safeguards.
 
-The result is a human-centered authenticity governance model for social platforms. Its aim is not to eliminate AI content or to promise perfect detection. Its aim is to preserve human judgment under new informational conditions by making origin visible, contestation actionable, and amplification interruptible.
+The paper's central contribution is \textbf{baseline-anchored bias observability}: a design in which a non-bias baseline agent anchors multiple perspective-conditioned agents so that disagreement, bias delta, debiased score, and factor attribution become visible governance signals rather than hidden model internals. That contribution gives the paper a clearer and more distinctive identity for an international conference audience. It shifts the story from ``we built many components'' to ``we offer a new way to govern authenticity under uncertainty.''
 
+TrustFeed is therefore best understood as a prototype-backed socio-technical artifact: implemented enough to study, disciplined enough not to overclaim, and distinctive enough to contribute a novel observability perspective to the growing literature on AI-origin disclosure and social-platform governance.
 
 \begin{thebibliography}{99}
+
 \bibitem{lazer2018sciencefake}
 David M. J. Lazer, Matthew A. Baum, Yochai Benkler, Adam J. Berinsky, Kelly M. Greenhill, Filippo Menczer, Miriam J. Metzger, Brendan Nyhan, Gordon Pennycook, David Rothschild, Michael Schudson, Steven A. Sloman, Cass R. Sunstein, Emily A. Thorson, Duncan J. Watts, and Jonathan L. Zittrain. 2018. The science of fake news. Science 359, 6380 (2018), 1094--1096. DOI:https://doi.org/10.1126/science.aao2998
 
@@ -382,12 +387,6 @@ Emily R. Spearing, Constantina I. Gile, Amy L. Fogwill, Toby Prike, Briony Swire
 
 \bibitem{somoray2025deepfake}
 Klaire Somoray, Dan J. Miller, and Mary Holmes. 2025. Human performance in deepfake detection: A systematic review. Human Behavior and Emerging Technologies 2025 (2025), 1833228. DOI:https://doi.org/10.1155/hbe2/1833228
-
-\bibitem{mitchell2019modelcards}
-Margaret Mitchell, Simone Wu, Andrew Zaldivar, Parker Barnes, Lucy Vasserman, Ben Hutchinson, Elena Spitzer, Inioluwa Deborah Raji, Timnit Gebru, and others. 2019. Model cards for model reporting. In \emph{Proceedings of FAT* 2019}, 220--229. DOI:https://doi.org/10.1145/3287560.3287596
-
-\bibitem{gebru2021datasheets}
-Timnit Gebru, Jamie Morgenstern, Briana Vecchione, Jennifer Wortman Vaughan, Hanna Wallach, Hal Daum'e III, and Kate Crawford. 2021. Datasheets for datasets. Communications of the ACM 64, 12 (2021), 86--92. DOI:https://doi.org/10.1145/3458723
 
 \bibitem{trustfeedrepo}
 Prakasam Venkatachalam. 2026. TrustFeed - AI Content Transparency Platform (GitHub repository README). https://github.com/prakasamv6/TrustFeed

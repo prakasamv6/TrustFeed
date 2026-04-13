@@ -17,3 +17,6 @@ numpy>=1.26.0
 # ── Orchestration (LangGraph) ──
 langgraph>=0.2.0
 langchain-core>=0.3.0
+
+# ── OpenAI ──
+openai>=1.30.0

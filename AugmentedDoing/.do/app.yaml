@@ -20,6 +20,11 @@ services:
     instance_size_slug: basic-xxs
     routes:
       - path: /
+    envs:
+      - key: TRUSTFEED_LIVE
+        value: "true"
+      - key: SURVEY_API_URL
+        value: "https://trustfeed-survey-ealep.ondigitalocean.app"
     health_check:
       http_path: /health
       initial_delay_seconds: 10
@@ -38,11 +43,14 @@ services:
     instance_size_slug: basic-xs
     routes:
       - path: /api
+        preserve_path_prefix: true
     envs:
       - key: MOCK_MODE
         value: "true"
       - key: CORS_ORIGINS
         value: "${APP_URL}"
+      - key: SURVEY_API_URL
+        value: "https://trustfeed-survey-ealep.ondigitalocean.app"
     health_check:
       http_path: /health
       initial_delay_seconds: 15

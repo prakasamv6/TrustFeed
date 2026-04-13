@@ -42,6 +42,7 @@ services:
     instance_size_slug: basic-xxs
     routes:
       - path: /api
+        preserve_path_prefix: true
     envs:
       - key: DB_HOST
         type: SECRET
@@ -60,6 +61,8 @@ services:
         value: "true"
       - key: API_PORT
         value: "3000"
+      - key: CORS_ORIGINS
+        value: "http://localhost:4200,https://trustfeed-survey-ealep.ondigitalocean.app,${APP_URL}"
       - key: PEXELS_API_KEY
         type: SECRET
         value: "REPLACE_WITH_YOUR_KEY"

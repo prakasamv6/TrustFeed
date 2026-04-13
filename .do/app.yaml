@@ -61,6 +61,8 @@ services:
         value: "true"
       - key: API_PORT
         value: "3000"
+      - key: CORS_ORIGINS
+        value: "http://localhost:4200,https://trustfeed-survey-ealep.ondigitalocean.app,${APP_URL}"
       - key: PEXELS_API_KEY
         type: SECRET
         value: "REPLACE_WITH_YOUR_KEY"

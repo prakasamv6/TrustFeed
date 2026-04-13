@@ -20,12 +20,14 @@ app.use(helmet({
 }));
 
 // ─── CORS: Restrict to known origins ───
-const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:4200,https://trustfeed-survey-ealep.ondigitalocean.app').split(',');
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:4200,https://trustfeed-survey-ealep.ondigitalocean.app').split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (curl, server-to-server)
     if (!origin) return callback(null, true);
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    // Allow any *.ondigitalocean.app origin (same platform)
+    if (/^https:\/\/[a-z0-9-]+\.ondigitalocean\.app$/.test(origin)) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'PUT'],
@@ -749,25 +751,6 @@ app.get('/api/analytics', async (req, res) => {
   }
 });
 
-// ─── Global 404 Handler ───
-
-app.use((_req, res) => {
-  res.status(404).json({
-    error: 'Not found',
-    message: 'The requested endpoint does not exist.',
-  });
-});
-
-// ─── Global Error Handler ───
-
-app.use((err, _req, res, _next) => {
-  console.error('Unhandled server error:', err);
-  res.status(500).json({
-    error: 'Unexpected error',
-    message: 'Something unexpected happened. Our team has been notified.',
-  });
-});
-
 // ─── Broken Media Reporting & Auto-Fix ───
 
 const brokenMediaStore = [];
@@ -809,6 +792,25 @@ app.get('/api/broken-media', (_req, res) => {
     totalReports: brokenMediaStore.length,
     reports: brokenMediaStore.slice(-50),
     activeReplacements: urlReplacements.size,
+  });
+});
+
+// ─── Global 404 Handler ───
+
+app.use((_req, res) => {
+  res.status(404).json({
+    error: 'Not found',
+    message: 'The requested endpoint does not exist.',
+  });
+});
+
+// ─── Global Error Handler ───
+
+app.use((err, _req, res, _next) => {
+  console.error('Unhandled server error:', err);
+  res.status(500).json({
+    error: 'Unexpected error',
+    message: 'Something unexpected happened. Our team has been notified.',
   });
 });
 

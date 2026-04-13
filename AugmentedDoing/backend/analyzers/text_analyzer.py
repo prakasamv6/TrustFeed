@@ -46,7 +46,10 @@ def _deterministic_mock(content: str, salt: str = "") -> float:
 
 
 class TextAnalyzer:
-    """Analyze text content for AI-generation likelihood using HF Transformers."""
+    """Analyze text content for AI-generation likelihood.
+
+    Priority: mock → OpenAI GPT-4o → HuggingFace RoBERTa fallback.
+    """
 
     @staticmethod
     def analyze(content: str, *, mock: bool = True) -> TextAnalysisResult:
@@ -68,7 +71,29 @@ class TextAnalyzer:
                 token_count=token_count,
             )
 
-        # ── Live mode: run HF model ──
+        # ── Live mode: try OpenRouter first ──
+        from analyzers.openai_service import analyze_text as openai_analyze_text
+
+        openai_result = openai_analyze_text(content)
+        if openai_result is not None:
+            return TextAnalysisResult(
+                raw_score=round(openai_result.ai_probability, 4),
+                features={
+                    "avg_word_length": openai_result.features.get("avg_word_length", 0),
+                    "sentence_count": text.count(".") + text.count("!") + text.count("?"),
+                    "lexical_diversity": openai_result.features.get("lexical_diversity", 0),
+                    "perplexity_proxy": openai_result.features.get("perplexity_estimate", 0),
+                    "repetition_ratio": 0.0,
+                    "openai_confidence": openai_result.confidence,
+                    "openai_reasoning": openai_result.reasoning,
+                    "openai_patterns": openai_result.detected_patterns,
+                    "openai_bias_indicators": openai_result.bias_indicators,
+                },
+                model_name="openrouter-gpt-4o",
+                token_count=token_count,
+            )
+
+        # ── Fallback: HuggingFace model ──
         pipe = _load_pipeline()
         if pipe is None:
             # Fallback to mock if model unavailable

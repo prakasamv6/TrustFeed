@@ -1,6 +1,6 @@
 # Default configuration for the bias simulation backend
 
-mock_mode: true
+mock_mode: false
 
 bias_strength: 0.85
 bias_warning_threshold: 0.20
@@ -10,6 +10,12 @@ residual_adjustment_max: 0.05
 # Optional external LLM (only used when mock_mode is false)
 llm_base_url: "http://localhost:11434"
 llm_model: "llama3"
+
+# OpenRouter settings (used when OPENROUTER_API_KEY is set and mock_mode is false)
+openrouter_model: "openai/gpt-4o"
+openrouter_embedding_model: "openai/text-embedding-3-small"
+openrouter_max_tokens: 1024
+openrouter_temperature: 0.2
 
 # Server
 host: "0.0.0.0"

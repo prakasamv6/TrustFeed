@@ -348,11 +348,14 @@ def health():
     except ImportError:
         pass
 
+    from analyzers.openai_service import is_available as openai_available
+
     return {
         "status": "ok",
         "mockMode": MOCK_MODE,
         "orchestration": "langgraph" if langgraph_available else "sequential-fallback",
         "torchAvailable": torch_available,
+        "openrouterAvailable": openai_available(),
     }
 
 
@@ -602,6 +605,32 @@ def dashboard_trends():
             "count": len(day_analyses),
         })
     return points
+
+
+# ── Survey Stats Proxy (fetches live data from TrustFeed Survey API) ─────────
+
+SURVEY_API_URL = os.getenv("SURVEY_API_URL", "").rstrip("/")
+
+
+@router.get("/survey-stats")
+async def proxy_survey_stats():
+    """Proxy survey completion statistics from the TrustFeed Survey application."""
+    if not SURVEY_API_URL:
+        raise HTTPException(
+            status_code=503,
+            detail="SURVEY_API_URL not configured; cannot fetch live survey stats.",
+        )
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{SURVEY_API_URL}/api/survey-stats")
+            resp.raise_for_status()
+            return resp.json()
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=exc.response.status_code, detail="Survey API error")
+    except httpx.RequestError:
+        raise HTTPException(status_code=503, detail="Survey API unreachable")
 
 
 # ── Fairness Survey endpoints ────────────────────────────────────────────────
@@ -1068,6 +1097,106 @@ def get_media_replacement(url: str):
     if url in _url_replacements:
         return {"found": True, "replacementUrl": _url_replacements[url]}
     return {"found": False}
+
+
+# ── OpenRouter Endpoints ──────────────────────────────────────────────────────
+
+class SimilarityRequest(BaseModel):
+    textA: str
+    textB: str
+
+    @field_validator("textA", "textB")
+    @classmethod
+    def validate_text(cls, v: str) -> str:
+        if len(v) > 10_000:
+            raise ValueError("Text must be under 10,000 characters")
+        if _contains_malicious_input(v):
+            raise ValueError("Text contains disallowed patterns")
+        return v
+
+
+class OpenAIAnalyzeRequest(BaseModel):
+    content: str
+    contentType: str = "text"
+    mediaUrl: str | None = None
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        if len(v) > 50_000:
+            raise ValueError("Content must be under 50,000 characters")
+        if _contains_malicious_input(v):
+            raise ValueError("Content contains disallowed patterns")
+        return v
+
+
+@router.post("/ai/analyze")
+def ai_analyze(req: OpenAIAnalyzeRequest):
+    """Run content analysis using OpenRouter API directly (bypasses mock/HF pipeline)."""
+    from analyzers.openai_service import analyze_text, analyze_image, is_available
+
+    if not is_available():
+        raise HTTPException(status_code=503, detail="OpenRouter API key not configured")
+
+    if req.contentType == "text":
+        result = analyze_text(req.content)
+        if result is None:
+            raise HTTPException(status_code=502, detail="OpenRouter text analysis failed")
+        return {
+            "provider": "openrouter",
+            "model": "openai/gpt-4o",
+            "ai_probability": result.ai_probability,
+            "confidence": result.confidence,
+            "reasoning": result.reasoning,
+            "detected_patterns": result.detected_patterns,
+            "bias_indicators": result.bias_indicators,
+            "features": result.features,
+        }
+    elif req.contentType == "image":
+        result = analyze_image(image_url=req.mediaUrl)
+        if result is None:
+            raise HTTPException(status_code=502, detail="OpenRouter image analysis failed")
+        return {
+            "provider": "openrouter",
+            "model": "openai/gpt-4o",
+            "ai_probability": result.ai_probability,
+            "confidence": result.confidence,
+            "reasoning": result.reasoning,
+            "detected_artifacts": result.detected_artifacts,
+            "style_classification": result.style_classification,
+        }
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported contentType: {req.contentType}")
+
+
+@router.post("/ai/similarity")
+def ai_similarity(req: SimilarityRequest):
+    """Compute semantic similarity between two texts using OpenRouter embeddings."""
+    from analyzers.openai_service import compute_similarity, is_available
+
+    if not is_available():
+        raise HTTPException(status_code=503, detail="OpenRouter API key not configured")
+
+    score = compute_similarity(req.textA, req.textB)
+    if score is None:
+        raise HTTPException(status_code=502, detail="OpenRouter embedding failed")
+    return {"similarity": round(score, 4), "model": "openai/text-embedding-3-small"}
+
+
+@router.get("/ai/status")
+def ai_status():
+    """Check whether OpenRouter is configured and available."""
+    from analyzers.openai_service import is_available
+    available = is_available()
+    return {
+        "available": available,
+        "provider": "openrouter" if available else None,
+        "models": {
+            "text": "openai/gpt-4o",
+            "vision": "openai/gpt-4o",
+            "embedding": "openai/text-embedding-3-small",
+        } if available else None,
+    }
 
 
 # Register the router with all API routes
