@@ -270,6 +270,29 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS feed_analysis_log (
+        id                INT AUTO_INCREMENT PRIMARY KEY,
+        post_id           VARCHAR(128) NOT NULL,
+        content_type      VARCHAR(16) NOT NULL DEFAULT 'text',
+        agent_name        VARCHAR(64) NOT NULL,
+        agent_region      VARCHAR(32) DEFAULT NULL,
+        score             DECIMAL(6,4) NOT NULL,
+        confidence        DECIMAL(6,4) NOT NULL,
+        bias_direction    VARCHAR(16) DEFAULT NULL,
+        reasoning         TEXT DEFAULT NULL,
+        bias_highlights   JSON DEFAULT NULL,
+        ml_features       JSON DEFAULT NULL,
+        debiased_score    DECIMAL(6,4) DEFAULT NULL,
+        bias_delta        DECIMAL(6,4) DEFAULT NULL,
+        disagreement_rate DECIMAL(6,4) DEFAULT NULL,
+        created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_post_id (post_id),
+        INDEX idx_agent_region (agent_region),
+        INDEX idx_created (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
     console.log('Auto-migration complete — all tables ready.');
   } catch (err) {
     console.warn('Auto-migration skipped (DB not available):', err.message);
@@ -896,6 +919,115 @@ app.get('/api/broken-media', (_req, res) => {
     reports: brokenMediaStore.slice(-50),
     activeReplacements: urlReplacements.size,
   });
+});
+
+// ─── POST /api/feed-analysis-log — Log Core API agent analysis to DB ───
+
+app.post('/api/feed-analysis-log', async (req, res) => {
+  try {
+    const { postId, contentType, agentScores, debiasedScore, biasDelta, disagreementRate, mlFeatures } = req.body || {};
+
+    if (!postId || typeof postId !== 'string' || postId.length > 128) {
+      return res.status(400).json({ error: 'Invalid postId' });
+    }
+    if (!Array.isArray(agentScores) || agentScores.length === 0) {
+      return res.status(400).json({ error: 'agentScores must be a non-empty array' });
+    }
+
+    if (dbAvailable) {
+      let logged = 0;
+      for (const agent of agentScores.slice(0, 10)) {
+        if (!agent.agent || typeof agent.score !== 'number') continue;
+        await pool.execute(
+          `INSERT INTO feed_analysis_log
+           (post_id, content_type, agent_name, agent_region, score, confidence,
+            bias_direction, reasoning, bias_highlights, ml_features,
+            debiased_score, bias_delta, disagreement_rate)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            postId.slice(0, 128),
+            (contentType || 'text').slice(0, 16),
+            (agent.agent || '').slice(0, 64),
+            agent.region ? agent.region.slice(0, 32) : null,
+            Math.min(Math.max(agent.score, 0), 1),
+            Math.min(Math.max(agent.confidence || 0, 0), 1),
+            agent.biasDirection ? agent.biasDirection.slice(0, 16) : null,
+            agent.reasoning ? agent.reasoning.slice(0, 2000) : null,
+            agent.biasHighlights ? JSON.stringify(agent.biasHighlights.slice(0, 20)) : null,
+            mlFeatures ? JSON.stringify(mlFeatures) : null,
+            typeof debiasedScore === 'number' ? debiasedScore : null,
+            typeof biasDelta === 'number' ? biasDelta : null,
+            typeof disagreementRate === 'number' ? disagreementRate : null,
+          ]
+        );
+        logged++;
+      }
+      res.json({ status: 'logged', postId, agentsLogged: logged });
+    } else {
+      res.json({ status: 'skipped', reason: 'database not connected', postId });
+    }
+  } catch (err) {
+    console.error('POST /api/feed-analysis-log error:', err.message);
+    res.status(500).json({ error: 'Server error', message: 'Failed to log analysis.' });
+  }
+});
+
+// ─── GET /api/agent-tracking — Per-agent uniqueness stats from feed analysis log ───
+
+app.get('/api/agent-tracking', async (req, res) => {
+  try {
+    if (dbAvailable) {
+      const [agentStats] = await pool.execute(
+        `SELECT agent_name, agent_region,
+          COUNT(*) AS total_analyses,
+          ROUND(AVG(score), 4) AS avg_score,
+          ROUND(MIN(score), 4) AS min_score,
+          ROUND(MAX(score), 4) AS max_score,
+          ROUND(STDDEV_POP(score), 4) AS score_stddev,
+          ROUND(AVG(confidence), 4) AS avg_confidence,
+          ROUND(AVG(bias_delta), 4) AS avg_bias_delta,
+          ROUND(AVG(disagreement_rate), 4) AS avg_disagreement
+         FROM feed_analysis_log
+         WHERE agent_region IS NOT NULL
+         GROUP BY agent_name, agent_region
+         ORDER BY agent_region`
+      );
+
+      const [recentLogs] = await pool.execute(
+        `SELECT post_id, agent_name, agent_region, score, confidence,
+          bias_delta, disagreement_rate, created_at
+         FROM feed_analysis_log
+         WHERE agent_region IS NOT NULL
+         ORDER BY created_at DESC LIMIT 30`
+      );
+
+      const [surveyAgentStats] = await pool.execute(
+        `SELECT agent_region, COUNT(*) AS total_verdicts,
+          SUM(is_correct) AS correct_count,
+          ROUND(SUM(is_correct) / COUNT(*), 4) AS accuracy,
+          ROUND(AVG(confidence), 4) AS avg_confidence
+         FROM agent_verdicts GROUP BY agent_region`
+      );
+
+      res.json({
+        feedAnalysis: { agentStats, recentLogs },
+        surveyVerdicts: surveyAgentStats,
+        totalFeedAnalyses: agentStats.reduce((sum, a) => sum + a.total_analyses, 0),
+        totalSurveyVerdicts: surveyAgentStats.reduce((sum, a) => sum + a.total_verdicts, 0),
+      });
+    } else {
+      res.json({
+        feedAnalysis: { agentStats: [], recentLogs: [] },
+        surveyVerdicts: [],
+        totalFeedAnalyses: 0,
+        totalSurveyVerdicts: 0,
+        note: 'Database not connected.',
+      });
+    }
+  } catch (err) {
+    console.error('GET /api/agent-tracking error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // ─── Global 404 Handler ───

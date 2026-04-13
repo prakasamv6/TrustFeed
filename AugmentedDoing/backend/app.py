@@ -385,6 +385,9 @@ def analyze(req: AnalyzeRequest):
     )
     repo.save(stored)
 
+    # ── Log agent analysis to SurveyApp DB (fire-and-forget) ──
+    _log_agent_analysis_to_db(req.postId, state)
+
     # ── Build bias detection response ──
     bias_detection = None
     if state.bias_report:
@@ -610,6 +613,43 @@ def dashboard_trends():
 # ── Survey Stats Proxy (fetches live data from TrustFeed Survey API) ─────────
 
 SURVEY_API_URL = os.getenv("SURVEY_API_URL", "").rstrip("/")
+
+
+def _log_agent_analysis_to_db(post_id: str, state) -> None:
+    """Fire-and-forget: push agent scores to the SurveyApp feed_analysis_log table."""
+    if not SURVEY_API_URL:
+        return
+    import threading
+
+    def _send():
+        try:
+            import httpx
+            all_scores = state.regional_scores + ([state.baseline_score] if state.baseline_score else [])
+            payload = {
+                "postId": post_id,
+                "contentType": state.content_type,
+                "agentScores": [
+                    {
+                        "agent": s.agent_name,
+                        "region": s.region,
+                        "score": s.score,
+                        "confidence": s.confidence,
+                        "reasoning": s.reasoning[:500] if s.reasoning else "",
+                        "biasHighlights": s.bias_highlights[:10] if s.bias_highlights else [],
+                    }
+                    for s in all_scores
+                ],
+                "debiasedScore": state.debiased_result.debiased_adjusted_score if state.debiased_result else None,
+                "biasDelta": state.debiased_result.bias_delta if state.debiased_result else None,
+                "disagreementRate": state.debiased_result.disagreement_rate if state.debiased_result else None,
+                "mlFeatures": {k: v for k, v in state.ml_features.items() if not k.startswith("_")},
+            }
+            with httpx.Client(timeout=5.0) as client:
+                client.post(f"{SURVEY_API_URL}/api/feed-analysis-log", json=payload)
+        except Exception:
+            pass  # fire-and-forget — don't block primary response
+
+    threading.Thread(target=_send, daemon=True).start()
 
 
 @router.get("/survey-stats")

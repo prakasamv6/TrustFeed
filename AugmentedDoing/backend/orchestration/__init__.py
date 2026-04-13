@@ -322,6 +322,19 @@ def _build_langgraph():
     return graph.compile()
 
 
+class _LangGraphWrapper:
+    """Wraps compiled LangGraph to convert dict output back to AnalysisState."""
+
+    def __init__(self, compiled_graph):
+        self._graph = compiled_graph
+
+    def invoke(self, state: AnalysisState) -> AnalysisState:
+        result = self._graph.invoke(state)
+        if isinstance(result, dict):
+            return AnalysisState(**result)
+        return result
+
+
 class _SequentialFallback:
     """Fallback executor when LangGraph is not installed."""
 
@@ -345,6 +358,6 @@ class _SequentialFallback:
 def get_orchestrator():
     """Return the compiled LangGraph graph, or a sequential fallback."""
     try:
-        return _build_langgraph()
+        return _LangGraphWrapper(_build_langgraph())
     except Exception:
         return _SequentialFallback()

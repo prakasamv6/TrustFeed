@@ -97,6 +97,31 @@ CREATE TABLE agreement_matrix (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------
+-- Feed analysis log (from Core API agent pipeline)
+-- Tracks each agent's unique score/reasoning per post
+-- ---------------------------------------------------
+CREATE TABLE feed_analysis_log (
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  post_id           VARCHAR(128) NOT NULL,
+  content_type      VARCHAR(16) NOT NULL DEFAULT 'text',
+  agent_name        VARCHAR(64) NOT NULL,
+  agent_region      VARCHAR(32) DEFAULT NULL,
+  score             DECIMAL(6,4) NOT NULL,
+  confidence        DECIMAL(6,4) NOT NULL,
+  bias_direction    VARCHAR(16) DEFAULT NULL,
+  reasoning         TEXT DEFAULT NULL,
+  bias_highlights   JSON DEFAULT NULL,
+  ml_features       JSON DEFAULT NULL,
+  debiased_score    DECIMAL(6,4) DEFAULT NULL,
+  bias_delta        DECIMAL(6,4) DEFAULT NULL,
+  disagreement_rate DECIMAL(6,4) DEFAULT NULL,
+  created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_post_id (post_id),
+  INDEX idx_agent_region (agent_region),
+  INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------
 -- Useful aggregate views
 -- ---------------------------------------------------
 
