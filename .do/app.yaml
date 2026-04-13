@@ -46,15 +46,15 @@ services:
     envs:
       - key: DB_HOST
         type: SECRET
-        value: "SET_IN_DASHBOARD"
+        value: "ENC_SET_VIA_DOCTL"
       - key: DB_PORT
         value: "25060"
       - key: DB_USER
         type: SECRET
-        value: "SET_IN_DASHBOARD"
+        value: "ENC_SET_VIA_DOCTL"
       - key: DB_PASSWORD
         type: SECRET
-        value: "SET_IN_DASHBOARD"
+        value: "ENC_SET_VIA_DOCTL"
       - key: DB_NAME
         value: "defaultdb"
       - key: DB_SSL
