@@ -1,391 +1,255 @@
 <div class="dashboard-page">
-  <div class="disclaimer-banner" role="alert">
-    ⚠️ BIAS SIMULATOR — Measured risk indicators, not definitive judgments
-  </div>
-
-  <div class="dashboard-container">
-    <header class="dashboard-header">
-      <h1>Bias-Aware Decision Intelligence</h1>
-      <p class="subtitle">Compare original, non-biased, and debiased evaluations — track fairness over time</p>
-      <div class="header-actions">
-        <div class="db-status" [class.connected]="dbConnected()">
-          <span class="db-dot"></span>
-          <span>{{ dbConnected() ? 'Live DB Connected' : 'Connecting...' }}</span>
-        </div>
-        <button class="export-btn" (click)="exportJSON()">Export JSON</button>
-        <button class="export-btn" (click)="exportCSV()">Export CSV</button>
+  <!-- ═══════════ Top Bar ═══════════ -->
+  <header class="top-bar">
+    <div class="brand">
+      <span class="brand-mark">◈</span>
+      <div class="brand-text">
+        <h1>TrustFeed</h1>
+        <span class="brand-tagline">Bias-Aware Decision Intelligence Platform</span>
       </div>
-    </header>
+    </div>
+    <div class="top-actions">
+      <div class="db-chip" [class.connected]="dbConnected()">
+        <span class="db-dot"></span>
+        {{ dbConnected() ? 'Live DB' : 'Connecting…' }}
+      </div>
+      <button class="btn-outline" (click)="exportJSON()">⤓ JSON</button>
+      <button class="btn-outline" (click)="exportCSV()">⤓ CSV</button>
+    </div>
+  </header>
 
-    <!-- ─── Live DB KPI Cards ──────────────────────────────────────── -->
+  <!-- ═══════════ Tab Navigation ═══════════ -->
+  <nav class="tab-nav" role="tablist">
+    @for (tab of tabs; track tab.id) {
+    <button class="tab-btn" role="tab"
+            [class.active]="activeTab() === tab.id"
+            [attr.aria-selected]="activeTab() === tab.id"
+            (click)="setTab(tab.id)">
+      <span class="tab-icon">{{ tab.icon }}</span>
+      {{ tab.label }}
+    </button>
+    }
+  </nav>
+
+  <main class="tab-content">
     @let at = agentTracking();
+    @let s  = summary();
+    @let an = analytics();
+    @let sp = selectedPost();
+    @let sc = surveyCompletionStats();
+    @let t  = trends();
+    @let ftr = fairnessTrends();
+    @let fs  = fairnessSummary();
+    @let fa  = factorAttribution();
+    @let agStats = agentStats();
+    @let chartStats = agentStats();
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║           TAB 1 — OVERVIEW               ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    @if (activeTab() === 'overview') {
+
+    <!-- Executive KPI Strip -->
+    <section class="kpi-strip" aria-label="Key performance indicators">
+      @if (at) {
+      <div class="kpi" data-accent="primary">
+        <span class="kpi-val">{{ at.totalFeedAnalyses }}</span>
+        <span class="kpi-lbl">Feed Analyses</span>
+        <span class="kpi-src">Live DB</span>
+      </div>
+      <div class="kpi" data-accent="secondary">
+        <span class="kpi-val">{{ at.totalSurveyVerdicts }}</span>
+        <span class="kpi-lbl">Survey Verdicts</span>
+        <span class="kpi-src">Live DB</span>
+      </div>
+      <div class="kpi" data-accent="tertiary">
+        <span class="kpi-val">{{ at.feedAnalysis.agentStats.length }}</span>
+        <span class="kpi-lbl">Active Agents</span>
+        <span class="kpi-src">Live DB</span>
+      </div>
+      <div class="kpi" data-accent="delta">
+        <span class="kpi-val">{{ getAvgBiasDelta() | number:'1.4-4' }}</span>
+        <span class="kpi-lbl">Avg Bias Δ</span>
+        <span class="kpi-src">Computed</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-val">{{ getAvgConfidence() | number:'1.3-3' }}</span>
+        <span class="kpi-lbl">Avg Confidence</span>
+        <span class="kpi-src">Computed</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-val">{{ getOverallAccuracy() | percent:'1.1-1' }}</span>
+        <span class="kpi-lbl">Overall Accuracy</span>
+        <span class="kpi-src">Verdicts</span>
+      </div>
+      }
+    </section>
+
+    <!-- Research Highlights -->
     @if (at) {
-    <section class="kpi-section db-kpi" aria-label="Database metrics">
-      <div class="kpi-card db">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ at.totalFeedAnalyses }}</span>
-          <span class="kpi-label">Feed Analyses (DB)</span>
+    <section class="highlights">
+      <div class="highlight-card">
+        <span class="hl-icon">⬡</span>
+        <div class="hl-body">
+          <span class="hl-title">Highest Scoring Agent</span>
+          <span class="hl-value">{{ getHighestScoringAgent() }}</span>
         </div>
       </div>
-      <div class="kpi-card db">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ at.totalSurveyVerdicts }}</span>
-          <span class="kpi-label">Survey Verdicts (DB)</span>
+      <div class="highlight-card">
+        <span class="hl-icon">◎</span>
+        <div class="hl-body">
+          <span class="hl-title">Most Accurate Region</span>
+          <span class="hl-value">{{ getMostAccurateRegion() }}</span>
         </div>
       </div>
-      <div class="kpi-card db">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ at.feedAnalysis.agentStats.length }}</span>
-          <span class="kpi-label">Active Agents</span>
+      <div class="highlight-card">
+        <span class="hl-icon">σ</span>
+        <div class="hl-body">
+          <span class="hl-title">Avg Score StdDev</span>
+          <span class="hl-value">{{ getAvgStdDev() | number:'1.4-4' }}</span>
         </div>
       </div>
-      <div class="kpi-card db delta">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ getAvgBiasDelta() | number:'1.4-4' }}</span>
-          <span class="kpi-label">Avg Bias Delta</span>
-        </div>
-      </div>
-      <div class="kpi-card db">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ getAvgConfidence() | number:'1.3-3' }}</span>
-          <span class="kpi-label">Avg Confidence</span>
-        </div>
-      </div>
-      <div class="kpi-card db">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ getAvgStdDev() | number:'1.4-4' }}</span>
-          <span class="kpi-label">Avg Score StdDev</span>
+      <div class="highlight-card">
+        <span class="hl-icon">Σ</span>
+        <div class="hl-body">
+          <span class="hl-title">Total Data Points</span>
+          <span class="hl-value">{{ totalDataPoints() }}</span>
         </div>
       </div>
     </section>
     }
 
-    <!-- ─── In-Memory KPI Cards (from Core API) ───────────────────── -->
-    @let s = summary();
+    <!-- In-Memory Session KPIs (if available) -->
     @if (s && s.totalAnalyzedPosts > 0) {
-    <section class="kpi-section" aria-label="Session analysis metrics">
-      <div class="kpi-card">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ s.totalAnalyzedPosts }}</span>
-          <span class="kpi-label">Session Analyzed</span>
-        </div>
+    <div class="report-section">
+      <h2 class="section-heading">Session Analytics <span class="badge">In-Memory</span></h2>
+      <div class="kpi-grid-sm">
+        <div class="kpi-sm"><span class="kpi-sm-val">{{ s.totalAnalyzedPosts }}</span><span class="kpi-sm-lbl">Analyzed</span></div>
+        <div class="kpi-sm flagged"><span class="kpi-sm-val">{{ s.totalBiasFlaggedPosts }}</span><span class="kpi-sm-lbl">Flagged</span></div>
+        <div class="kpi-sm safe"><span class="kpi-sm-val">{{ s.totalDebiasedPosts }}</span><span class="kpi-sm-lbl">Debiased</span></div>
+        <div class="kpi-sm"><span class="kpi-sm-val">{{ s.averageBiasDelta | number:'1.3-3' }}</span><span class="kpi-sm-lbl">Avg Bias Δ</span></div>
+        <div class="kpi-sm"><span class="kpi-sm-val">{{ s.averageDisagreementRate | number:'1.3-3' }}</span><span class="kpi-sm-lbl">Disagree Rate</span></div>
+        <div class="kpi-sm"><span class="kpi-sm-val">{{ s.averageRegionDominance | number:'1.3-3' }}</span><span class="kpi-sm-lbl">Region Dom.</span></div>
       </div>
-      <div class="kpi-card flagged">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ s.totalBiasFlaggedPosts }}</span>
-          <span class="kpi-label">Bias Flagged</span>
-        </div>
-      </div>
-      <div class="kpi-card safe">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ s.totalDebiasedPosts }}</span>
-          <span class="kpi-label">Debiased Safe</span>
-        </div>
-      </div>
-      <div class="kpi-card delta">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ s.averageBiasDelta | number:'1.3-3' }}</span>
-          <span class="kpi-label">Avg Bias Delta</span>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ s.averageDisagreementRate | number:'1.3-3' }}</span>
-          <span class="kpi-label">Avg Disagreement</span>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-data">
-          <span class="kpi-value">{{ s.averageRegionDominance | number:'1.3-3' }}</span>
-          <span class="kpi-label">Region Dominance</span>
-        </div>
-      </div>
-    </section>
+    </div>
     }
 
-    <!-- ─── Agent Performance (Live DB) ────────────────────────────── -->
+    <!-- Agent Score Distribution Chart -->
     @if (at && at.feedAnalysis.agentStats.length > 0) {
-    <section class="section-row">
-      <div class="panel agent-perf-panel">
-        <h3>Agent Performance (DB)</h3>
-        <p class="panel-desc">Per-agent statistics from {{ at.totalFeedAnalyses }} persistent feed analyses</p>
-        <div class="agent-table-wrap">
-          <table class="agent-table">
-            <thead>
-              <tr>
-                <th>Agent</th>
-                <th>Region</th>
-                <th>Analyses</th>
-                <th>Avg Score</th>
-                <th>Min</th>
-                <th>Max</th>
-                <th>StdDev</th>
-                <th>Confidence</th>
-                <th>Bias Δ</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (ag of at.feedAnalysis.agentStats; track ag.agent_name) {
-              <tr>
-                <td class="agent-name">{{ getRegionEmoji(ag.agent_region) }} {{ ag.agent_name.replace('BiasAgent','') }}</td>
-                <td>{{ ag.agent_region }}</td>
-                <td>{{ ag.total_analyses }}</td>
-                <td>{{ ag.avg_score | number:'1.4-4' }}</td>
-                <td>{{ ag.min_score | number:'1.4-4' }}</td>
-                <td>{{ ag.max_score | number:'1.4-4' }}</td>
-                <td>{{ ag.score_stddev | number:'1.4-4' }}</td>
-                <td>{{ ag.avg_confidence | number:'1.3-3' }}</td>
-                <td class="delta-cell">{{ ag.avg_bias_delta | number:'1.4-4' }}</td>
-              </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Survey Verdict Accuracy -->
-      <div class="panel verdict-panel">
-        <h3>Survey Verdict Accuracy (DB)</h3>
-        <p class="panel-desc">Per-region accuracy from {{ at.totalSurveyVerdicts }} agent verdicts</p>
-        @for (sv of at.surveyVerdicts; track sv.agent_region) {
-        <div class="verdict-row">
-          <span class="verdict-region">{{ getRegionEmoji(sv.agent_region) }} {{ sv.agent_region }}</span>
-          <div class="verdict-bar-track">
-            <div class="verdict-bar-fill" [style.width.%]="+sv.accuracy * 100" [style.background]="getAccuracyColor(+sv.accuracy)"></div>
-          </div>
-          <span class="verdict-accuracy" [style.color]="getAccuracyColor(+sv.accuracy)">{{ +sv.accuracy | percent:'1.1-1' }}</span>
-          <span class="verdict-count">{{ sv.correct_count }}/{{ sv.total_verdicts }}</span>
-        </div>
-        }
-      </div>
-    </section>
-
-    <!-- ─── Agent Score Distribution (DB Bar Chart) ────────────────── -->
-    <section class="panel chart-panel">
-      <h3>Agent Score Distribution (DB)</h3>
-      <p class="panel-desc">Average scores per agent from persistent feed analysis data</p>
+    <div class="report-section">
+      <h2 class="section-heading">Agent Score Distribution</h2>
+      <p class="section-desc">Average scores per agent from persistent feed analysis data</p>
       <div class="bar-chart">
         @for (ag of at.feedAnalysis.agentStats; track ag.agent_name) {
         <div class="bar-row">
           <span class="bar-label">{{ getRegionEmoji(ag.agent_region) }} {{ ag.agent_region }}</span>
           <div class="bar-track">
-            <div class="bar-fill db-score" [style.width.%]="ag.avg_score * 100" [title]="'Avg: ' + ag.avg_score"></div>
-            <div class="bar-fill db-confidence" [style.width.%]="ag.avg_confidence * 100" [title]="'Confidence: ' + ag.avg_confidence"></div>
+            <div class="bar-fill score-fill" [style.width.%]="ag.avg_score * 100" [title]="'Avg: ' + ag.avg_score"></div>
+            <div class="bar-fill conf-fill" [style.width.%]="ag.avg_confidence * 100" [title]="'Confidence: ' + ag.avg_confidence"></div>
           </div>
           <span class="bar-value">{{ ag.avg_score | number:'1.3-3' }}</span>
         </div>
         }
         <div class="chart-legend">
-          <span class="legend-item"><span class="legend-dot db-score"></span> Avg Score</span>
-          <span class="legend-item"><span class="legend-dot db-confidence"></span> Avg Confidence</span>
+          <span class="legend-item"><span class="legend-swatch score-fill"></span> Avg Score</span>
+          <span class="legend-item"><span class="legend-swatch conf-fill"></span> Avg Confidence</span>
         </div>
       </div>
-    </section>
+    </div>
+    }
 
-    <!-- ─── Recent Feed Analysis Log (DB) ──────────────────────────── -->
-    @if (at.feedAnalysis.recentLogs.length > 0) {
-    <section class="panel recent-logs-panel">
-      <h3>Recent Feed Analysis Log (DB)</h3>
-      <p class="panel-desc">Latest {{ at.feedAnalysis.recentLogs.length }} entries from feed_analysis_log table</p>
-      <div class="agent-table-wrap">
-        <table class="agent-table logs-table">
+    <!-- 7-Day Bias Trends -->
+    @if (t) {
+    <div class="report-section">
+      <h2 class="section-heading">7-Day Bias Trends</h2>
+      <div class="data-grid">
+        <div class="dg-header">
+          <span>Date</span><span>Analyzed</span><span>Flagged</span><span>Avg Δ</span><span>Avg Debiased</span>
+        </div>
+        @for (pt of t.points; track pt.date) {
+        <div class="dg-row">
+          <span>{{ pt.date }}</span>
+          <span>{{ pt.totalAnalyzed }}</span>
+          <span class="txt-warn">{{ pt.biasFlaggedCount }}</span>
+          <span>{{ pt.averageBiasDelta | number:'1.3-3' }}</span>
+          <span>{{ pt.averageDebiasedScore | number:'1.3-3' }}</span>
+        </div>
+        }
+      </div>
+    </div>
+    }
+    } <!-- /overview -->
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║        TAB 2 — AGENT REPORTS             ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    @if (activeTab() === 'agents') {
+
+    <!-- Agent Performance Table (DB) -->
+    @if (at && at.feedAnalysis.agentStats.length > 0) {
+    <div class="report-section">
+      <h2 class="section-heading">Agent Performance Report <span class="badge live">Live DB</span></h2>
+      <p class="section-desc">Per-agent statistics from {{ at.totalFeedAnalyses }} persistent feed analyses</p>
+      <div class="table-wrap">
+        <table class="pro-table">
           <thead>
             <tr>
-              <th>Timestamp</th>
-              <th>Post ID</th>
-              <th>Agent</th>
-              <th>Region</th>
-              <th>Score</th>
-              <th>Confidence</th>
-              <th>Bias Δ</th>
-              <th>Disagreement</th>
+              <th>Agent</th><th>Region</th><th>Analyses</th><th>Avg Score</th>
+              <th>Min</th><th>Max</th><th>StdDev</th><th>Confidence</th><th>Bias Δ</th>
             </tr>
           </thead>
           <tbody>
-            @for (log of at.feedAnalysis.recentLogs; track $index) {
+            @for (ag of at.feedAnalysis.agentStats; track ag.agent_name) {
             <tr>
-              <td class="log-ts">{{ log.created_at | date:'MMM d, HH:mm' }}</td>
-              <td class="log-postid">{{ log.post_id }}</td>
-              <td class="agent-name">{{ log.agent_name.replace('BiasAgent','') }}</td>
-              <td>{{ getRegionEmoji(log.agent_region) }} {{ log.agent_region }}</td>
-              <td>{{ log.score | number:'1.4-4' }}</td>
-              <td>{{ log.confidence | number:'1.3-3' }}</td>
-              <td class="delta-cell">{{ log.bias_delta | number:'1.4-4' }}</td>
-              <td>{{ log.disagreement_rate | number:'1.4-4' }}</td>
+              <td class="cell-agent">{{ getRegionEmoji(ag.agent_region) }} {{ ag.agent_name.replace('BiasAgent','') }}</td>
+              <td>{{ ag.agent_region }}</td>
+              <td class="cell-num">{{ ag.total_analyses }}</td>
+              <td class="cell-num">{{ ag.avg_score | number:'1.4-4' }}</td>
+              <td class="cell-num">{{ ag.min_score | number:'1.4-4' }}</td>
+              <td class="cell-num">{{ ag.max_score | number:'1.4-4' }}</td>
+              <td class="cell-num">{{ ag.score_stddev | number:'1.4-4' }}</td>
+              <td class="cell-num">{{ ag.avg_confidence | number:'1.3-3' }}</td>
+              <td class="cell-num cell-delta">{{ ag.avg_bias_delta | number:'1.4-4' }}</td>
             </tr>
             }
           </tbody>
         </table>
       </div>
-    </section>
-    }
+    </div>
     }
 
-    <!-- ─── Analytics Breakdown (DB) ───────────────────────────────── -->
-    @let an = analytics();
-    @if (an && an.totalCompletedSessions > 0) {
-    <section class="section-row">
-      <div class="panel">
-        <h3>Accuracy by Difficulty (DB)</h3>
-        <p class="panel-desc">Human detection accuracy by content difficulty</p>
-        @for (d of an.accuracyByDifficulty; track d.item_difficulty) {
+    <!-- Survey Verdict Accuracy -->
+    @if (at && at.surveyVerdicts.length > 0) {
+    <div class="report-section">
+      <h2 class="section-heading">Survey Verdict Accuracy</h2>
+      <p class="section-desc">Per-region accuracy from {{ at.totalSurveyVerdicts }} agent verdicts</p>
+      <div class="verdict-list">
+        @for (sv of at.surveyVerdicts; track sv.agent_region) {
         <div class="verdict-row">
-          <span class="verdict-region">{{ d.item_difficulty | titlecase }}</span>
-          <div class="verdict-bar-track">
-            <div class="verdict-bar-fill" [style.width.%]="+d.accuracy * 100" [style.background]="getAccuracyColor(+d.accuracy)"></div>
+          <span class="verdict-label">{{ getRegionEmoji(sv.agent_region) }} {{ sv.agent_region }}</span>
+          <div class="verdict-track">
+            <div class="verdict-fill" [style.width.%]="+sv.accuracy * 100" [style.background]="getAccuracyColor(+sv.accuracy)"></div>
           </div>
-          <span class="verdict-accuracy" [style.color]="getAccuracyColor(+d.accuracy)">{{ +d.accuracy | percent:'1.0-1' }}</span>
-          <span class="verdict-count">{{ d.correct }}/{{ d.total }}</span>
+          <span class="verdict-pct" [style.color]="getAccuracyColor(+sv.accuracy)">{{ +sv.accuracy | percent:'1.1-1' }}</span>
+          <span class="verdict-ratio">{{ sv.correct_count }}/{{ sv.total_verdicts }}</span>
         </div>
         }
       </div>
-      <div class="panel">
-        <h3>Accuracy by Category (DB)</h3>
-        <p class="panel-desc">Human detection accuracy by content category</p>
-        @for (c of an.accuracyByCategory; track c.item_category) {
-        <div class="verdict-row">
-          <span class="verdict-region">{{ c.item_category | titlecase }}</span>
-          <div class="verdict-bar-track">
-            <div class="verdict-bar-fill" [style.width.%]="+c.accuracy * 100" [style.background]="getAccuracyColor(+c.accuracy)"></div>
-          </div>
-          <span class="verdict-accuracy" [style.color]="getAccuracyColor(+c.accuracy)">{{ +c.accuracy | percent:'1.0-1' }}</span>
-          <span class="verdict-count">{{ c.correct }}/{{ c.total }}</span>
-        </div>
-        }
-      </div>
-    </section>
+    </div>
     }
 
-    <!-- ─── Decision Comparison (Original vs Non-Biased vs Debiased) ─── -->
-    @let sp = selectedPost();
-    @if (sp) {
-    @let br = sp.biasResult!;
-    <section class="panel decision-comparison">
-      <h3>Decision Comparison</h3>
-      <p class="panel-desc">Side-by-side view of how bias influenced the evaluation outcome</p>
-      <div class="comparison-cards">
-        <div class="compare-card original">
-          <span class="compare-label">Original (Biased)</span>
-          <span class="compare-score">{{ br.rawBiasedScore | number:'1.3-3' }}</span>
-          <span class="compare-note">Aggregated from 5 regional agents — may reflect regional preferences</span>
-        </div>
-        <div class="compare-arrow">→</div>
-        <div class="compare-card baseline">
-          <span class="compare-label">Non-Biased Baseline</span>
-          <span class="compare-score">{{ br.baselineNonbiasedScore | number:'1.3-3' }}</span>
-          <span class="compare-note">Raw ML score with no regional bias profile applied</span>
-        </div>
-        <div class="compare-arrow">→</div>
-        <div class="compare-card debiased">
-          <span class="compare-label">Debiased Adjusted</span>
-          <span class="compare-score">{{ br.debiasedAdjustedScore | number:'1.3-3' }}</span>
-          <span class="compare-note">Baseline + residual correction (clamped ±0.05)</span>
-        </div>
-      </div>
-      <div class="comparison-metrics">
-        <div class="metric-item">
-          <span class="metric-label">Bias Delta</span>
-          <span class="metric-value delta-color">{{ br.biasDelta | number:'1.4-4' }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Confidence Delta</span>
-          <span class="metric-value">{{ getConfidenceDelta() | number:'1.4-4' }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Amplification Index</span>
-          <span class="metric-value">{{ br.biasAmplificationIndex | number:'1.3-3' }}×</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Dominant Agent</span>
-          <span class="metric-value">{{ br.dominantBiasedAgent }}</span>
-        </div>
-      </div>
-      @if (br.explanationSummary) {
-      <div class="explanation-box">
-        <strong>Fairness Explanation:</strong> {{ br.explanationSummary }}
-      </div>
-      }
-    </section>
-    }
-
-    <!-- ─── Factor Attribution (Per-Feature Contribution) ──────────── -->
-    @let fa = factorAttribution();
-    @if (fa) {
-    <section class="panel factor-panel">
-      <h3>Factor Contribution Analysis</h3>
-      <p class="panel-desc">Which features drove the divergence between regional agents and baseline</p>
-
-      <!-- Global top factors & proxy risk -->
-      <div class="factor-meta-row">
-        <div class="factor-meta">
-          <span class="meta-label">Top Factors:</span>
-          <span class="meta-tags">
-            @for (f of fa.globalTopFactors; track f) {
-            <span class="factor-tag">{{ f }}</span>
-            }
-          </span>
-        </div>
-        @if (fa.proxyRiskIndicators.length > 0) {
-        <div class="factor-meta proxy-risk">
-          <span class="meta-label">Proxy Risk:</span>
-          @for (pr of fa.proxyRiskIndicators; track pr) {
-          <span class="proxy-tag">{{ pr }}</span>
-          }
-        </div>
-        }
-      </div>
-
-      <!-- Per-agent factor bars -->
-      @for (attr of fa.agentAttributions; track attr.agentName) {
-      <div class="agent-attribution">
-        <div class="attr-header">
-          <span class="attr-agent">{{ attr.agentName }}</span>
-          @if (attr.region) {
-          <span class="attr-region">({{ attr.region }})</span>
-          }
-          <span class="attr-delta" [class.positive]="attr.totalDelta > 0" [class.negative]="attr.totalDelta < 0">
-            Δ {{ attr.totalDelta | number:'1.4-4' }}
-          </span>
-        </div>
-        <div class="factor-bars">
-          @for (fc of attr.factors.slice(0, 5); track fc.factorName) {
-          <div class="factor-bar-row">
-            <span class="factor-name">{{ fc.factorName }}</span>
-            <div class="factor-bar-track">
-              <div class="factor-bar-fill"
-                   [class.positive]="fc.contribution >= 0"
-                   [class.negative]="fc.contribution < 0"
-                   [style.width.%]="getFactorBarWidth(fc.contributionPct)">
-              </div>
-            </div>
-            <span class="factor-value">{{ fc.contribution >= 0 ? '+' : '' }}{{ fc.contribution | number:'1.4-4' }}</span>
-            <span class="factor-pct">({{ fc.contributionPct | number:'1.0-0' }}%)</span>
-          </div>
-          }
-        </div>
-        <p class="attr-summary">{{ attr.summary }}</p>
-      </div>
-      }
-
-      @if (fa.fairnessSummary) {
-      <p class="fairness-summary">
-        {{ fa.fairnessSummary }}
-      </p>
-      }
-    </section>
-    }
-
-    <!-- ─── Section Row: Modality + Agent Stats ────────────────────── -->
+    <!-- In-Memory Per-Agent Statistics -->
     @if (s) {
-    <section class="section-row">
-      <div class="panel modality-panel">
-        <h3>Modality Breakdown</h3>
-        <div class="modality-bars">
+    <div class="two-col">
+      <div class="report-section">
+        <h2 class="section-heading">Modality Breakdown</h2>
+        <div class="modality-list">
           @for (mod of getModalityEntries(); track mod[0]) {
-          <div class="mod-bar-row">
+          <div class="mod-row">
             <span class="mod-label">{{ mod[0] | titlecase }}</span>
-            <div class="mod-bar-track">
-              <div class="mod-bar-fill" [style.width.%]="getModalityPercent(mod[1])" [style.background]="getModalityColor(mod[0])"></div>
+            <div class="mod-track">
+              <div class="mod-fill" [style.width.%]="getModalityPercent(mod[1])" [style.background]="getModalityColor(mod[0])"></div>
             </div>
             <span class="mod-count">{{ mod[1] }}</span>
           </div>
@@ -393,210 +257,235 @@
         </div>
       </div>
 
-      <div class="panel agent-panel">
-        <h3>Per-Agent Statistics</h3>
-        <div class="agent-table-wrap">
-          @let agStats = agentStats();
-          @if (agStats) {
-          <table class="agent-table">
+      <div class="report-section">
+        <h2 class="section-heading">Per-Agent Statistics</h2>
+        @if (agStats) {
+        <div class="table-wrap">
+          <table class="pro-table compact">
             <thead>
-              <tr>
-                <th>Agent</th>
-                <th>Region</th>
-                <th>Avg Score</th>
-                <th>Favoritism %</th>
-                <th>Avg Δ</th>
-              </tr>
+              <tr><th>Agent</th><th>Region</th><th>Avg Score</th><th>Favoritism</th><th>Avg Δ</th></tr>
             </thead>
             <tbody>
               @for (agent of agStats.agents; track agent.agentName) {
-              <tr [class.baseline]="agent.region === 'None'">
-                <td class="agent-name">{{ agent.agentName }}</td>
+              <tr [class.baseline-row]="agent.region === 'None'">
+                <td class="cell-agent">{{ agent.agentName }}</td>
                 <td>{{ agent.region }}</td>
-                <td>{{ agent.averageScore | number:'1.2-2' }}</td>
-                <td>
-                  <span class="fav-badge" [style.background]="getFavColor(agent.favoritismRate)">
-                    {{ agent.favoritismRate | percent:'1.0-0' }}
-                  </span>
-                </td>
-                <td>{{ agent.averageBiasDelta | number:'1.3-3' }}</td>
+                <td class="cell-num">{{ agent.averageScore | number:'1.2-2' }}</td>
+                <td><span class="pill" [style.background]="getFavColor(agent.favoritismRate)">{{ agent.favoritismRate | percent:'1.0-0' }}</span></td>
+                <td class="cell-num">{{ agent.averageBiasDelta | number:'1.3-3' }}</td>
               </tr>
               }
             </tbody>
           </table>
-          }
         </div>
+        }
       </div>
-    </section>
+    </div>
     }
 
-    <!-- ─── Raw vs Debiased Bar Chart ──────────────────────────────── -->
-    @let chartStats = agentStats();
+    <!-- Raw vs Debiased Comparison -->
     @if (chartStats) {
-    <section class="panel chart-panel">
-      <h3>Raw Biased vs Debiased Score Comparison</h3>
+    <div class="report-section">
+      <h2 class="section-heading">Raw Biased vs Debiased Scores</h2>
       <div class="bar-chart">
         @for (agent of chartStats.agents; track agent.agentName) {
         <div class="bar-row">
           <span class="bar-label">{{ agent.agentName.replace('BiasAgent','').replace('NonBiasBaseline','Baseline') }}</span>
           <div class="bar-track">
-            <div class="bar-fill raw" [style.width.%]="agent.averageScore * 100" title="Raw: {{ agent.averageScore | number:'1.2-2' }}"></div>
-            <div class="bar-fill debiased" [style.width.%]="(agent.averageScore - agent.averageBiasDelta) * 100" title="Debiased: {{ (agent.averageScore - agent.averageBiasDelta) | number:'1.2-2' }}"></div>
+            <div class="bar-fill raw-fill" [style.width.%]="agent.averageScore * 100" title="Raw: {{ agent.averageScore | number:'1.2-2' }}"></div>
+            <div class="bar-fill deb-fill" [style.width.%]="(agent.averageScore - agent.averageBiasDelta) * 100" title="Debiased: {{ (agent.averageScore - agent.averageBiasDelta) | number:'1.2-2' }}"></div>
           </div>
         </div>
         }
         <div class="chart-legend">
-          <span class="legend-item"><span class="legend-dot raw"></span> Raw Biased</span>
-          <span class="legend-item"><span class="legend-dot debiased"></span> Debiased</span>
+          <span class="legend-item"><span class="legend-swatch raw-fill"></span> Raw Biased</span>
+          <span class="legend-item"><span class="legend-swatch deb-fill"></span> Debiased</span>
         </div>
       </div>
-    </section>
+    </div>
+    }
+    } <!-- /agents -->
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║      TAB 3 — SURVEY RESEARCH             ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    @if (activeTab() === 'survey') {
+
+    <!-- Survey Completion Report -->
+    @if (sc) {
+    <div class="report-section">
+      <h2 class="section-heading">Survey Completion Report</h2>
+      <p class="section-desc">AI content detection survey participation and performance overview</p>
+
+      <div class="kpi-strip compact">
+        <div class="kpi" data-accent="primary"><span class="kpi-val">{{ sc.totalSessions }}</span><span class="kpi-lbl">Total Sessions</span></div>
+        <div class="kpi" data-accent="secondary"><span class="kpi-val">{{ sc.completedSessions }}</span><span class="kpi-lbl">Completed</span></div>
+        <div class="kpi"><span class="kpi-val">{{ sc.inProgressSessions }}</span><span class="kpi-lbl">In Progress</span></div>
+        <div class="kpi" data-accent="tertiary"><span class="kpi-val">{{ sc.completionRate | percent:'1.0-1' }}</span><span class="kpi-lbl">Completion Rate</span></div>
+        <div class="kpi"><span class="kpi-val">{{ sc.avgAccuracy | percent:'1.0-1' }}</span><span class="kpi-lbl">Avg Accuracy</span></div>
+        <div class="kpi"><span class="kpi-val">{{ sc.avgItemsPerSession }}</span><span class="kpi-lbl">Avg Items / Session</span></div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-block">
+        <div class="progress-meta">
+          <span>{{ sc.completedSessions }} of {{ sc.totalSessions }} completed</span>
+          <span>{{ sc.completionRate | percent:'1.0-1' }}</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" [style.width.%]="sc.completionRate * 100"></div></div>
+      </div>
+
+      <div class="two-col">
+        <div class="sub-card">
+          <h3>By Mode</h3>
+          @for (m of sc.byMode; track m.mode) {
+          <div class="detail-row">
+            <span class="detail-label">{{ m.mode }}</span>
+            <span class="detail-stat">{{ m.sessions }} sessions</span>
+            <span class="detail-stat accent">{{ m.avgAccuracy | percent:'1.0-1' }}</span>
+          </div>
+          }
+        </div>
+        <div class="sub-card">
+          <h3>By Difficulty</h3>
+          @for (d of sc.byDifficulty; track d.difficulty) {
+          <div class="detail-row">
+            <span class="detail-label">{{ d.difficulty }}</span>
+            <div class="detail-track"><div class="detail-fill" [style.width.%]="d.accuracy * 100"></div></div>
+            <span class="detail-stat">{{ d.correct }}/{{ d.total }} ({{ d.accuracy | percent:'1.0-0' }})</span>
+          </div>
+          }
+        </div>
+      </div>
+
+      <div class="sub-card wide">
+        <h3>Daily Completions</h3>
+        <div class="column-chart">
+          @for (rc of sc.recentCompletions; track rc.date) {
+          <div class="col-item">
+            <div class="col-bar" [style.height.px]="rc.completedCount * 16 + 4"></div>
+            <span class="col-val">{{ rc.completedCount }}</span>
+            <span class="col-lbl">{{ rc.date.slice(5) }}</span>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
     }
 
-    <!-- ─── Fairness Survey Panel ──────────────────────────────────── -->
-    @if (sp && !surveySubmitted()) {
-    <section class="panel fairness-panel">
-      <h3>Fairness Assessment Survey</h3>
-      <p class="panel-desc">How do you perceive the fairness of this analysis? Your feedback helps measure bias impact.</p>
+    <!-- Analytics: Accuracy by Difficulty + Category -->
+    @if (an && an.totalCompletedSessions > 0) {
+    <div class="two-col">
+      <div class="report-section">
+        <h2 class="section-heading">Accuracy by Difficulty <span class="badge live">DB</span></h2>
+        <div class="verdict-list">
+          @for (d of an.accuracyByDifficulty; track d.item_difficulty) {
+          <div class="verdict-row">
+            <span class="verdict-label">{{ d.item_difficulty | titlecase }}</span>
+            <div class="verdict-track">
+              <div class="verdict-fill" [style.width.%]="+d.accuracy * 100" [style.background]="getAccuracyColor(+d.accuracy)"></div>
+            </div>
+            <span class="verdict-pct" [style.color]="getAccuracyColor(+d.accuracy)">{{ +d.accuracy | percent:'1.0-1' }}</span>
+            <span class="verdict-ratio">{{ d.correct }}/{{ d.total }}</span>
+          </div>
+          }
+        </div>
+      </div>
+      <div class="report-section">
+        <h2 class="section-heading">Accuracy by Category <span class="badge live">DB</span></h2>
+        <div class="verdict-list">
+          @for (c of an.accuracyByCategory; track c.item_category) {
+          <div class="verdict-row">
+            <span class="verdict-label">{{ c.item_category | titlecase }}</span>
+            <div class="verdict-track">
+              <div class="verdict-fill" [style.width.%]="+c.accuracy * 100" [style.background]="getAccuracyColor(+c.accuracy)"></div>
+            </div>
+            <span class="verdict-pct" [style.color]="getAccuracyColor(+c.accuracy)">{{ +c.accuracy | percent:'1.0-1' }}</span>
+            <span class="verdict-ratio">{{ c.correct }}/{{ c.total }}</span>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+    }
 
+    <!-- Fairness Assessment Survey -->
+    @if (sp && !surveySubmitted()) {
+    <div class="report-section">
+      <h2 class="section-heading">Fairness Assessment Survey</h2>
+      <p class="section-desc">Rate your perception of analysis fairness. Your feedback measures bias impact on human trust.</p>
       <div class="survey-form">
         @for (q of surveyQuestions; track q.key) {
-        <div class="survey-question">
-          <label class="survey-label">{{ q.label }}</label>
-          <div class="likert-scale" role="radiogroup" [attr.aria-label]="q.label">
+        <div class="survey-q">
+          <label class="survey-q-label">{{ q.label }}</label>
+          <div class="likert" role="radiogroup" [attr.aria-label]="q.label">
             @for (val of [1,2,3,4,5]; track val) {
             <button class="likert-btn"
                     [class.selected]="surveyRatings()[q.key] === val"
                     (click)="setSurveyRating(q.key, val)"
-                    [attr.aria-pressed]="surveyRatings()[q.key] === val"
-                    [attr.aria-label]="val + ' out of 5'">
-              {{ val }}
-            </button>
+                    [attr.aria-pressed]="surveyRatings()[q.key] === val">{{ val }}</button>
             }
-            <span class="likert-labels">
-              <span>Strongly Disagree</span>
-              <span>Strongly Agree</span>
-            </span>
+            <span class="likert-anchors"><span>Strongly Disagree</span><span>Strongly Agree</span></span>
           </div>
         </div>
         }
-
-        <div class="survey-question">
-          <label class="survey-label" for="fairness-comment">Additional comments (optional)</label>
+        <div class="survey-q">
+          <label class="survey-q-label" for="fairness-comment">Additional comments (optional)</label>
           <textarea id="fairness-comment" class="survey-textarea"
-                    [value]="surveyComment()"
-                    (input)="surveyComment.set($any($event.target).value)"
-                    placeholder="Share your thoughts on the fairness of this analysis..."
-                    maxlength="2000"></textarea>
+                    [value]="surveyComment()" (input)="surveyComment.set($any($event.target).value)"
+                    placeholder="Share your thoughts on the fairness of this analysis…" maxlength="2000"></textarea>
         </div>
-
-        <button class="submit-btn" (click)="submitFairnessSurvey()" [disabled]="!canSubmitSurvey()">
-          Submit Fairness Assessment
-        </button>
+        <button class="btn-primary" (click)="submitFairnessSurvey()" [disabled]="!canSubmitSurvey()">Submit Assessment</button>
       </div>
-    </section>
+    </div>
     }
 
     @if (surveySubmitted()) {
-    <section class="panel">
+    <div class="report-section">
       <div class="survey-thanks">
-        <span class="thanks-icon">✓</span>
-        <p>Thank you for your fairness assessment. Your feedback contributes to bias measurement.</p>
-        <button class="reset-btn" (click)="resetSurvey()">Submit Another Assessment</button>
+        <span class="thanks-check">✓</span>
+        <p>Thank you. Your assessment contributes to bias measurement research.</p>
+        <button class="btn-outline" (click)="resetSurvey()">Submit Another</button>
       </div>
-    </section>
+    </div>
     }
 
-    <!-- ─── Fairness Survey Results Summary ────────────────────────── -->
-    @let fs = fairnessSummary();
+    <!-- Fairness Feedback Summary -->
     @if (fs) {
-    <section class="panel">
-      <h3>Fairness Feedback Summary</h3>
-      <p class="panel-desc">Aggregated user perceptions of analysis fairness ({{ fs.responseCount }} responses)</p>
-      <div class="fairness-metrics">
-        <div class="fairness-metric">
-          <span class="fm-label">Original Fairness</span>
-          <div class="fm-bar-track">
-            <div class="fm-bar-fill" [style.width.%]="fs.avgOriginalFairness / 5 * 100"></div>
-          </div>
-          <span class="fm-value">{{ fs.avgOriginalFairness | number:'1.1-1' }} / 5</span>
-        </div>
-        <div class="fairness-metric">
-          <span class="fm-label">Non-Biased Fairness</span>
-          <div class="fm-bar-track">
-            <div class="fm-bar-fill accent" [style.width.%]="fs.avgNonbiasedFairness / 5 * 100"></div>
-          </div>
-          <span class="fm-value">{{ fs.avgNonbiasedFairness | number:'1.1-1' }} / 5</span>
-        </div>
-        <div class="fairness-metric">
-          <span class="fm-label">Explanation Clarity</span>
-          <div class="fm-bar-track">
-            <div class="fm-bar-fill" [style.width.%]="fs.avgExplanationClarity / 5 * 100"></div>
-          </div>
-          <span class="fm-value">{{ fs.avgExplanationClarity | number:'1.1-1' }} / 5</span>
-        </div>
-        <div class="fairness-metric">
-          <span class="fm-label">Trust Impact</span>
-          <div class="fm-bar-track">
-            <div class="fm-bar-fill" [style.width.%]="fs.avgTrustImpact / 5 * 100"></div>
-          </div>
-          <span class="fm-value">{{ fs.avgTrustImpact | number:'1.1-1' }} / 5</span>
-        </div>
-        <div class="fairness-metric">
-          <span class="fm-label">Perceived Bias Severity</span>
-          <div class="fm-bar-track">
-            <div class="fm-bar-fill caution" [style.width.%]="fs.avgPerceivedBias / 5 * 100"></div>
-          </div>
-          <span class="fm-value">{{ fs.avgPerceivedBias | number:'1.1-1' }} / 5</span>
-        </div>
+    <div class="report-section">
+      <h2 class="section-heading">Fairness Feedback Summary</h2>
+      <p class="section-desc">Aggregated user perceptions ({{ fs.responseCount }} responses)</p>
+      <div class="fairness-bars">
+        <div class="fb-row"><span class="fb-lbl">Original Fairness</span>
+          <div class="fb-track"><div class="fb-fill" [style.width.%]="fs.avgOriginalFairness / 5 * 100"></div></div>
+          <span class="fb-val">{{ fs.avgOriginalFairness | number:'1.1-1' }}/5</span></div>
+        <div class="fb-row"><span class="fb-lbl">Non-Biased Fairness</span>
+          <div class="fb-track"><div class="fb-fill accent" [style.width.%]="fs.avgNonbiasedFairness / 5 * 100"></div></div>
+          <span class="fb-val">{{ fs.avgNonbiasedFairness | number:'1.1-1' }}/5</span></div>
+        <div class="fb-row"><span class="fb-lbl">Explanation Clarity</span>
+          <div class="fb-track"><div class="fb-fill" [style.width.%]="fs.avgExplanationClarity / 5 * 100"></div></div>
+          <span class="fb-val">{{ fs.avgExplanationClarity | number:'1.1-1' }}/5</span></div>
+        <div class="fb-row"><span class="fb-lbl">Trust Impact</span>
+          <div class="fb-track"><div class="fb-fill" [style.width.%]="fs.avgTrustImpact / 5 * 100"></div></div>
+          <span class="fb-val">{{ fs.avgTrustImpact | number:'1.1-1' }}/5</span></div>
+        <div class="fb-row"><span class="fb-lbl">Perceived Bias Severity</span>
+          <div class="fb-track"><div class="fb-fill caution" [style.width.%]="fs.avgPerceivedBias / 5 * 100"></div></div>
+          <span class="fb-val">{{ fs.avgPerceivedBias | number:'1.1-1' }}/5</span></div>
       </div>
-    </section>
+    </div>
     }
 
-    <!-- ─── Trend Section ──────────────────────────────────────────── -->
-    @let t = trends();
-    @if (t) {
-    <section class="panel chart-panel">
-      <h3>7-Day Bias Trends</h3>
-      <div class="trend-grid">
-        <div class="trend-row header-row">
-          <span>Date</span>
-          <span>Analyzed</span>
-          <span>Flagged</span>
-          <span>Avg Δ</span>
-          <span>Avg Debiased</span>
-        </div>
-        @for (pt of t.points; track pt.date) {
-        <div class="trend-row">
-          <span>{{ pt.date }}</span>
-          <span>{{ pt.totalAnalyzed }}</span>
-          <span class="flagged-count">{{ pt.biasFlaggedCount }}</span>
-          <span>{{ pt.averageBiasDelta | number:'1.3-3' }}</span>
-          <span>{{ pt.averageDebiasedScore | number:'1.3-3' }}</span>
-        </div>
-        }
-      </div>
-    </section>
-    }
-
-    <!-- ─── Fairness Trends ────────────────────────────────────────── -->
-    @let ftr = fairnessTrends();
+    <!-- Fairness Perception Trends -->
     @if (ftr && ftr.points.length > 0) {
-    <section class="panel chart-panel">
-      <h3>Fairness Perception Trends</h3>
-      <p class="panel-desc">How user-perceived fairness has changed over time</p>
-      <div class="trend-grid fairness-trend-grid">
-        <div class="trend-row header-row">
-          <span>Date</span>
-          <span>Responses</span>
-          <span>Orig. Fair</span>
-          <span>NonBias Fair</span>
-          <span>Clarity</span>
-          <span>Trust</span>
-          <span>Bias Sev.</span>
+    <div class="report-section">
+      <h2 class="section-heading">Fairness Perception Trends</h2>
+      <div class="data-grid wide-grid">
+        <div class="dg-header">
+          <span>Date</span><span>Responses</span><span>Orig Fair</span><span>NonBias</span><span>Clarity</span><span>Trust</span><span>Severity</span>
         </div>
         @for (ft of ftr.points; track ft.date) {
-        <div class="trend-row">
+        <div class="dg-row">
           <span>{{ ft.date }}</span>
           <span>{{ ft.responseCount }}</span>
           <span>{{ ft.avgOriginalFairness | number:'1.1-1' }}</span>
@@ -607,141 +496,178 @@
         </div>
         }
       </div>
-    </section>
+    </div>
+    }
+    } <!-- /survey -->
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║       TAB 4 — BIAS ANALYSIS              ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    @if (activeTab() === 'bias') {
+
+    <!-- Decision Comparison -->
+    @if (sp) {
+    @let br = sp.biasResult!;
+    <div class="report-section">
+      <h2 class="section-heading">Decision Comparison</h2>
+      <p class="section-desc">Side-by-side view of how bias influenced the evaluation outcome</p>
+      <div class="comparison-row">
+        <div class="cmp-card original"><span class="cmp-tag">Original (Biased)</span>
+          <span class="cmp-score">{{ br.rawBiasedScore | number:'1.3-3' }}</span>
+          <span class="cmp-note">Aggregated from 5 regional agents</span></div>
+        <span class="cmp-arrow">→</span>
+        <div class="cmp-card baseline"><span class="cmp-tag">Non-Biased Baseline</span>
+          <span class="cmp-score">{{ br.baselineNonbiasedScore | number:'1.3-3' }}</span>
+          <span class="cmp-note">Raw ML, no regional bias</span></div>
+        <span class="cmp-arrow">→</span>
+        <div class="cmp-card debiased"><span class="cmp-tag">Debiased Adjusted</span>
+          <span class="cmp-score">{{ br.debiasedAdjustedScore | number:'1.3-3' }}</span>
+          <span class="cmp-note">Baseline + residual correction</span></div>
+      </div>
+      <div class="metric-strip">
+        <div class="metric"><span class="metric-lbl">Bias Δ</span><span class="metric-val txt-delta">{{ br.biasDelta | number:'1.4-4' }}</span></div>
+        <div class="metric"><span class="metric-lbl">Confidence Δ</span><span class="metric-val">{{ getConfidenceDelta() | number:'1.4-4' }}</span></div>
+        <div class="metric"><span class="metric-lbl">Amplification</span><span class="metric-val">{{ br.biasAmplificationIndex | number:'1.3-3' }}×</span></div>
+        <div class="metric"><span class="metric-lbl">Dominant Agent</span><span class="metric-val">{{ br.dominantBiasedAgent }}</span></div>
+      </div>
+      @if (br.explanationSummary) {
+      <div class="callout">{{ br.explanationSummary }}</div>
+      }
+    </div>
     }
 
-    <!-- ─── Survey Completion Report ──────────────────────────────── -->
-    @let sc = surveyCompletionStats();
-    @if (sc) {
-    <section class="panel survey-completion-panel">
-      <h3>Survey Completion Report</h3>
-      <p class="panel-desc">Overview of how many users have completed the AI content detection survey</p>
+    <!-- Factor Attribution -->
+    @if (fa) {
+    <div class="report-section">
+      <h2 class="section-heading">Factor Contribution Analysis</h2>
+      <p class="section-desc">Features driving divergence between regional agents and baseline</p>
 
-      <!-- KPI row -->
-      <div class="survey-kpi-row">
-        <div class="survey-kpi">
-          <span class="survey-kpi-value">{{ sc.totalSessions }}</span>
-          <span class="survey-kpi-label">Total Sessions</span>
-        </div>
-        <div class="survey-kpi completed">
-          <span class="survey-kpi-value">{{ sc.completedSessions }}</span>
-          <span class="survey-kpi-label">Completed</span>
-        </div>
-        <div class="survey-kpi in-progress">
-          <span class="survey-kpi-value">{{ sc.inProgressSessions }}</span>
-          <span class="survey-kpi-label">In Progress</span>
-        </div>
-        <div class="survey-kpi rate">
-          <span class="survey-kpi-value">{{ sc.completionRate | percent:'1.0-1' }}</span>
-          <span class="survey-kpi-label">Completion Rate</span>
-        </div>
-        <div class="survey-kpi">
-          <span class="survey-kpi-value">{{ sc.avgAccuracy | percent:'1.0-1' }}</span>
-          <span class="survey-kpi-label">Avg Accuracy</span>
-        </div>
-        <div class="survey-kpi">
-          <span class="survey-kpi-value">{{ sc.avgItemsPerSession }}</span>
-          <span class="survey-kpi-label">Avg Items/Session</span>
-        </div>
-      </div>
-
-      <!-- Completion progress bar -->
-      <div class="completion-progress">
-        <div class="progress-label">
-          <span>{{ sc.completedSessions }} of {{ sc.totalSessions }} users completed</span>
-          <span>{{ sc.completionRate | percent:'1.0-1' }}</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" [style.width.%]="sc.completionRate * 100"></div>
-        </div>
-      </div>
-
-      <!-- Section row: Mode breakdown + Difficulty breakdown -->
-      <div class="survey-details-row">
-        <div class="survey-detail-card">
-          <h4>By Mode</h4>
-          @for (m of sc.byMode; track m.mode) {
-          <div class="detail-row">
-            <span class="detail-label">{{ m.mode }}</span>
-            <span class="detail-sessions">{{ m.sessions }} sessions</span>
-            <span class="detail-accuracy">{{ m.avgAccuracy | percent:'1.0-1' }} accuracy</span>
+      <div class="factor-meta">
+        <div class="meta-group">
+          <span class="meta-lbl">Top Factors</span>
+          <div class="tag-row">
+            @for (f of fa.globalTopFactors; track f) { <span class="tag">{{ f }}</span> }
           </div>
-          }
         </div>
-        <div class="survey-detail-card">
-          <h4>By Difficulty</h4>
-          @for (d of sc.byDifficulty; track d.difficulty) {
-          <div class="detail-row">
-            <span class="detail-label">{{ d.difficulty }}</span>
-            <div class="detail-bar-track">
-              <div class="detail-bar-fill" [style.width.%]="d.accuracy * 100"></div>
-            </div>
-            <span class="detail-accuracy">{{ d.correct }}/{{ d.total }} ({{ d.accuracy | percent:'1.0-0' }})</span>
+        @if (fa.proxyRiskIndicators.length > 0) {
+        <div class="meta-group risk">
+          <span class="meta-lbl">Proxy Risk</span>
+          <div class="tag-row">
+            @for (pr of fa.proxyRiskIndicators; track pr) { <span class="tag risk">{{ pr }}</span> }
           </div>
-          }
         </div>
+        }
       </div>
 
-      <!-- Recent completions trend -->
-      <div class="recent-completions">
-        <h4>Recent Daily Completions</h4>
-        <div class="completions-chart">
-          @for (rc of sc.recentCompletions; track rc.date) {
-          <div class="completion-bar-col">
-            <div class="completion-bar" [style.height.px]="rc.completedCount * 16"></div>
-            <span class="completion-count">{{ rc.completedCount }}</span>
-            <span class="completion-date">{{ rc.date.slice(5) }}</span>
-          </div>
-          }
+      @for (attr of fa.agentAttributions; track attr.agentName) {
+      <div class="attr-block">
+        <div class="attr-head">
+          <span class="attr-name">{{ attr.agentName }}</span>
+          @if (attr.region) { <span class="attr-region">{{ attr.region }}</span> }
+          <span class="attr-delta" [class.positive]="attr.totalDelta > 0" [class.negative]="attr.totalDelta < 0">Δ {{ attr.totalDelta | number:'1.4-4' }}</span>
         </div>
+        @for (fc of attr.factors.slice(0, 5); track fc.factorName) {
+        <div class="factor-row">
+          <span class="factor-name">{{ fc.factorName }}</span>
+          <div class="factor-track">
+            <div class="factor-fill" [class.positive]="fc.contribution >= 0" [class.negative]="fc.contribution < 0"
+                 [style.width.%]="getFactorBarWidth(fc.contributionPct)"></div>
+          </div>
+          <span class="factor-val">{{ fc.contribution >= 0 ? '+' : '' }}{{ fc.contribution | number:'1.4-4' }}</span>
+          <span class="factor-pct">({{ fc.contributionPct | number:'1.0-0' }}%)</span>
+        </div>
+        }
+        <p class="attr-summary">{{ attr.summary }}</p>
       </div>
-    </section>
+      }
+
+      @if (fa.fairnessSummary) {
+      <div class="callout">{{ fa.fairnessSummary }}</div>
+      }
+    </div>
     }
 
-    <!-- ─── Bias-Flagged Posts Table ───────────────────────────────── -->
-    <section class="panel">
-      <h3>Bias-Flagged Posts</h3>
-      <p class="panel-desc">Click a row to view decision comparison and factor attribution</p>
-      <div class="flagged-table-wrap">
-        <table class="agent-table">
+    <!-- Bias-Flagged Posts Table -->
+    <div class="report-section">
+      <h2 class="section-heading">Bias-Flagged Posts</h2>
+      <p class="section-desc">Click a row to view decision comparison and factor attribution</p>
+      <div class="table-wrap">
+        <table class="pro-table">
           <thead>
             <tr>
-              <th>Post ID</th>
-              <th>Author</th>
-              <th>Type</th>
-              <th>Raw</th>
-              <th>Baseline</th>
-              <th>Debiased</th>
-              <th>Δ</th>
-              <th>Dominant Agent</th>
-              <th>Region</th>
+              <th>Post ID</th><th>Author</th><th>Type</th><th>Raw</th><th>Baseline</th>
+              <th>Debiased</th><th>Δ</th><th>Dominant Agent</th><th>Region</th>
             </tr>
           </thead>
           <tbody>
             @for (post of getFlaggedPosts(); track post.id) {
             <tr (click)="selectPost(post)"
-                [class.selected-row]="selectedPost()?.id === post.id"
-                class="clickable-row"
-                role="button"
-                tabindex="0"
-                (keydown.enter)="selectPost(post)"
-                (keydown.space)="selectPost(post); $event.preventDefault()">
+                [class.active-row]="selectedPost()?.id === post.id"
+                class="clickable" role="button" tabindex="0"
+                (keydown.enter)="selectPost(post)" (keydown.space)="selectPost(post); $event.preventDefault()">
               <td>{{ post.id }}</td>
               <td>{{ post.author.name }}</td>
               <td>{{ post.contentType }}</td>
-              <td>{{ post.biasResult!.rawBiasedScore | number:'1.3-3' }}</td>
-              <td>{{ post.biasResult!.baselineNonbiasedScore | number:'1.3-3' }}</td>
-              <td>{{ post.biasResult!.debiasedAdjustedScore | number:'1.3-3' }}</td>
-              <td class="delta-cell">{{ post.biasResult!.biasDelta | number:'1.3-3' }}</td>
+              <td class="cell-num">{{ post.biasResult!.rawBiasedScore | number:'1.3-3' }}</td>
+              <td class="cell-num">{{ post.biasResult!.baselineNonbiasedScore | number:'1.3-3' }}</td>
+              <td class="cell-num">{{ post.biasResult!.debiasedAdjustedScore | number:'1.3-3' }}</td>
+              <td class="cell-num cell-delta">{{ post.biasResult!.biasDelta | number:'1.3-3' }}</td>
               <td>{{ post.biasResult!.dominantBiasedAgent }}</td>
               <td>{{ post.biasResult!.favoredRegion }}</td>
             </tr>
             } @empty {
-            <tr><td colspan="9" class="empty-msg">No bias-flagged posts yet.</td></tr>
+            <tr><td colspan="9" class="empty-cell">No bias-flagged posts yet.</td></tr>
             }
           </tbody>
         </table>
       </div>
-    </section>
-  </div>
+    </div>
+    } <!-- /bias -->
+
+
+    <!-- ╔══════════════════════════════════════════╗ -->
+    <!-- ║        TAB 5 — AUDIT TRAIL               ║ -->
+    <!-- ╚══════════════════════════════════════════╝ -->
+    @if (activeTab() === 'logs') {
+
+    <!-- Recent Feed Analysis Log -->
+    @if (at && at.feedAnalysis.recentLogs.length > 0) {
+    <div class="report-section">
+      <h2 class="section-heading">Feed Analysis Log <span class="badge live">Live DB</span></h2>
+      <p class="section-desc">Latest {{ at.feedAnalysis.recentLogs.length }} entries from the feed_analysis_log table</p>
+      <div class="table-wrap">
+        <table class="pro-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th><th>Post ID</th><th>Agent</th><th>Region</th>
+              <th>Score</th><th>Confidence</th><th>Bias Δ</th><th>Disagreement</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (log of at.feedAnalysis.recentLogs; track $index) {
+            <tr>
+              <td class="cell-ts">{{ log.created_at | date:'MMM d, HH:mm' }}</td>
+              <td class="cell-mono">{{ log.post_id }}</td>
+              <td class="cell-agent">{{ log.agent_name.replace('BiasAgent','') }}</td>
+              <td>{{ getRegionEmoji(log.agent_region) }} {{ log.agent_region }}</td>
+              <td class="cell-num">{{ log.score | number:'1.4-4' }}</td>
+              <td class="cell-num">{{ log.confidence | number:'1.3-3' }}</td>
+              <td class="cell-num cell-delta">{{ log.bias_delta | number:'1.4-4' }}</td>
+              <td class="cell-num">{{ log.disagreement_rate | number:'1.4-4' }}</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+    }
+    } <!-- /logs -->
+
+  </main>
+
+  <footer class="dash-footer">
+    <span>TrustFeed Research Platform — ITIS 5360 · {{ 'now' | date:'yyyy' }}</span>
+  </footer>
 </div>
+<div class="dashboard-page">
