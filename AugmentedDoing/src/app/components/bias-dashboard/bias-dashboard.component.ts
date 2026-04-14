@@ -1,11 +1,12 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { DecimalPipe, PercentPipe, TitleCasePipe } from '@angular/common';
+import { DecimalPipe, PercentPipe, TitleCasePipe, DatePipe } from '@angular/common';
 import { DashboardService } from '../../services/dashboard.service';
 import { PostService } from '../../services/post.service';
 import { FairnessSurveyService } from '../../services/fairness-survey.service';
 import {
   DashboardSummary, DashboardAgentStats, DashboardTrends,
   FairnessTrends, SurveyCompletionStats,
+  AgentTrackingResponse, AnalyticsResponse,
 } from '../../models/dashboard.model';
 import {
   FactorAttributionReport, FairnessSurveySummary,
@@ -24,7 +25,7 @@ interface SurveyRatings {
 @Component({
   selector: 'app-bias-dashboard',
   standalone: true,
-  imports: [DecimalPipe, PercentPipe, TitleCasePipe],
+  imports: [DecimalPipe, PercentPipe, TitleCasePipe, DatePipe],
   templateUrl: './bias-dashboard.component.html',
   styleUrl: './bias-dashboard.component.scss',
 })
@@ -38,6 +39,11 @@ export class BiasDashboardComponent implements OnInit {
   trends = signal<DashboardTrends | null>(null);
   fairnessTrends = signal<FairnessTrends | null>(null);
   surveyCompletionStats = signal<SurveyCompletionStats | null>(null);
+
+  // DB-connected live data
+  agentTracking = signal<AgentTrackingResponse | null>(null);
+  analytics = signal<AnalyticsResponse | null>(null);
+  dbConnected = signal(false);
 
   // Selected post for drill-down
   selectedPost = signal<Post | null>(null);
@@ -69,6 +75,13 @@ export class BiasDashboardComponent implements OnInit {
     this.dashboardService.getTrends().subscribe(t => this.trends.set(t));
     this.fairnessService.getFairnessTrends().subscribe(t => this.fairnessTrends.set(t));
     this.dashboardService.getSurveyCompletionStats().subscribe(s => this.surveyCompletionStats.set(s));
+
+    // DB-connected live data
+    this.dashboardService.getAgentTracking().subscribe(t => {
+      this.agentTracking.set(t);
+      this.dbConnected.set(t.totalFeedAnalyses > 0 || t.totalSurveyVerdicts > 0);
+    });
+    this.dashboardService.getAnalytics().subscribe(a => this.analytics.set(a));
 
     // Auto-select first flagged post if available
     const flagged = this.getFlaggedPosts();
@@ -176,6 +189,40 @@ export class BiasDashboardComponent implements OnInit {
 
   getFlaggedPosts(): Post[] {
     return this.postService.getAllPosts().filter(p => p.biasResult?.favoritismFlag);
+  }
+
+  getAccuracyColor(accuracy: number): string {
+    if (accuracy >= 0.75) return 'var(--status-confirm)';
+    if (accuracy >= 0.6) return 'var(--status-notice)';
+    return 'var(--status-critical)';
+  }
+
+  getRegionEmoji(region: string): string {
+    const m: Record<string, string> = {
+      Africa: '🌍', Asia: '🌏', Europe: '🌍', Americas: '🌎', Oceania: '🌏',
+    };
+    return m[region] || '🌐';
+  }
+
+  getAvgBiasDelta(): number {
+    const at = this.agentTracking();
+    if (!at || at.feedAnalysis.agentStats.length === 0) return 0;
+    const deltas = at.feedAnalysis.agentStats.map(a => +a.avg_bias_delta || 0);
+    return deltas.reduce((s, d) => s + d, 0) / deltas.length;
+  }
+
+  getAvgConfidence(): number {
+    const at = this.agentTracking();
+    if (!at || at.feedAnalysis.agentStats.length === 0) return 0;
+    const vals = at.feedAnalysis.agentStats.map(a => +a.avg_confidence || 0);
+    return vals.reduce((s, v) => s + v, 0) / vals.length;
+  }
+
+  getAvgStdDev(): number {
+    const at = this.agentTracking();
+    if (!at || at.feedAnalysis.agentStats.length === 0) return 0;
+    const vals = at.feedAnalysis.agentStats.map(a => +a.score_stddev || 0);
+    return vals.reduce((s, v) => s + v, 0) / vals.length;
   }
 
   exportJSON(): void {

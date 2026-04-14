@@ -949,3 +949,162 @@
   .factor-bar-fill, .fm-bar-fill, .likert-btn.selected,
   .factor-tag, .proxy-tag { forced-color-adjust: none; }
 }
+
+/* ─── DB Status ───────────────────────────────────────────────── */
+
+.db-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding: 0.35rem 0.8rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+
+  .db-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--status-critical);
+    transition: background 0.3s;
+  }
+
+  &.connected {
+    border-color: var(--status-confirm);
+    color: var(--status-confirm);
+
+    .db-dot {
+      background: var(--status-confirm);
+      box-shadow: 0 0 6px var(--status-confirm);
+      animation: pulse-dot 2s infinite;
+    }
+  }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ─── DB KPI Cards ────────────────────────────────────────────── */
+
+.db-kpi {
+  margin-bottom: 1rem;
+
+  .kpi-card.db {
+    border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-default));
+    background: color-mix(in srgb, var(--accent-primary) 5%, var(--bg-glass));
+
+    .kpi-label {
+      font-size: 0.68rem;
+    }
+  }
+}
+
+/* ─── Agent Performance Panel ─────────────────────────────────── */
+
+.agent-perf-panel {
+  grid-column: 1 / -1;
+}
+
+.logs-table {
+  .log-ts {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .log-postid {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    color: var(--accent-secondary);
+  }
+}
+
+/* ─── Verdict Accuracy Bars ───────────────────────────────────── */
+
+.verdict-panel {
+  min-width: 300px;
+}
+
+.verdict-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--bg-hover);
+
+  &:last-child { border-bottom: none; }
+}
+
+.verdict-region {
+  width: 120px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.verdict-bar-track {
+  flex: 1;
+  height: 20px;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.verdict-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.6s ease;
+}
+
+.verdict-accuracy {
+  width: 52px;
+  text-align: right;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.verdict-count {
+  width: 55px;
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ─── DB Score Bar ────────────────────────────────────────────── */
+
+.bar-fill.db-score {
+  background: var(--accent-primary);
+  opacity: 0.7;
+  z-index: 1;
+}
+
+.bar-fill.db-confidence {
+  background: var(--status-confirm);
+  opacity: 0.5;
+  z-index: 2;
+}
+
+.legend-dot.db-score { background: var(--accent-primary); }
+.legend-dot.db-confidence { background: var(--status-confirm); }
+
+.bar-value {
+  width: 55px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+/* ─── Recent Logs Panel ───────────────────────────────────────── */
+
+.recent-logs-panel {
+  .agent-table-wrap {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+}

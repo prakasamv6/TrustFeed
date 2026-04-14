@@ -1,10 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, delay, catchError } from 'rxjs';
+import { Observable, of, delay, catchError, map } from 'rxjs';
 import { environment } from './environment';
 import {
   DashboardSummary, DashboardAgentStats, DashboardTrends,
-  AgentStat, TrendPoint, PostDrilldown, SurveyCompletionStats
+  AgentStat, TrendPoint, PostDrilldown, SurveyCompletionStats,
+  AgentTrackingResponse, AnalyticsResponse,
 } from '../models/dashboard.model';
 import { AgentName, BiasRegion } from '../models/analysis.model';
 
@@ -13,30 +14,98 @@ export class DashboardService {
   private http = inject(HttpClient);
   private apiBase = environment.apiBase;
   private mockMode = environment.mockMode;
+  private surveyUrl = environment.surveyApiUrl || 'https://trustfeed-survey-ealep.ondigitalocean.app';
+
+  // ── DB-Connected Methods (persistent MySQL data) ──────────────────────
+
+  getAgentTracking(): Observable<AgentTrackingResponse> {
+    return this.http.get<AgentTrackingResponse>(`${this.surveyUrl}/api/agent-tracking`).pipe(
+      catchError(() => of({
+        feedAnalysis: { agentStats: [], recentLogs: [] },
+        surveyVerdicts: [],
+        totalFeedAnalyses: 0,
+        totalSurveyVerdicts: 0,
+      }))
+    );
+  }
+
+  getAnalytics(): Observable<AnalyticsResponse> {
+    return this.http.get<AnalyticsResponse>(`${this.surveyUrl}/api/analytics`).pipe(
+      catchError(() => of({
+        totalCompletedSessions: 0,
+        accuracyByMode: [],
+        accuracyByDifficulty: [],
+        agentAccuracy: [],
+        accuracyByCategory: [],
+      }))
+    );
+  }
+
+  // ── Core API Methods (with response-shape transformations) ────────────
 
   getSummary(): Observable<DashboardSummary> {
     if (this.mockMode) return of(this.mockSummary()).pipe(delay(400));
-    return this.http.get<DashboardSummary>(`${this.apiBase}/dashboard/summary`);
+    return this.http.get<any>(`${this.apiBase}/dashboard/summary`).pipe(
+      map(raw => ({
+        totalAnalyzedPosts: raw.totalAnalysed ?? raw.totalAnalyzedPosts ?? 0,
+        totalBiasFlaggedPosts: raw.flaggedCount ?? raw.totalBiasFlaggedPosts ?? 0,
+        totalDebiasedPosts: raw.debiasedSafeCount ?? raw.totalDebiasedPosts ?? 0,
+        averageBiasDelta: raw.avgBiasDelta ?? raw.averageBiasDelta ?? 0,
+        averageDisagreementRate: raw.avgDisagreement ?? raw.averageDisagreementRate ?? 0,
+        averageRegionDominance: raw.averageRegionDominance ?? 0,
+        modalityBreakdown: raw.modalityBreakdown ?? { text: raw.totalAnalysed ?? 0, image: 0, video: 0 },
+      })),
+      catchError(() => of(this.mockSummary()))
+    );
   }
 
   getAgentStats(): Observable<DashboardAgentStats> {
     if (this.mockMode) return of(this.mockAgentStats()).pipe(delay(400));
-    return this.http.get<DashboardAgentStats>(`${this.apiBase}/dashboard/agent-stats`);
+    const regionMap: Record<string, string> = {
+      AfricaBiasAgent: 'Africa', AsiaBiasAgent: 'Asia', EuropeBiasAgent: 'Europe',
+      AmericasBiasAgent: 'Americas', OceaniaBiasAgent: 'Oceania', NonBiasBaselineAgent: 'None',
+    };
+    return this.http.get<any>(`${this.apiBase}/dashboard/agent-stats`).pipe(
+      map(raw => {
+        if (raw.agents) return raw as DashboardAgentStats;
+        const agents: AgentStat[] = Object.entries(raw).map(([name, data]: [string, any]) => ({
+          agentName: name as AgentName,
+          region: (regionMap[name] || 'None') as BiasRegion | 'None',
+          totalSelections: data.count ?? 0,
+          averageScore: data.avgScore ?? 0,
+          favoritismRate: 0,
+          averageBiasDelta: 0,
+        }));
+        return { agents };
+      }),
+      catchError(() => of(this.mockAgentStats()))
+    );
   }
 
   getTrends(): Observable<DashboardTrends> {
     if (this.mockMode) return of(this.mockTrends()).pipe(delay(400));
-    return this.http.get<DashboardTrends>(`${this.apiBase}/dashboard/trends`);
+    return this.http.get<any>(`${this.apiBase}/dashboard/trends`).pipe(
+      map(raw => {
+        const arr = Array.isArray(raw) ? raw : raw.points || [];
+        return {
+          points: arr.map((pt: any) => ({
+            date: pt.date,
+            averageBiasDelta: pt.avgBiasDelta ?? pt.averageBiasDelta ?? 0,
+            averageDebiasedScore: pt.avgDebiasedScore ?? pt.averageDebiasedScore ?? 0,
+            totalAnalyzed: pt.count ?? pt.totalAnalyzed ?? 0,
+            biasFlaggedCount: pt.biasFlaggedCount ?? 0,
+          })),
+        };
+      }),
+      catchError(() => of(this.mockTrends()))
+    );
   }
 
   getSurveyCompletionStats(): Observable<SurveyCompletionStats> {
-    // Always fetch live survey data from the Survey API (not mock)
-    const surveyUrl = environment.surveyApiUrl || 'https://trustfeed-survey-ealep.ondigitalocean.app';
-    return this.http.get<SurveyCompletionStats>(`${surveyUrl}/api/survey-stats`).pipe(
-      catchError(() => {
-        // Fallback to Core proxy if direct fails
-        return this.http.get<SurveyCompletionStats>(`${this.apiBase}/survey-stats`);
-      })
+    return this.http.get<SurveyCompletionStats>(`${this.surveyUrl}/api/survey-stats`).pipe(
+      catchError(() => this.http.get<SurveyCompletionStats>(`${this.apiBase}/survey-stats`).pipe(
+        catchError(() => of(this.mockSurveyCompletionStats()))
+      ))
     );
   }
 

@@ -8,19 +8,66 @@
       <h1>Bias-Aware Decision Intelligence</h1>
       <p class="subtitle">Compare original, non-biased, and debiased evaluations — track fairness over time</p>
       <div class="header-actions">
+        <div class="db-status" [class.connected]="dbConnected()">
+          <span class="db-dot"></span>
+          <span>{{ dbConnected() ? 'Live DB Connected' : 'Connecting...' }}</span>
+        </div>
         <button class="export-btn" (click)="exportJSON()">Export JSON</button>
         <button class="export-btn" (click)="exportCSV()">Export CSV</button>
       </div>
     </header>
 
-    <!-- ─── KPI Cards ──────────────────────────────────────────────── -->
+    <!-- ─── Live DB KPI Cards ──────────────────────────────────────── -->
+    @let at = agentTracking();
+    @if (at) {
+    <section class="kpi-section db-kpi" aria-label="Database metrics">
+      <div class="kpi-card db">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ at.totalFeedAnalyses }}</span>
+          <span class="kpi-label">Feed Analyses (DB)</span>
+        </div>
+      </div>
+      <div class="kpi-card db">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ at.totalSurveyVerdicts }}</span>
+          <span class="kpi-label">Survey Verdicts (DB)</span>
+        </div>
+      </div>
+      <div class="kpi-card db">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ at.feedAnalysis.agentStats.length }}</span>
+          <span class="kpi-label">Active Agents</span>
+        </div>
+      </div>
+      <div class="kpi-card db delta">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ getAvgBiasDelta() | number:'1.4-4' }}</span>
+          <span class="kpi-label">Avg Bias Delta</span>
+        </div>
+      </div>
+      <div class="kpi-card db">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ getAvgConfidence() | number:'1.3-3' }}</span>
+          <span class="kpi-label">Avg Confidence</span>
+        </div>
+      </div>
+      <div class="kpi-card db">
+        <div class="kpi-data">
+          <span class="kpi-value">{{ getAvgStdDev() | number:'1.4-4' }}</span>
+          <span class="kpi-label">Avg Score StdDev</span>
+        </div>
+      </div>
+    </section>
+    }
+
+    <!-- ─── In-Memory KPI Cards (from Core API) ───────────────────── -->
     @let s = summary();
-    @if (s) {
-    <section class="kpi-section" aria-label="Key performance indicators">
+    @if (s && s.totalAnalyzedPosts > 0) {
+    <section class="kpi-section" aria-label="Session analysis metrics">
       <div class="kpi-card">
         <div class="kpi-data">
           <span class="kpi-value">{{ s.totalAnalyzedPosts }}</span>
-          <span class="kpi-label">Total Analyzed</span>
+          <span class="kpi-label">Session Analyzed</span>
         </div>
       </div>
       <div class="kpi-card flagged">
@@ -52,6 +99,159 @@
           <span class="kpi-value">{{ s.averageRegionDominance | number:'1.3-3' }}</span>
           <span class="kpi-label">Region Dominance</span>
         </div>
+      </div>
+    </section>
+    }
+
+    <!-- ─── Agent Performance (Live DB) ────────────────────────────── -->
+    @if (at && at.feedAnalysis.agentStats.length > 0) {
+    <section class="section-row">
+      <div class="panel agent-perf-panel">
+        <h3>Agent Performance (DB)</h3>
+        <p class="panel-desc">Per-agent statistics from {{ at.totalFeedAnalyses }} persistent feed analyses</p>
+        <div class="agent-table-wrap">
+          <table class="agent-table">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>Region</th>
+                <th>Analyses</th>
+                <th>Avg Score</th>
+                <th>Min</th>
+                <th>Max</th>
+                <th>StdDev</th>
+                <th>Confidence</th>
+                <th>Bias Δ</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ag of at.feedAnalysis.agentStats; track ag.agent_name) {
+              <tr>
+                <td class="agent-name">{{ getRegionEmoji(ag.agent_region) }} {{ ag.agent_name.replace('BiasAgent','') }}</td>
+                <td>{{ ag.agent_region }}</td>
+                <td>{{ ag.total_analyses }}</td>
+                <td>{{ ag.avg_score | number:'1.4-4' }}</td>
+                <td>{{ ag.min_score | number:'1.4-4' }}</td>
+                <td>{{ ag.max_score | number:'1.4-4' }}</td>
+                <td>{{ ag.score_stddev | number:'1.4-4' }}</td>
+                <td>{{ ag.avg_confidence | number:'1.3-3' }}</td>
+                <td class="delta-cell">{{ ag.avg_bias_delta | number:'1.4-4' }}</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Survey Verdict Accuracy -->
+      <div class="panel verdict-panel">
+        <h3>Survey Verdict Accuracy (DB)</h3>
+        <p class="panel-desc">Per-region accuracy from {{ at.totalSurveyVerdicts }} agent verdicts</p>
+        @for (sv of at.surveyVerdicts; track sv.agent_region) {
+        <div class="verdict-row">
+          <span class="verdict-region">{{ getRegionEmoji(sv.agent_region) }} {{ sv.agent_region }}</span>
+          <div class="verdict-bar-track">
+            <div class="verdict-bar-fill" [style.width.%]="+sv.accuracy * 100" [style.background]="getAccuracyColor(+sv.accuracy)"></div>
+          </div>
+          <span class="verdict-accuracy" [style.color]="getAccuracyColor(+sv.accuracy)">{{ +sv.accuracy | percent:'1.1-1' }}</span>
+          <span class="verdict-count">{{ sv.correct_count }}/{{ sv.total_verdicts }}</span>
+        </div>
+        }
+      </div>
+    </section>
+
+    <!-- ─── Agent Score Distribution (DB Bar Chart) ────────────────── -->
+    <section class="panel chart-panel">
+      <h3>Agent Score Distribution (DB)</h3>
+      <p class="panel-desc">Average scores per agent from persistent feed analysis data</p>
+      <div class="bar-chart">
+        @for (ag of at.feedAnalysis.agentStats; track ag.agent_name) {
+        <div class="bar-row">
+          <span class="bar-label">{{ getRegionEmoji(ag.agent_region) }} {{ ag.agent_region }}</span>
+          <div class="bar-track">
+            <div class="bar-fill db-score" [style.width.%]="ag.avg_score * 100" [title]="'Avg: ' + ag.avg_score"></div>
+            <div class="bar-fill db-confidence" [style.width.%]="ag.avg_confidence * 100" [title]="'Confidence: ' + ag.avg_confidence"></div>
+          </div>
+          <span class="bar-value">{{ ag.avg_score | number:'1.3-3' }}</span>
+        </div>
+        }
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-dot db-score"></span> Avg Score</span>
+          <span class="legend-item"><span class="legend-dot db-confidence"></span> Avg Confidence</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Recent Feed Analysis Log (DB) ──────────────────────────── -->
+    @if (at.feedAnalysis.recentLogs.length > 0) {
+    <section class="panel recent-logs-panel">
+      <h3>Recent Feed Analysis Log (DB)</h3>
+      <p class="panel-desc">Latest {{ at.feedAnalysis.recentLogs.length }} entries from feed_analysis_log table</p>
+      <div class="agent-table-wrap">
+        <table class="agent-table logs-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Post ID</th>
+              <th>Agent</th>
+              <th>Region</th>
+              <th>Score</th>
+              <th>Confidence</th>
+              <th>Bias Δ</th>
+              <th>Disagreement</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (log of at.feedAnalysis.recentLogs; track $index) {
+            <tr>
+              <td class="log-ts">{{ log.created_at | date:'MMM d, HH:mm' }}</td>
+              <td class="log-postid">{{ log.post_id }}</td>
+              <td class="agent-name">{{ log.agent_name.replace('BiasAgent','') }}</td>
+              <td>{{ getRegionEmoji(log.agent_region) }} {{ log.agent_region }}</td>
+              <td>{{ log.score | number:'1.4-4' }}</td>
+              <td>{{ log.confidence | number:'1.3-3' }}</td>
+              <td class="delta-cell">{{ log.bias_delta | number:'1.4-4' }}</td>
+              <td>{{ log.disagreement_rate | number:'1.4-4' }}</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+    }
+    }
+
+    <!-- ─── Analytics Breakdown (DB) ───────────────────────────────── -->
+    @let an = analytics();
+    @if (an && an.totalCompletedSessions > 0) {
+    <section class="section-row">
+      <div class="panel">
+        <h3>Accuracy by Difficulty (DB)</h3>
+        <p class="panel-desc">Human detection accuracy by content difficulty</p>
+        @for (d of an.accuracyByDifficulty; track d.item_difficulty) {
+        <div class="verdict-row">
+          <span class="verdict-region">{{ d.item_difficulty | titlecase }}</span>
+          <div class="verdict-bar-track">
+            <div class="verdict-bar-fill" [style.width.%]="+d.accuracy * 100" [style.background]="getAccuracyColor(+d.accuracy)"></div>
+          </div>
+          <span class="verdict-accuracy" [style.color]="getAccuracyColor(+d.accuracy)">{{ +d.accuracy | percent:'1.0-1' }}</span>
+          <span class="verdict-count">{{ d.correct }}/{{ d.total }}</span>
+        </div>
+        }
+      </div>
+      <div class="panel">
+        <h3>Accuracy by Category (DB)</h3>
+        <p class="panel-desc">Human detection accuracy by content category</p>
+        @for (c of an.accuracyByCategory; track c.item_category) {
+        <div class="verdict-row">
+          <span class="verdict-region">{{ c.item_category | titlecase }}</span>
+          <div class="verdict-bar-track">
+            <div class="verdict-bar-fill" [style.width.%]="+c.accuracy * 100" [style.background]="getAccuracyColor(+c.accuracy)"></div>
+          </div>
+          <span class="verdict-accuracy" [style.color]="getAccuracyColor(+c.accuracy)">{{ +c.accuracy | percent:'1.0-1' }}</span>
+          <span class="verdict-count">{{ c.correct }}/{{ c.total }}</span>
+        </div>
+        }
       </div>
     </section>
     }
