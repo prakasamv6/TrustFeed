@@ -152,6 +152,8 @@ Transparency panel and factor attribution drill-down & Implemented & Deployed UI
 Baseline-anchored bias observability metrics & Implemented & Backend scoring pipeline and dashboard endpoints \\
 Trend-level topic circuit breaker & Implemented & Rule-based backend monitoring and corrective actions \\
 Human evaluation survey app & Implemented & Separate deployed application and database schema \\
+Survey completion dashboard with live data & Implemented & Live DB integration showing session counts, accuracy, and completion rates \\
+Downloadable research report (JSON, CSV, HTML) & Implemented & Dashboard export to structured and human-readable formats \\
 User-level exposure-aware circuit breaker & Proposed & Formal model and interaction concept only \\
 Cryptographic provenance verification pipeline & Partial / future & Interface-ready concept, not full end-to-end enforcement \\
 Controlled causal user-study claims & Future work & Validation agenda, not completed results \\
@@ -208,7 +210,7 @@ Each post supports community verification actions. Viewers can vote that a post 
 
 \subsection{Transparency and dashboard observability}
 
-TrustFeed's interface includes a transparency panel and dashboard layer. At the post level, users can inspect agent scores, factor attributions, and corrective-action recommendations. At the feed level, dashboards summarize total analyses, bias delta, flagged count, and rolling trends. These dashboards are not presented as proof of detector accuracy. Their role is to make the state of the feed inspectable to users and researchers.
+TrustFeed's interface includes a transparency panel and dashboard layer. At the post level, users can inspect agent scores, factor attributions, and corrective-action recommendations. At the feed level, dashboards summarize total analyses, bias delta, flagged count, and rolling trends. A dedicated Survey Research tab displays live survey completion statistics---total sessions, completed versus in-progress counts, completion rate, average accuracy, and breakdowns by evaluation mode (solo vs.\ human-AI collaboration) and item difficulty---drawn directly from the companion survey application's database. Users and researchers can download a comprehensive HTML research report from the dashboard that consolidates all live metrics, agent performance data, survey completion status, and trend analyses into a single portable document. These dashboards and reports are not presented as proof of detector accuracy. Their role is to make the state of the feed inspectable to users and researchers.
 
 \section{Implementation Summary}
 
@@ -219,6 +221,8 @@ The implementation is intentionally summarized rather than exhaustively catalogu
 \textbf{Back end.} The Core API is implemented in FastAPI/Python and exposes endpoints for analysis, detection, trending, community flagging, and dashboards. The survey API is implemented in Express.js with MySQL persistence.
 
 \textbf{Analysis pipeline.} The backend orchestrates an eight-node LangGraph DAG that prepares content, fans out to agents, aggregates scores, debiases against the baseline, performs bias detection, attributes factors, generates explanation text, and builds a downloadable report.
+
+\textbf{Report export.} The dashboard provides three export formats: structured JSON (including all agent tracking, survey completion, and analytics data), CSV (bias-flagged post comparisons), and a full HTML research report. The HTML report aggregates executive KPIs, agent performance tables, survey verdict accuracy, survey completion status (sessions, completion rate, accuracy by mode and difficulty), category-level accuracy, and 7-day bias trends into a self-contained, printable document.
 
 \textbf{Content analyzers.} The prototype supports text, image, and video. Text analysis uses RoBERTa-derived features; image analysis uses OpenCV and Vision Transformer features; video analysis aggregates frame-level signals.
 

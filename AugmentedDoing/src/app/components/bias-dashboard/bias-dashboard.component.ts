@@ -56,6 +56,7 @@ export class BiasDashboardComponent implements OnInit {
   analytics = signal<AnalyticsResponse | null>(null);
   dbConnected = signal(false);
   loading = signal(true);
+  currentYear = new Date().getFullYear();
 
   // Post drill-down
   selectedPost = signal<Post | null>(null);
@@ -245,6 +246,120 @@ export class BiasDashboardComponent implements OnInit {
       return `${p.id},${p.author.name},${p.contentType},${b.rawBiasedScore},${b.baselineNonbiasedScore},${b.debiasedAdjustedScore},${b.biasDelta},${b.dominantBiasedAgent},${b.favoredRegion}`;
     }).join('\n');
     this.downloadFile(header + rows, 'trustfeed-research-report.csv', 'text/csv');
+  }
+
+  exportReport(): void {
+    const at = this.agentTracking();
+    const sc = this.surveyCompletionStats();
+    const an = this.analytics();
+    const s = this.summary();
+    const t = this.trends();
+    const ts = new Date().toISOString();
+
+    const agentRows = (at?.feedAnalysis.agentStats ?? []).map(ag =>
+      `<tr><td>${ag.agent_name}</td><td>${ag.agent_region}</td><td>${ag.total_analyses}</td>` +
+      `<td>${(+ag.avg_score).toFixed(4)}</td><td>${(+ag.avg_confidence).toFixed(3)}</td>` +
+      `<td>${(+ag.avg_bias_delta).toFixed(4)}</td></tr>`
+    ).join('');
+
+    const verdictRows = (at?.surveyVerdicts ?? []).map(sv =>
+      `<tr><td>${sv.agent_region}</td><td>${sv.correct_count}/${sv.total_verdicts}</td>` +
+      `<td>${(+sv.accuracy * 100).toFixed(1)}%</td></tr>`
+    ).join('');
+
+    const modeRows = (sc?.byMode ?? []).map(m =>
+      `<tr><td>${m.mode}</td><td>${m.sessions}</td><td>${((m.avgAccuracy ?? 0) * 100).toFixed(1)}%</td></tr>`
+    ).join('');
+
+    const diffRows = (sc?.byDifficulty ?? []).map(d =>
+      `<tr><td>${d.difficulty}</td><td>${d.correct}/${d.total}</td><td>${((d.accuracy ?? 0) * 100).toFixed(0)}%</td></tr>`
+    ).join('');
+
+    const trendRows = (t?.points ?? []).map(pt =>
+      `<tr><td>${pt.date}</td><td>${pt.totalAnalyzed}</td><td>${pt.biasFlaggedCount}</td>` +
+      `<td>${pt.averageBiasDelta.toFixed(3)}</td><td>${pt.averageDebiasedScore.toFixed(3)}</td></tr>`
+    ).join('');
+
+    const categoryRows = (an?.accuracyByCategory ?? []).map((c: any) =>
+      `<tr><td>${c.item_category}</td><td>${c.correct}/${c.total}</td><td>${(+c.accuracy * 100).toFixed(1)}%</td></tr>`
+    ).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>TrustFeed Research Report</title>
+<style>
+  body{font-family:system-ui,sans-serif;margin:2rem;color:#1a1a2e;line-height:1.6}
+  h1{color:#0f3460;border-bottom:3px solid #0f3460;padding-bottom:.5rem}
+  h2{color:#16213e;margin-top:2rem;border-bottom:1px solid #ddd;padding-bottom:.3rem}
+  table{border-collapse:collapse;width:100%;margin:.75rem 0}
+  th,td{border:1px solid #ddd;padding:.5rem .75rem;text-align:left;font-size:.9rem}
+  th{background:#f0f4f8;font-weight:600}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin:1rem 0}
+  .kpi-box{background:#f8f9fb;border:1px solid #e2e8f0;border-radius:8px;padding:1rem;text-align:center}
+  .kpi-box .val{font-size:1.5rem;font-weight:700;color:#0f3460}
+  .kpi-box .lbl{font-size:.8rem;color:#666}
+  .footer{margin-top:2rem;padding-top:1rem;border-top:1px solid #ddd;font-size:.8rem;color:#888}
+  .section-note{font-size:.85rem;color:#555;font-style:italic}
+</style></head><body>
+<h1>TrustFeed Research Report</h1>
+<p class="section-note">Generated: ${ts}</p>
+
+<h2>Executive Summary</h2>
+<div class="kpi-grid">
+  <div class="kpi-box"><div class="val">${at?.totalFeedAnalyses ?? 0}</div><div class="lbl">Feed Analyses</div></div>
+  <div class="kpi-box"><div class="val">${at?.totalSurveyVerdicts ?? 0}</div><div class="lbl">Survey Verdicts</div></div>
+  <div class="kpi-box"><div class="val">${at?.feedAnalysis.agentStats.length ?? 0}</div><div class="lbl">Active Agents</div></div>
+  <div class="kpi-box"><div class="val">${this.getAvgBiasDelta().toFixed(4)}</div><div class="lbl">Avg Bias Delta</div></div>
+  <div class="kpi-box"><div class="val">${this.getAvgConfidence().toFixed(3)}</div><div class="lbl">Avg Confidence</div></div>
+  <div class="kpi-box"><div class="val">${(this.getOverallAccuracy() * 100).toFixed(1)}%</div><div class="lbl">Overall Accuracy</div></div>
+</div>
+
+${s && s.totalAnalyzedPosts > 0 ? `<h2>Session Analytics</h2>
+<div class="kpi-grid">
+  <div class="kpi-box"><div class="val">${s.totalAnalyzedPosts}</div><div class="lbl">Analyzed</div></div>
+  <div class="kpi-box"><div class="val">${s.totalBiasFlaggedPosts}</div><div class="lbl">Flagged</div></div>
+  <div class="kpi-box"><div class="val">${s.totalDebiasedPosts}</div><div class="lbl">Debiased</div></div>
+  <div class="kpi-box"><div class="val">${s.averageBiasDelta.toFixed(3)}</div><div class="lbl">Avg Bias Delta</div></div>
+</div>` : ''}
+
+<h2>Agent Performance</h2>
+<table><thead><tr><th>Agent</th><th>Region</th><th>Analyses</th><th>Avg Score</th><th>Confidence</th><th>Bias Delta</th></tr></thead>
+<tbody>${agentRows || '<tr><td colspan="6">No agent data available</td></tr>'}</tbody></table>
+
+<h2>Survey Verdict Accuracy</h2>
+<table><thead><tr><th>Region</th><th>Correct / Total</th><th>Accuracy</th></tr></thead>
+<tbody>${verdictRows || '<tr><td colspan="3">No verdict data available</td></tr>'}</tbody></table>
+
+<h2>Survey Completion Status</h2>
+${sc ? `<div class="kpi-grid">
+  <div class="kpi-box"><div class="val">${sc.totalSessions}</div><div class="lbl">Total Sessions</div></div>
+  <div class="kpi-box"><div class="val">${sc.completedSessions}</div><div class="lbl">Completed</div></div>
+  <div class="kpi-box"><div class="val">${sc.inProgressSessions}</div><div class="lbl">In Progress</div></div>
+  <div class="kpi-box"><div class="val">${((sc.completionRate ?? 0) * 100).toFixed(1)}%</div><div class="lbl">Completion Rate</div></div>
+  <div class="kpi-box"><div class="val">${((sc.avgAccuracy ?? 0) * 100).toFixed(1)}%</div><div class="lbl">Avg Accuracy</div></div>
+  <div class="kpi-box"><div class="val">${sc.avgItemsPerSession}</div><div class="lbl">Avg Items/Session</div></div>
+</div>
+<h3>By Mode</h3>
+<table><thead><tr><th>Mode</th><th>Sessions</th><th>Avg Accuracy</th></tr></thead>
+<tbody>${modeRows || '<tr><td colspan="3">—</td></tr>'}</tbody></table>
+<h3>By Difficulty</h3>
+<table><thead><tr><th>Difficulty</th><th>Correct / Total</th><th>Accuracy</th></tr></thead>
+<tbody>${diffRows || '<tr><td colspan="3">—</td></tr>'}</tbody></table>` : '<p>Survey data unavailable.</p>'}
+
+${categoryRows ? `<h2>Accuracy by Category</h2>
+<table><thead><tr><th>Category</th><th>Correct / Total</th><th>Accuracy</th></tr></thead>
+<tbody>${categoryRows}</tbody></table>` : ''}
+
+<h2>7-Day Bias Trends</h2>
+<table><thead><tr><th>Date</th><th>Analyzed</th><th>Flagged</th><th>Avg Bias Delta</th><th>Avg Debiased</th></tr></thead>
+<tbody>${trendRows || '<tr><td colspan="5">No trend data available</td></tr>'}</tbody></table>
+
+<div class="footer">
+  <p>TrustFeed Research Platform — ITIS 5360 · ${this.currentYear}</p>
+  <p>This report was generated from live database and session data. All metrics are descriptive observability measures.</p>
+</div>
+</body></html>`;
+
+    this.downloadFile(html, `trustfeed-report-${new Date().toISOString().slice(0, 10)}.html`, 'text/html');
   }
 
   private downloadFile(content: string, filename: string, type: string): void {
