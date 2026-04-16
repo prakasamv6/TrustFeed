@@ -9,7 +9,11 @@ const fs = require('fs');
 const path = require('path');
 
 // ─── Dataset root path ───
-const DATASET_ROOT = path.resolve(__dirname, '..', '..', 'AugmentedDoing', 'dataset');
+// In Docker: /app/dataset (copied by Dockerfile)
+// Local dev: ../../AugmentedDoing/dataset (relative to server/)
+const DOCKER_DATASET = path.resolve(__dirname, 'dataset');
+const LOCAL_DATASET = path.resolve(__dirname, '..', '..', 'AugmentedDoing', 'dataset');
+const DATASET_ROOT = fs.existsSync(DOCKER_DATASET) ? DOCKER_DATASET : LOCAL_DATASET;
 
 const CONTINENTS = ['Africa', 'Asia', 'Europe', 'North_America', 'South_America', 'Antarctica', 'Australia'];
 

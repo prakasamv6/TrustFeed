@@ -479,47 +479,6 @@
     </div>
     }
 
-    <!-- Fairness Assessment Survey -->
-    @if (sp && !surveySubmitted()) {
-    <div class="report-section">
-      <h2 class="section-heading">Fairness Assessment Survey</h2>
-      <p class="section-desc">Rate your perception of analysis fairness. Your feedback measures bias impact on human trust.</p>
-      <div class="survey-form">
-        @for (q of surveyQuestions; track q.key) {
-        <div class="survey-q">
-          <label class="survey-q-label">{{ q.label }}</label>
-          <div class="likert" role="radiogroup" [attr.aria-label]="q.label">
-            @for (val of [1,2,3,4,5]; track val) {
-            <button class="likert-btn"
-                    [class.selected]="surveyRatings()[q.key] === val"
-                    (click)="setSurveyRating(q.key, val)"
-                    [attr.aria-pressed]="surveyRatings()[q.key] === val">{{ val }}</button>
-            }
-            <span class="likert-anchors"><span>Strongly Disagree</span><span>Strongly Agree</span></span>
-          </div>
-        </div>
-        }
-        <div class="survey-q">
-          <label class="survey-q-label" for="fairness-comment">Additional comments (optional)</label>
-          <textarea id="fairness-comment" class="survey-textarea"
-                    [value]="surveyComment()" (input)="surveyComment.set($any($event.target).value)"
-                    placeholder="Share your thoughts on the fairness of this analysis…" maxlength="2000"></textarea>
-        </div>
-        <button class="btn-primary" (click)="submitFairnessSurvey()" [disabled]="!canSubmitSurvey()">Submit Assessment</button>
-      </div>
-    </div>
-    }
-
-    @if (surveySubmitted()) {
-    <div class="report-section">
-      <div class="survey-thanks">
-        <span class="thanks-check">✓</span>
-        <p>Thank you. Your assessment contributes to bias measurement research.</p>
-        <button class="btn-outline" (click)="resetSurvey()">Submit Another</button>
-      </div>
-    </div>
-    }
-
     <!-- Fairness Feedback Summary -->
     @if (fs) {
     <div class="report-section">

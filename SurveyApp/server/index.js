@@ -566,6 +566,13 @@ app.post('/api/sessions/:id/responses', async (req, res) => {
       conn = await pool.getConnection();
       await conn.beginTransaction();
 
+      // Ensure session exists (handles race condition with createSession)
+      await conn.execute(
+        `INSERT IGNORE INTO survey_sessions (session_id, started_at, collab_mode, item_count)
+         VALUES (?, NOW(), FALSE, 6)`,
+        [sessionId]
+      );
+
       await conn.execute(
         `INSERT INTO survey_responses
          (session_id, item_index, item_title, item_category, item_difficulty, content_type,
@@ -579,7 +586,7 @@ app.post('/api/sessions/:id/responses', async (req, res) => {
           sessionId, parsedIndex,
           sanitizeString(itemTitle, 200), sanitizeString(itemCategory, 50),
           safeDifficulty, sanitizeString(contentType, 20) || 'text',
-          groundTruth, humanVerdict, humanConfidence,
+          groundTruth || humanVerdict, humanVerdict, humanConfidence,
           sanitizeString(humanReasoning, 1000) || null
         ]
       );
@@ -601,7 +608,7 @@ app.post('/api/sessions/:id/responses', async (req, res) => {
               isValidVerdict(av.verdict) ? av.verdict : 'human',
               typeof av.confidence === 'number' ? Math.min(Math.max(av.confidence, 0), 1) : 0.5,
               sanitizeString(av.reasoning, 500),
-              groundTruth
+              groundTruth || humanVerdict
             ]
           );
         }

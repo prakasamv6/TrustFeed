@@ -1,6 +1,7 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe, UpperCasePipe } from '@angular/common';
 import { SurveyService } from '../../services/survey.service';
+import { FairnessSurveyService } from '../../services/fairness-survey.service';
 import { Continent } from '../../models/survey.model';
 
 @Component({
@@ -219,6 +220,49 @@ import { Continent } from '../../models/survey.model';
           <span>🤝</span> Try {{ r.collabMode ? 'Solo' : 'Collab' }} Mode
         </button>
       </div>
+
+      <!-- ═══════════════════════════ -->
+      <!-- FAIRNESS ASSESSMENT SURVEY  -->
+      <!-- ═══════════════════════════ -->
+      @if (!fairnessSubmitted()) {
+      <div class="section fairness-section">
+        <h2>📋 Fairness Assessment Survey</h2>
+        <p class="section-desc">Rate your perception of analysis fairness. Your feedback measures bias impact on human trust.</p>
+        <div class="fairness-form">
+          @for (q of fairnessQuestions; track q.key) {
+          <div class="fq-item">
+            <label class="fq-label">{{ q.label }}</label>
+            <div class="likert" role="radiogroup" [attr.aria-label]="q.label">
+              @for (val of [1,2,3,4,5]; track val) {
+              <button class="likert-btn"
+                      [class.selected]="fairnessRatings()[q.key] === val"
+                      (click)="setFairnessRating(q.key, val)"
+                      [attr.aria-pressed]="fairnessRatings()[q.key] === val">{{ val }}</button>
+              }
+              <span class="likert-anchors"><span>Strongly Disagree</span><span>Strongly Agree</span></span>
+            </div>
+          </div>
+          }
+          <div class="fq-item">
+            <label class="fq-label" for="fairness-comment">Additional comments (optional)</label>
+            <textarea id="fairness-comment" class="fq-textarea"
+                      [value]="fairnessComment()" (input)="fairnessComment.set($any($event.target).value)"
+                      placeholder="Share your thoughts on the fairness of this analysis…" maxlength="2000"></textarea>
+          </div>
+          <button class="action-btn retry-btn" (click)="submitFairness()" [disabled]="!canSubmitFairness()">Submit Assessment</button>
+        </div>
+      </div>
+      }
+
+      @if (fairnessSubmitted()) {
+      <div class="section fairness-section">
+        <div class="fairness-thanks">
+          <span class="thanks-icon">✓</span>
+          <p>Thank you. Your assessment contributes to bias measurement research.</p>
+          <button class="action-btn collab-btn" (click)="resetFairness()">Submit Another</button>
+        </div>
+      </div>
+      }
 
       <!-- ═══════════════════════════════════════════════════════════ -->
       <!-- SESSION HISTORY & CROSS-SESSION PERFORMANCE DASHBOARD      -->
@@ -687,16 +731,101 @@ import { Continent } from '../../models/survey.model';
       .collab-compare-grid { grid-template-columns: 1fr; }
       .cc-card.vs { flex-direction: row; gap: 1rem; }
     }
+
+    /* ════════════  FAIRNESS SURVEY  ════════════ */
+    .fairness-section {
+      border: 1px solid rgba(139,92,246,.25);
+      background: linear-gradient(135deg, rgba(139,92,246,.06), rgba(59,130,246,.04));
+    }
+    .fairness-form { display: flex; flex-direction: column; gap: 1.25rem; }
+    .fq-item { display: flex; flex-direction: column; gap: 0.5rem; }
+    .fq-label { font-size: 0.9rem; color: var(--text-secondary); font-weight: 500; }
+    .likert { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+    .likert-btn {
+      width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--border-default);
+      background: var(--bg-hover); color: var(--text-muted); font-weight: 600; font-size: 0.9rem;
+      cursor: pointer; transition: all 0.2s; min-height: var(--min-touch-target, 44px);
+      &:hover { border-color: var(--accent-primary); color: var(--text-primary); }
+      &.selected { background: var(--accent-primary); color: white; border-color: var(--accent-primary); }
+    }
+    .likert-anchors {
+      display: flex; justify-content: space-between; width: 100%; font-size: 0.7rem; color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+    .fq-textarea {
+      width: 100%; min-height: 80px; padding: 0.75rem; border-radius: var(--radius-md);
+      background: var(--bg-hover); border: 1px solid var(--border-default); color: var(--text-primary);
+      font-size: 0.85rem; resize: vertical;
+      &:focus { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-color: var(--accent-primary); }
+    }
+    .fairness-thanks {
+      text-align: center; padding: 2rem;
+      .thanks-icon {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 48px; height: 48px; border-radius: 50%; font-size: 1.5rem; font-weight: 700;
+        background: var(--status-confirm); color: white; margin-bottom: 0.75rem;
+      }
+      p { color: var(--text-muted); font-size: 0.95rem; margin: 0.5rem 0 1rem; }
+    }
   `]
 })
 export class SurveyResultsComponent {
   surveyService = inject(SurveyService);
+  private fairnessService = inject(FairnessSurveyService);
 
   continents: Continent[] = ['Africa', 'Asia', 'Europe', 'North_America', 'South_America', 'Antarctica', 'Australia'];
 
   private regionFlags: Record<string, string> = {
     'Africa': '🌍', 'Asia': '🌏', 'Europe': '🇪🇺', 'North_America': '🌎', 'South_America': '🌎', 'Antarctica': '🧊', 'Australia': '🦘',
   };
+
+  // ─── Fairness Assessment Survey ────────────────────────────────
+
+  fairnessRatings = signal<Record<string, number>>({
+    originalFairness: 0, nonbiasedFairness: 0, explanationClarity: 0,
+    trustImpact: 0, perceivedBiasSeverity: 0,
+  });
+  fairnessComment = signal('');
+  fairnessSubmitted = signal(false);
+
+  fairnessQuestions = [
+    { key: 'originalFairness', label: 'The original (biased) result was fair and reasonable' },
+    { key: 'nonbiasedFairness', label: 'The non-biased baseline result was more equitable' },
+    { key: 'explanationClarity', label: 'The bias explanation was clear and understandable' },
+    { key: 'trustImpact', label: 'This analysis increased my trust in the system' },
+    { key: 'perceivedBiasSeverity', label: 'The detected bias appears significant and concerning' },
+  ];
+
+  setFairnessRating(key: string, value: number): void {
+    this.fairnessRatings.update(r => ({ ...r, [key]: value }));
+  }
+
+  canSubmitFairness(): boolean {
+    return Object.values(this.fairnessRatings()).every(v => v >= 1 && v <= 5);
+  }
+
+  submitFairness(): void {
+    const r = this.fairnessRatings();
+    const sessionId = this.surveyService.results()?.sessionId ?? 'unknown';
+    this.fairnessService.submitSurvey({
+      postId: sessionId,
+      originalFairness: r['originalFairness'],
+      nonbiasedFairness: r['nonbiasedFairness'],
+      explanationClarity: r['explanationClarity'],
+      trustImpact: r['trustImpact'],
+      perceivedBiasSeverity: r['perceivedBiasSeverity'],
+      comment: this.fairnessComment(),
+    }).subscribe(() => this.fairnessSubmitted.set(true));
+  }
+
+  resetFairness(): void {
+    this.fairnessSubmitted.set(false);
+    this.fairnessRatings.set({
+      originalFairness: 0, nonbiasedFairness: 0, explanationClarity: 0,
+      trustImpact: 0, perceivedBiasSeverity: 0,
+    });
+    this.fairnessComment.set('');
+  }
 
   /** Expose Math helpers to the template */
   mathMax = Math.max;

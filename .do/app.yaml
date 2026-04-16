@@ -32,7 +32,7 @@ services:
       repo: prakasamv6/TrustFeed
       branch: main
       deploy_on_push: true
-    source_dir: SurveyApp/server
+    source_dir: /
     http_port: 3000
     instance_count: 1
     instance_size_slug: basic-xxs
