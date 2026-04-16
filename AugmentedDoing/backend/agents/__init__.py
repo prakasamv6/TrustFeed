@@ -8,6 +8,10 @@ from .antarctica_bias_agent import AntarcticaBiasAgent
 from .australia_bias_agent import AustraliaBiasAgent
 from .nonbias_baseline_agent import NonBiasBaselineAgent
 
+# Backward-compatible aliases used by orchestration/tests.
+AmericasBiasAgent = NorthAmericaBiasAgent
+OceaniaBiasAgent = AustraliaBiasAgent
+
 ALL_AGENTS = [
     AfricaBiasAgent,
     AsiaBiasAgent,
@@ -29,6 +33,8 @@ __all__ = [
     "SouthAmericaBiasAgent",
     "AntarcticaBiasAgent",
     "AustraliaBiasAgent",
+    "AmericasBiasAgent",
+    "OceaniaBiasAgent",
     "NonBiasBaselineAgent",
     "ALL_AGENTS",
 ]

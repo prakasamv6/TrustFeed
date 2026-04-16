@@ -40,8 +40,8 @@ import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
             </div>
             <div class="info-card">
               <span class="ic-icon">🌍</span>
-              <h4>7 AI Agents</h4>
-              <p>Africa, Asia, Europe, N. America, S. America, Antarctica & Australia agents each give unique verdicts</p>
+              <h4>5 Regional Agents</h4>
+              <p>Africa, Asia, Europe, Americas, and Oceania agents each provide region-aware verdicts</p>
             </div>
             <div class="info-card">
               <span class="ic-icon">🤝</span>
@@ -159,7 +159,7 @@ import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
             <div class="agent-hint">
               <div class="hint-header">
                 <span class="hint-flag">{{ getRegionFlag(av.region) }}</span>
-                <span class="hint-region">{{ av.region }}</span>
+                <span class="hint-region">{{ getDisplayRegion(av.region) }}</span>
                 <span class="hint-verdict" [class]="'v-' + av.verdict">{{ av.verdict | uppercase }}</span>
                 <span class="hint-conf">{{ av.confidence * 100 | number:'1.0-0' }}%</span>
               </div>
@@ -189,7 +189,7 @@ import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
                 [class.agent-correct]="av.verdict === item.groundTruth"
                 [class.agent-wrong]="av.verdict !== item.groundTruth">
                 <div class="arc-header">
-                  <span>{{ getRegionFlag(av.region) }} {{ av.region }}</span>
+                  <span>{{ getRegionFlag(av.region) }} {{ getDisplayRegion(av.region) }}</span>
                   <span class="arc-verdict" [class]="'v-' + av.verdict">{{ av.verdict | uppercase }}</span>
                   <span class="arc-result">{{ av.verdict === item.groundTruth ? '✅' : '❌' }}</span>
                 </div>
@@ -585,7 +585,7 @@ export class SurveyComponent {
   pendingReasoning = '';
 
   private regionFlags: Record<string, string> = {
-    'Africa': '🌍', 'Asia': '🌏', 'Europe': '🇪🇺', 'North_America': '🌎', 'South_America': '🌎', 'Antarctica': '🧊', 'Australia': '🦘',
+    'Africa': '🌍', 'Asia': '🌏', 'Europe': '🇪🇺', 'Americas': '🌎', 'Oceania': '🏝️',
   };
 
   startSurvey(): void {
@@ -593,7 +593,17 @@ export class SurveyComponent {
   }
 
   getRegionFlag(region: string): string {
-    return this.regionFlags[region] ?? '🌐';
+    return this.regionFlags[this.getDisplayRegion(region)] ?? '🌐';
+  }
+
+  getDisplayRegion(region: string): string {
+    const normalized: Record<string, string> = {
+      North_America: 'Americas',
+      South_America: 'Americas',
+      Antarctica: 'Oceania',
+      Australia: 'Oceania',
+    };
+    return normalized[region] ?? region;
   }
 
   isLastItem(): boolean {

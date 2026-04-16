@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PostService } from '../../services/post.service';
@@ -13,52 +13,120 @@ import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
   imports: [CommonModule, FormsModule, IconComponent, ImgFallbackDirective],
   template: `
     <div class="create-post-card card-glass">
+      <!-- Header -->
       <div class="create-post-header">
-        <img [src]="currentUser.avatarUrl" [alt]="currentUser.name" class="avatar" appImgFallback="avatar" />
-        <div class="user-info">
-          <span class="user-name">{{ currentUser.name }}</span>
-          <span class="username">&#64;{{ currentUser.username }}</span>
+        <div class="author-row">
+          <img [src]="currentUser.avatarUrl" [alt]="currentUser.name" class="avatar" appImgFallback="avatar" />
+          <div class="author-details">
+            <span class="author-name">{{ currentUser.name }}</span>
+            <span class="author-username">&#64;{{ currentUser.username }}</span>
+          </div>
+        </div>
+        <div class="progress-indicator" [attr.aria-label]="'Form completion: ' + completionPercent() + ' percent'">
+          <div class="progress-bar" [style.width.%]="completionPercent()"></div>
         </div>
       </div>
 
-      <div class="create-post-body">
+      <form (ngSubmit)="submitPost()" (keydown.enter)="handleKeydown($event)" class="create-post-form">
         <!-- Content Type Selector -->
-        <fieldset class="content-type-section">
-          <legend class="section-label">Content Type</legend>
-          <div class="type-buttons" role="radiogroup" aria-label="Select content type">
+        <fieldset class="form-group">
+          <legend class="form-label">Content Type *</legend>
+          <div class="segmented-buttons" role="radiogroup" aria-label="Select content type">
             @for (t of contentTypes; track t.value) {
-              <button class="type-btn" [class.active]="selectedContentType() === t.value"
+              <button 
+                type="button"
+                class="seg-btn" 
+                [class.active]="selectedContentType() === t.value"
+                [class.disabled]="postContent().trim().length === 0"
                 (click)="selectedContentType.set(t.value)"
-                role="radio" [attr.aria-checked]="selectedContentType() === t.value">
-                <app-icon [name]="t.icon" [size]="14" />
-                {{ t.label }}
+                role="radio" 
+                [attr.aria-checked]="selectedContentType() === t.value"
+                [attr.aria-label]="t.label + ' - ' + (postContent().trim().length === 0 ? 'write content first' : 'available')">
+                <app-icon [name]="t.icon" [size]="18" />
+                <span>{{ t.label }}</span>
               </button>
             }
           </div>
         </fieldset>
 
-        <label for="post-content" class="sr-only">Post content</label>
-        <textarea
-          id="post-content"
-          [(ngModel)]="postContent"
-          placeholder="What's on your mind? Share your thoughts..."
-          class="post-input"
-          rows="3"
-        ></textarea>
+        <!-- Content Input -->
+        <fieldset class="form-group">
+          <label for="post-content" class="form-label">
+            What's on your mind? *
+            <span class="char-count" [class.warning]="postContent().length > 270" [class.max]="postContent().length >= 280">
+              {{ postContent().length }}<span class="char-max">/280</span>
+            </span>
+          </label>
+          <textarea
+            id="post-content"
+            [ngModel]="postContent()"
+            (ngModelChange)="postContent.set($event)"
+            name="postContent"
+            placeholder="Share your thoughts, observations, or content analysis..."
+            class="form-textarea"
+            [class.filled]="postContent().trim().length > 0"
+            [class.error]="postContent().trim().length === 0 && submitAttempted()"
+            rows="3"
+            maxlength="280"
+            (focus)="contentFocused.set(true)"
+            (blur)="contentFocused.set(false)"
+            aria-label="Post content"
+            aria-required="true"
+          ></textarea>
+          @if (postContent().trim().length === 0 && submitAttempted()) {
+            <span class="field-error" role="alert">
+              <app-icon name="warning" [size]="14" />
+              Content is required
+            </span>
+          }
+          @if (postContent().length >= 250) {
+            <span class="field-hint">{{ 280 - postContent().length }} characters remaining</span>
+          }
+        </fieldset>
 
-        <!-- File / URL input -->
+        <!-- Media Input (conditional) -->
         @if (selectedContentType() !== 'text') {
-          <div class="media-section">
-            <label [for]="'media-url'" class="sr-only">{{ selectedContentType() === 'image' ? 'Image URL' : 'Video URL' }}</label>
+          <fieldset class="form-group">
+            <label for="media-url" class="form-label">
+              {{ selectedContentType() === 'image' ? 'Image URL' : 'Video URL' }}
+              @if (selectedContentType() !== 'text') { <span class="required" aria-label="required">*</span> }
+            </label>
             <input
               id="media-url"
-              type="text"
-              [(ngModel)]="mediaUrl"
-              [placeholder]="selectedContentType() === 'image' ? 'Image URL or local file path' : 'Video URL or local file path'"
-              class="media-input"
+              type="url"
+              [ngModel]="mediaUrl()"
+              (ngModelChange)="mediaUrl.set($event)"
+              name="mediaUrl"
+              [placeholder]="selectedContentType() === 'image' ? 'https://example.com/image.jpg' : 'https://example.com/video.mp4'"
+              class="form-input"
+              [class.filled]="mediaUrl().trim().length > 0"
+              [class.error]="isMediaFieldInvalid()"
+              (focus)="mediaFocused.set(true)"
+              (blur)="mediaFocused.set(false)"
+              [attr.aria-label]="selectedContentType() === 'image' ? 'Image URL' : 'Video URL'"
             />
-          </div>
+            @if (isMediaFieldInvalid()) {
+              <span class="field-error" role="alert">
+                <app-icon name="warning" [size]="14" />
+                {{ selectedContentType() === 'image' ? 'Image' : 'Video' }} URL is required
+              </span>
+            }
+            <span class="field-hint">{{ selectedContentType() === 'image' ? 'PNG, JPG, WebP' : 'MP4, WebM, Ogg' }} • Max 50MB</span>
+          </fieldset>
         }
+
+        <!-- AI Toggle Section -->
+        <div class="media-section" *ngIf="showImageInput() && selectedContentType() === 'text'">
+          <label [for]="'inline-image-url'" class="sr-only">Image URL</label>
+          <input
+            id="inline-image-url"
+            type="text"
+            [ngModel]="imageUrl()"
+            (ngModelChange)="imageUrl.set($event)"
+            [placeholder]="'Image URL or local file path'"
+            class="media-input"
+          />
+        </div>
 
         <div class="ai-toggle-section">
           <div class="ai-toggle">
@@ -121,7 +189,7 @@ import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
             </div>
           }
         </div>
-      </div>
+      </form>
 
       <div class="create-post-footer">
         <div class="post-actions-left">
@@ -133,7 +201,7 @@ import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
         </div>
         <button
           class="post-btn btn-primary"
-          [disabled]="!postContent.trim()"
+          [disabled]="!postContent().trim()"
           (click)="submitPost()"
         >
           <app-icon name="send" [size]="16" />
@@ -426,9 +494,12 @@ export class CreatePostComponent {
   private analysisService = inject(AnalysisService);
 
   currentUser = this.postService.getCurrentUser();
-  postContent = '';
-  imageUrl = '';
-  mediaUrl = '';
+  postContent = signal('');
+  imageUrl = signal('');
+  mediaUrl = signal('');
+  contentFocused = signal(false);
+  mediaFocused = signal(false);
+  submitAttempted = signal(false);
   isAiGenerated = signal(false);
   showImageInput = signal(false);
   selectedContentType = signal<ContentModality>('text');
@@ -436,6 +507,13 @@ export class CreatePostComponent {
   compareBaseline = signal(true);
   showDebiased = signal(true);
   analysisRunning = signal(false);
+  completionPercent = computed(() => {
+    const content = this.postContent().trim().length > 0 ? 50 : 0;
+    const mediaRequired = this.selectedContentType() !== 'text';
+    const media = mediaRequired ? (this.mediaUrl().trim().length > 0 ? 30 : 0) : 30;
+    const aiFlag = 20;
+    return content + media + aiFlag;
+  });
 
   contentTypes: { value: 'text' | 'image' | 'video'; label: string; icon: IconName }[] = [
     { value: 'text', label: 'Text', icon: 'text' },
@@ -450,18 +528,37 @@ export class CreatePostComponent {
   toggleImageInput(): void {
     this.showImageInput.update(v => !v);
     if (!this.showImageInput()) {
-      this.imageUrl = '';
+      this.imageUrl.set('');
     }
   }
 
+  handleKeydown(event: Event): void {
+    const keyboardEvent = event as KeyboardEvent;
+    if ((keyboardEvent.ctrlKey || keyboardEvent.metaKey) && keyboardEvent.key === 'Enter') {
+      this.submitPost();
+    }
+  }
+
+  isMediaFieldInvalid(): boolean {
+    return this.selectedContentType() !== 'text' && this.submitAttempted() && this.mediaUrl().trim().length === 0;
+  }
+
   submitPost(): void {
-    if (this.postContent.trim()) {
+    this.submitAttempted.set(true);
+
+    if (this.postContent().trim()) {
       const ct = this.selectedContentType();
-      const img = ct === 'image' ? (this.mediaUrl.trim() || this.imageUrl.trim() || undefined) : (this.imageUrl.trim() || undefined);
+      const img = ct === 'image'
+        ? (this.mediaUrl().trim() || this.imageUrl().trim() || undefined)
+        : (this.imageUrl().trim() || undefined);
       const doAnalysis = this.runAnalysis();
 
+      if (ct !== 'text' && !this.mediaUrl().trim()) {
+        return;
+      }
+
       this.postService.createPost(
-        this.postContent.trim(),
+        this.postContent().trim(),
         this.isAiGenerated(),
         img,
         ct,
@@ -476,8 +573,8 @@ export class CreatePostComponent {
           this.analysisService.analyze({
             postId,
             contentType: ct,
-            content: this.postContent.trim(),
-            mediaUrl: this.mediaUrl.trim() || undefined,
+            content: this.postContent().trim(),
+            mediaUrl: this.mediaUrl().trim() || undefined,
           }).subscribe({
             next: (result) => {
               this.postService.updatePostAnalysis(postId, 'completed', {
@@ -506,12 +603,13 @@ export class CreatePostComponent {
         }
       }
 
-      this.postContent = '';
-      this.imageUrl = '';
-      this.mediaUrl = '';
+      this.postContent.set('');
+      this.imageUrl.set('');
+      this.mediaUrl.set('');
       this.isAiGenerated.set(false);
       this.showImageInput.set(false);
       this.runAnalysis.set(false);
+      this.submitAttempted.set(false);
     }
   }
 }

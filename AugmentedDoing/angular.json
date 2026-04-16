@@ -54,7 +54,11 @@
               "src/runtime-config.js"
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "src/app/styles/dashboard-refined.scss",
+              "src/app/styles/forms-enhanced.scss",
+              "src/app/styles/loading-empty-states.scss",
+              "src/app/styles/microinteractions.scss"
             ],
             "scripts": []
           },
@@ -115,7 +119,11 @@
               "src/assets"
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "src/app/styles/dashboard-refined.scss",
+              "src/app/styles/forms-enhanced.scss",
+              "src/app/styles/loading-empty-states.scss",
+              "src/app/styles/microinteractions.scss"
             ],
             "scripts": []
           }

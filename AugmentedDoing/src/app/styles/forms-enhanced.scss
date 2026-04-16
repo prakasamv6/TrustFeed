@@ -1,0 +1,578 @@
+/// ══════════════════════════════════════════════════════════════════════
+/// FORM UX ENHANCEMENT STYLES — Modern Field States & Validation
+/// ══════════════════════════════════════════════════════════════════════
+
+// ─ Form Structure ──────────────────────────────────────────────────────
+.create-post-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+// ─ Form Groups ─────────────────────────────────────────────────────────
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  gap: var(--space-2);
+
+  .required {
+    color: var(--status-critical);
+    font-weight: 700;
+  }
+}
+
+.char-count {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+
+  &.warning {
+    color: var(--status-notice);
+  }
+
+  &.max {
+    color: var(--status-critical);
+    font-weight: 600;
+  }
+}
+
+.char-max {
+  opacity: 0.5;
+}
+
+// ─ Text Input & Textarea ───────────────────────────────────────────────
+.form-input,
+.form-textarea {
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  outline: none;
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+
+  // Filled state
+  &.filled {
+    border-color: var(--border-primary);
+    background: rgba(var(--accent-primary-rgb), 0.03);
+  }
+
+  // Focus state
+  &:focus,
+  &:focus-visible {
+    border-color: var(--accent-primary);
+    background: var(--bg-secondary);
+    box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.1);
+  }
+
+  // Error state
+  &.error {
+    border-color: var(--status-critical);
+    background: rgba(var(--status-critical-rgb), 0.05);
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(var(--status-critical-rgb), 0.1);
+    }
+  }
+
+  // Disabled state
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--bg-tertiary);
+  }
+
+  // Dark mode support
+  @media (prefers-color-scheme: dark) {
+    background: rgba(var(--bg-tertiary-rgb), 0.5);
+
+    &.filled {
+      background: rgba(var(--accent-primary-rgb), 0.08);
+    }
+
+    &.error {
+      background: rgba(var(--status-critical-rgb), 0.08);
+    }
+  }
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.5;
+  max-height: 300px;
+}
+
+// ─ Segmented Buttons ───────────────────────────────────────────────────
+.segmented-buttons {
+  display: flex;
+  gap: var(--space-2);
+  padding: 4px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.seg-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  // Hover state
+  &:hover:not(.disabled) {
+    color: var(--text-secondary);
+    background: rgba(var(--accent-primary-rgb), 0.05);
+  }
+
+  // Active state
+  &.active {
+    background: var(--bg-secondary);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    box-shadow: 0 2px 4px rgba(var(--accent-primary-rgb), 0.15);
+  }
+
+  // Disabled state
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  // Focus visible
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+// ─ Field Validation Messages ───────────────────────────────────────────
+.field-error,
+.field-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+.field-error {
+  color: var(--status-critical);
+  font-weight: 500;
+  animation: slideDown 0.2s ease-out;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.field-hint {
+  color: var(--text-muted);
+  margin-top: var(--space-1);
+}
+
+// ─ Progress Indicator ──────────────────────────────────────────────────
+.progress-indicator {
+  width: 100%;
+  height: 4px;
+  background: var(--border-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--accent-primary),
+    var(--accent-cyan),
+    var(--accent-primary)
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: progressShimmer 2s infinite;
+}
+
+@keyframes progressShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// ─ Toggle Switch ───────────────────────────────────────────────────────
+.ai-toggle-section {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: rgba(var(--accent-cyan-rgb), 0.05);
+  border: 1px solid rgba(var(--accent-cyan-rgb), 0.2);
+}
+
+.ai-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  flex: 1;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.toggle-btn {
+  position: relative;
+  width: 50px;
+  height: 28px;
+  padding: 2px;
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-full);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+  flex-shrink: 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  &.ai-active {
+    background: rgba(var(--accent-cyan-rgb), 0.2);
+    border-color: var(--accent-cyan);
+  }
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+
+  .toggle-btn.ai-active & {
+    transform: translateX(22px);
+    background: var(--accent-cyan);
+    box-shadow: 0 2px 6px rgba(var(--accent-cyan-rgb), 0.4);
+  }
+}
+
+.ai-toggle-hint {
+  margin: 0;
+  padding: var(--space-2) 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+// ─ Checkbox & Radio Options ───────────────────────────────────────────
+.checkbox-row,
+.radio-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent-primary);
+  }
+
+  label {
+    cursor: pointer;
+    user-select: none;
+    flex: 1;
+  }
+}
+
+// ─ Button Group ───────────────────────────────────────────────────────
+.btn-group {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.btn-primary-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-cyan));
+  color: white;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--accent-primary-rgb), 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.icon-btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: var(--border-primary);
+    background: rgba(var(--accent-primary-rgb), 0.05);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+// ─ Analysis Toggles ────────────────────────────────────────────────────
+.analysis-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: rgba(var(--accent-orange-rgb), 0.05);
+  border: 1px solid rgba(var(--accent-orange-rgb), 0.2);
+  border-radius: var(--radius-lg);
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mini-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  user-select: none;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  flex: 1;
+
+  input[type='checkbox'] {
+    display: none;
+  }
+}
+
+.mini-track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--border-subtle);
+  border-radius: var(--radius-full);
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+
+.mini-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.mini-toggle input:checked ~ .mini-track {
+  background: var(--status-confirm);
+
+  .mini-thumb {
+    transform: translateX(16px);
+    box-shadow: 0 2px 6px rgba(0, 128, 0, 0.3);
+  }
+}
+
+.mini-toggle input:focus ~ .mini-track {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.analysis-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(var(--accent-orange-rgb), 0.1);
+  color: var(--accent-orange);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(var(--accent-orange-rgb), 0.25);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// ─ Responsive Adjustments ──────────────────────────────────────────────
+@media (max-width: 768px) {
+  .create-post-form {
+    gap: var(--space-4);
+  }
+
+  .form-group {
+    gap: var(--space-2);
+  }
+
+  .form-input,
+  .form-textarea {
+    font-size: 16px; // Prevents zoom-in on iOS
+    padding: var(--space-3) var(--space-3);
+  }
+
+  .segmented-buttons {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+
+  .seg-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: var(--space-2) var(--space-3);
+    border: 2px solid var(--border-subtle);
+
+    &.active {
+      background: var(--bg-secondary);
+      border-color: var(--accent-primary);
+    }
+  }
+
+  .toggle-label {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-group {
+    flex-direction: column;
+
+    > button {
+      width: 100%;
+    }
+  }
+}
+
+// ─ Animations ──────────────────────────────────────────────────────────
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ─ Print Styles ───────────────────────────────────────────────────────
+@media print {
+  .form-input,
+  .form-textarea {
+    border: 1px solid #ccc;
+    background: white;
+  }
+
+  .toggle-btn,
+  .seg-btn,
+  .btn-primary-sm {
+    border: 1px solid #000;
+    background: white;
+    color: #000;
+  }
+}

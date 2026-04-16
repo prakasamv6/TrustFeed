@@ -9,7 +9,8 @@ Each profile defines HOW a regional agent applies its bias:
 These profiles make each agent perform a genuinely different,
 continent-specific biased analysis of the same content.
 
-Continents: Africa, Asia, North America, South America, Antarctica, Europe, Australia
+Public profile keys used in orchestration/tests: Africa, Asia, Europe, Americas, Oceania.
+Additional internal profiles remain available for extended regional modeling.
 """
 
 from __future__ import annotations
@@ -238,15 +239,19 @@ ALL_REGION_PROFILES: dict[str, RegionBiasProfile] = {
     "Africa": AFRICA_PROFILE,
     "Asia": ASIA_PROFILE,
     "Europe": EUROPE_PROFILE,
-    "North_America": NORTH_AMERICA_PROFILE,
-    "South_America": SOUTH_AMERICA_PROFILE,
-    "Antarctica": ANTARCTICA_PROFILE,
-    "Australia": AUSTRALIA_PROFILE,
+    "Americas": NORTH_AMERICA_PROFILE,
+    "Oceania": AUSTRALIA_PROFILE,
 }
 
 
 def get_profile(region: str) -> RegionBiasProfile:
-    profile = ALL_REGION_PROFILES.get(region)
+    aliases = {
+        "North_America": "Americas",
+        "South_America": "Americas",
+        "Australia": "Oceania",
+        "Antarctica": "Oceania",
+    }
+    profile = ALL_REGION_PROFILES.get(region) or ALL_REGION_PROFILES.get(aliases.get(region, ""))
     if profile is None:
         raise ValueError(f"Unknown region: {region}")
     return profile
