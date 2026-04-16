@@ -21,6 +21,15 @@ export class DashboardService {
 
   getAgentTracking(): Observable<AgentTrackingResponse> {
     return this.http.get<AgentTrackingResponse>(`${this.surveyUrl}/api/agent-tracking`).pipe(
+      map(res => ({
+        feedAnalysis: {
+          agentStats: res.feedAnalysis?.agentStats ?? [],
+          recentLogs: res.feedAnalysis?.recentLogs ?? [],
+        },
+        surveyVerdicts: res.surveyVerdicts ?? [],
+        totalFeedAnalyses: res.totalFeedAnalyses ?? 0,
+        totalSurveyVerdicts: res.totalSurveyVerdicts ?? 0,
+      })),
       catchError(() => of({
         feedAnalysis: { agentStats: [], recentLogs: [] },
         surveyVerdicts: [],
@@ -44,7 +53,11 @@ export class DashboardService {
 
   getDbSessions(): Observable<DbSurveySession[]> {
     return this.http.get<DbSessionsResponse>(`${this.surveyUrl}/api/sessions`).pipe(
-      map(res => res.sessions || []),
+      map(res => (res.sessions || []).map(s => ({
+        ...s,
+        agentResults: s.agentResults ?? [],
+        agreementMatrix: s.agreementMatrix ?? [],
+      }))),
       catchError(() => of([]))
     );
   }

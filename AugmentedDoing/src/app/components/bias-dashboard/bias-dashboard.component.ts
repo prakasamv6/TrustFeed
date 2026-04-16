@@ -318,7 +318,7 @@ export class BiasDashboardComponent implements OnInit {
 <div class="kpi-grid">
   <div class="kpi-box"><div class="val">${at?.totalFeedAnalyses ?? 0}</div><div class="lbl">Feed Analyses</div></div>
   <div class="kpi-box"><div class="val">${at?.totalSurveyVerdicts ?? 0}</div><div class="lbl">Survey Verdicts</div></div>
-  <div class="kpi-box"><div class="val">${at?.feedAnalysis.agentStats.length ?? 0}</div><div class="lbl">Active Agents</div></div>
+  <div class="kpi-box"><div class="val">${at?.feedAnalysis?.agentStats?.length ?? 0}</div><div class="lbl">Active Agents</div></div>
   <div class="kpi-box"><div class="val">${this.getAvgBiasDelta().toFixed(4)}</div><div class="lbl">Avg Bias Delta</div></div>
   <div class="kpi-box"><div class="val">${this.getAvgConfidence().toFixed(3)}</div><div class="lbl">Avg Confidence</div></div>
   <div class="kpi-box"><div class="val">${(this.getOverallAccuracy() * 100).toFixed(1)}%</div><div class="lbl">Overall Accuracy</div></div>
@@ -388,14 +388,14 @@ ${categoryRows ? `<h2>Accuracy by Category</h2>
     const dbSess = this.dbSessions().map(s => ({
       sessionId: s.sessionId,
       collabMode: s.collabMode,
-      totalItems: s.totalItems,
-      humanCorrect: s.humanCorrect,
-      humanAccuracy: s.humanAccuracy,
-      humanAiCount: s.humanAiCount,
-      humanHumanCount: s.humanHumanCount,
-      actualAiCount: s.actualAiCount,
+      totalItems: s.totalItems ?? 0,
+      humanCorrect: s.humanCorrect ?? 0,
+      humanAccuracy: s.humanAccuracy ?? 0,
+      humanAiCount: s.humanAiCount ?? 0,
+      humanHumanCount: s.humanHumanCount ?? 0,
+      actualAiCount: s.actualAiCount ?? 0,
       actualHumanCount: s.actualHumanCount ?? 0,
-      agentResults: s.agentResults.map(a => ({ region: a.region, correct: a.correct, accuracy: a.accuracy })),
+      agentResults: (s.agentResults || []).map(a => ({ region: a.region, correct: a.correct ?? 0, accuracy: a.accuracy ?? 0 })),
       source: 'db' as const,
       completedAt: s.completedAt,
     }));
@@ -407,14 +407,14 @@ ${categoryRows ? `<h2>Accuracy by Category</h2>
       .map(s => ({
         sessionId: s.sessionId,
         collabMode: s.collabMode,
-        totalItems: s.totalItems,
-        humanCorrect: s.humanCorrect,
-        humanAccuracy: s.humanAccuracy,
-        humanAiCount: s.humanAiCount,
-        humanHumanCount: s.humanHumanCount,
-        actualAiCount: s.actualAiCount,
+        totalItems: s.totalItems ?? 0,
+        humanCorrect: s.humanCorrect ?? 0,
+        humanAccuracy: s.humanAccuracy ?? 0,
+        humanAiCount: s.humanAiCount ?? 0,
+        humanHumanCount: s.humanHumanCount ?? 0,
+        actualAiCount: s.actualAiCount ?? 0,
         actualHumanCount: s.actualHumanCount ?? 0,
-        agentResults: s.agentResults.map(a => ({ region: a.region, correct: a.correct, accuracy: a.accuracy })),
+        agentResults: (s.agentResults || []).map(a => ({ region: a.region, correct: a.correct ?? 0, accuracy: a.accuracy ?? 0 })),
         source: 'memory' as const,
         completedAt: undefined,
       }));
@@ -452,7 +452,7 @@ ${categoryRows ? `<h2>Accuracy by Category</h2>
   getSurveyAgentAggregate(): { region: string; correct: number; total: number; accuracy: number }[] {
     const map = new Map<string, { correct: number; total: number }>();
     for (const s of this.getAllSurveySessions()) {
-      for (const a of s.agentResults) {
+      for (const a of (s.agentResults || [])) {
         const cur = map.get(a.region) ?? { correct: 0, total: 0 };
         cur.correct += a.correct;
         cur.total += s.totalItems;

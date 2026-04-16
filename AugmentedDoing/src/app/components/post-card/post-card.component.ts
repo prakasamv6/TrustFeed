@@ -8,13 +8,12 @@ import { ContentTrustResult } from '../../models/analysis.model';
 import { AnalysisStatusComponent } from '../analysis-status/analysis-status.component';
 import { BiasDetailsModalComponent } from '../bias-details-modal/bias-details-modal.component';
 import { ReportExportComponent } from '../report-export/report-export.component';
-import { IconComponent } from '../icon/icon.component';
 import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
 
 @Component({
   selector: 'app-post-card',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, UpperCasePipe, AnalysisStatusComponent, BiasDetailsModalComponent, ReportExportComponent, IconComponent, ImgFallbackDirective],
+  imports: [DatePipe, DecimalPipe, UpperCasePipe, AnalysisStatusComponent, BiasDetailsModalComponent, ReportExportComponent, ImgFallbackDirective],
   template: `
     <article class="post-card" [class.ai-generated]="post.isAiGenerated" [class.bias-flagged]="post.biasResult?.favoritismFlag" [class.ai-analyzed]="post.aiAnalyzed"
              [attr.aria-label]="'Post by ' + post.author.name">
