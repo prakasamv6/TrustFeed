@@ -34,10 +34,10 @@ export class AnalysisService {
   }
 
   private generateMockResult(request: AnalysisRequest): BiasAnalysisResult {
-    const regions: BiasRegion[] = ['Africa', 'Asia', 'Europe', 'Americas', 'Oceania'];
+    const regions: BiasRegion[] = ['Africa', 'Asia', 'Europe', 'North_America', 'South_America', 'Antarctica', 'Australia'];
     const agentNames: AgentName[] = [
       'AfricaBiasAgent', 'AsiaBiasAgent', 'EuropeBiasAgent',
-      'AmericasBiasAgent', 'OceaniaBiasAgent', 'NonBiasBaselineAgent'
+      'NorthAmericaBiasAgent', 'SouthAmericaBiasAgent', 'AntarcticaBiasAgent', 'AustraliaBiasAgent', 'NonBiasBaselineAgent'
     ];
 
     // Generate deterministic-ish scores from postId hash

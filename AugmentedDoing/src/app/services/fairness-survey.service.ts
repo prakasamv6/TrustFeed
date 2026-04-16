@@ -43,7 +43,7 @@ export class FairnessSurveyService {
   /** Generate a mock factor attribution for demo/mock mode. */
   generateMockAttribution(postId: string): FactorAttributionReport {
     const seed = this.hashString(postId);
-    const regions = ['Africa', 'Asia', 'Europe', 'Americas', 'Oceania'] as const;
+    const regions = ['Africa', 'Asia', 'Europe', 'North_America', 'South_America', 'Antarctica', 'Australia'] as const;
     const factors: string[] = ['laplacian_variance', 'edge_density', 'color_uniformity', 'bias_direction', 'formal_language_penalty'];
 
     const agentAttributions: AgentAttribution[] = regions.map((region, i) => {

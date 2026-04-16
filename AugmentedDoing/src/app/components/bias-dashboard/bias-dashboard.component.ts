@@ -7,11 +7,13 @@ import {
   DashboardSummary, DashboardAgentStats, DashboardTrends,
   FairnessTrends, SurveyCompletionStats,
   AgentTrackingResponse, AnalyticsResponse,
+  DbSurveySession,
 } from '../../models/dashboard.model';
 import {
   FactorAttributionReport, FairnessSurveySummary,
 } from '../../models/analysis.model';
 import { Post } from '../../models/post.model';
+import { SurveyService } from '../../services/survey.service';
 
 type ReportTab = 'overview' | 'agents' | 'survey' | 'bias' | 'logs';
 
@@ -35,6 +37,13 @@ export class BiasDashboardComponent implements OnInit {
   private dashboardService = inject(DashboardService);
   private postService = inject(PostService);
   private fairnessService = inject(FairnessSurveyService);
+  private surveyService = inject(SurveyService);
+
+  /** In-memory completed survey sessions */
+  surveySessions = computed(() => this.surveyService.allResults());
+
+  /** DB-persisted survey sessions from SurveyApp MySQL */
+  dbSessions = signal<DbSurveySession[]>([]);
 
   // Tab navigation
   activeTab = signal<ReportTab>('overview');
@@ -104,6 +113,8 @@ export class BiasDashboardComponent implements OnInit {
       checkLoaded();
     });
     this.dashboardService.getAnalytics().subscribe(a => { this.analytics.set(a); checkLoaded(); });
+
+    this.dashboardService.getDbSessions().subscribe(sessions => this.dbSessions.set(sessions));
 
     const flagged = this.getFlaggedPosts();
     if (flagged.length > 0) this.selectPost(flagged[0]);
@@ -176,7 +187,7 @@ export class BiasDashboardComponent implements OnInit {
   }
 
   getRegionEmoji(region: string): string {
-    const m: Record<string, string> = { Africa: '🌍', Asia: '🌏', Europe: '🌍', Americas: '🌎', Oceania: '🌏' };
+    const m: Record<string, string> = { Africa: '🌍', Asia: '🌏', Europe: '🌍', North_America: '🌎', South_America: '🌎', Antarctica: '🧊', Australia: '🦘', Americas: '🌎', Oceania: '🌏' };
     return m[region] || '🌐';
   }
 
@@ -368,5 +379,93 @@ ${categoryRows ? `<h2>Accuracy by Category</h2>
     const a = document.createElement('a');
     a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ── Survey Session Analytics ────────────────────────────────────
+
+  /** Combine DB sessions + in-memory sessions (DB sessions take precedence) */
+  private getAllSurveySessions(): { sessionId: string; collabMode: boolean; totalItems: number; humanCorrect: number; humanAccuracy: number; humanAiCount: number; humanHumanCount: number; actualAiCount: number; actualHumanCount: number; agentResults: { region: string; correct: number; accuracy: number }[]; source: 'db' | 'memory'; completedAt?: string }[] {
+    const dbSess = this.dbSessions().map(s => ({
+      sessionId: s.sessionId,
+      collabMode: s.collabMode,
+      totalItems: s.totalItems,
+      humanCorrect: s.humanCorrect,
+      humanAccuracy: s.humanAccuracy,
+      humanAiCount: s.humanAiCount,
+      humanHumanCount: s.humanHumanCount,
+      actualAiCount: s.actualAiCount,
+      actualHumanCount: s.actualHumanCount ?? 0,
+      agentResults: s.agentResults.map(a => ({ region: a.region, correct: a.correct, accuracy: a.accuracy })),
+      source: 'db' as const,
+      completedAt: s.completedAt,
+    }));
+
+    // Merge in-memory sessions that aren't already in DB (by sessionId)
+    const dbIds = new Set(dbSess.map(s => s.sessionId));
+    const memSess = this.surveySessions()
+      .filter(s => !dbIds.has(s.sessionId))
+      .map(s => ({
+        sessionId: s.sessionId,
+        collabMode: s.collabMode,
+        totalItems: s.totalItems,
+        humanCorrect: s.humanCorrect,
+        humanAccuracy: s.humanAccuracy,
+        humanAiCount: s.humanAiCount,
+        humanHumanCount: s.humanHumanCount,
+        actualAiCount: s.actualAiCount,
+        actualHumanCount: s.actualHumanCount ?? 0,
+        agentResults: s.agentResults.map(a => ({ region: a.region, correct: a.correct, accuracy: a.accuracy })),
+        source: 'memory' as const,
+        completedAt: undefined,
+      }));
+
+    return [...dbSess, ...memSess];
+  }
+
+  getDbSessionCount(): number { return this.dbSessions().length; }
+  getMemSessionCount(): number {
+    const dbIds = new Set(this.dbSessions().map(s => s.sessionId));
+    return this.surveySessions().filter(s => !dbIds.has(s.sessionId)).length;
+  }
+
+  getSurveyOverallAccuracy(): number {
+    const sessions = this.getAllSurveySessions();
+    if (!sessions.length) return 0;
+    const total = sessions.reduce((s, r) => s + r.totalItems, 0);
+    const correct = sessions.reduce((s, r) => s + r.humanCorrect, 0);
+    return total ? correct / total : 0;
+  }
+
+  getSurveyTotalItems(): number {
+    return this.getAllSurveySessions().reduce((s, r) => s + r.totalItems, 0);
+  }
+
+  getSurveyTotalSessions(): number {
+    return this.getAllSurveySessions().length;
+  }
+
+  getSurveyBestAgentAcc(agentResults: { accuracy: number }[]): number {
+    if (!agentResults?.length) return 0;
+    return Math.max(...agentResults.map(a => a.accuracy));
+  }
+
+  getSurveyAgentAggregate(): { region: string; correct: number; total: number; accuracy: number }[] {
+    const map = new Map<string, { correct: number; total: number }>();
+    for (const s of this.getAllSurveySessions()) {
+      for (const a of s.agentResults) {
+        const cur = map.get(a.region) ?? { correct: 0, total: 0 };
+        cur.correct += a.correct;
+        cur.total += s.totalItems;
+        map.set(a.region, cur);
+      }
+    }
+    return Array.from(map.entries()).map(([region, v]) => ({
+      region, correct: v.correct, total: v.total,
+      accuracy: v.total ? v.correct / v.total : 0,
+    }));
+  }
+
+  getAllSurveySessionsForTemplate() {
+    return this.getAllSurveySessions();
   }
 }

@@ -7,7 +7,9 @@ Each profile defines HOW a regional agent applies its bias:
   • cultural_context — what the region "looks for" in content
 
 These profiles make each agent perform a genuinely different,
-country/region-specific biased analysis of the same content.
+continent-specific biased analysis of the same content.
+
+Continents: Africa, Asia, North America, South America, Antarctica, Europe, Australia
 """
 
 from __future__ import annotations
@@ -45,18 +47,18 @@ AFRICA_PROFILE = RegionBiasProfile(
     bias_intensity=0.72,
     bias_direction=0.15,
     feature_weights={
-        "laplacian_variance": 1.3,   # more sensitive to noise patterns
+        "laplacian_variance": 1.3,
         "edge_density": 1.1,
         "color_uniformity": 0.8,
-        "saturation_mean": 1.4,      # emphasises colour richness
+        "saturation_mean": 1.4,
         "freq_ratio": 0.9,
         "temporal_consistency": 1.0,
         "lexical_diversity": 1.2,
         "perplexity_proxy": 0.85,
     },
     text_sensitivities={
-        "formal_language_penalty": 0.20,    # formal English seen as more AI-like
-        "short_sentence_bonus": -0.10,      # short sentences seen as human
+        "formal_language_penalty": 0.20,
+        "short_sentence_bonus": -0.10,
         "repetition_penalty": 0.15,
     },
     cultural_context=(
@@ -74,18 +76,18 @@ ASIA_PROFILE = RegionBiasProfile(
     bias_direction=0.20,
     feature_weights={
         "laplacian_variance": 0.9,
-        "edge_density": 1.3,         # emphasises fine detail / edges
+        "edge_density": 1.3,
         "color_uniformity": 1.2,
         "saturation_mean": 0.85,
-        "freq_ratio": 1.4,           # focuses on frequency-domain artifacts
+        "freq_ratio": 1.4,
         "temporal_consistency": 1.2,
         "lexical_diversity": 0.9,
-        "perplexity_proxy": 1.3,     # high weight on perplexity
+        "perplexity_proxy": 1.3,
     },
     text_sensitivities={
         "formal_language_penalty": -0.05,
-        "short_sentence_bonus": 0.10,       # short sentences seen as AI-like
-        "repetition_penalty": 0.25,         # repetition strongly flagged
+        "short_sentence_bonus": 0.10,
+        "repetition_penalty": 0.25,
     },
     cultural_context=(
         "The Asia agent is biased toward flagging repetitive structure and "
@@ -102,15 +104,15 @@ EUROPE_PROFILE = RegionBiasProfile(
     feature_weights={
         "laplacian_variance": 1.1,
         "edge_density": 1.0,
-        "color_uniformity": 1.3,     # sensitive to over-uniform colour
+        "color_uniformity": 1.3,
         "saturation_mean": 1.0,
         "freq_ratio": 1.1,
-        "temporal_consistency": 1.3,  # emphasises temporal coherence in video
-        "lexical_diversity": 1.3,    # higher weight on vocabulary richness
+        "temporal_consistency": 1.3,
+        "lexical_diversity": 1.3,
         "perplexity_proxy": 1.1,
     },
     text_sensitivities={
-        "formal_language_penalty": -0.10,   # formal is considered normal
+        "formal_language_penalty": -0.10,
         "short_sentence_bonus": 0.05,
         "repetition_penalty": 0.20,
     },
@@ -121,9 +123,9 @@ EUROPE_PROFILE = RegionBiasProfile(
     ),
 )
 
-AMERICAS_PROFILE = RegionBiasProfile(
-    region="Americas",
-    agent_name="AmericasBiasAgent",
+NORTH_AMERICA_PROFILE = RegionBiasProfile(
+    region="North_America",
+    agent_name="NorthAmericaBiasAgent",
     bias_intensity=0.70,
     bias_direction=0.18,
     feature_weights={
@@ -135,23 +137,77 @@ AMERICAS_PROFILE = RegionBiasProfile(
         "temporal_consistency": 0.9,
         "lexical_diversity": 1.0,
         "perplexity_proxy": 1.2,
-        "block_artifact_score": 1.4,  # strongly checks for JPEG artifacts
+        "block_artifact_score": 1.4,
     },
     text_sensitivities={
         "formal_language_penalty": 0.15,
-        "short_sentence_bonus": -0.15,      # informal short writing accepted
+        "short_sentence_bonus": -0.15,
         "repetition_penalty": 0.10,
     },
     cultural_context=(
-        "The Americas agent is biased toward detecting compression artifacts "
+        "The North America agent is biased toward detecting compression artifacts "
         "and over-polished text. Casual conversational writing is given benefit "
         "of the doubt; formal or templated text is penalised."
     ),
 )
 
-OCEANIA_PROFILE = RegionBiasProfile(
-    region="Oceania",
-    agent_name="OceaniaBiasAgent",
+SOUTH_AMERICA_PROFILE = RegionBiasProfile(
+    region="South_America",
+    agent_name="SouthAmericaBiasAgent",
+    bias_intensity=0.67,
+    bias_direction=0.12,
+    feature_weights={
+        "laplacian_variance": 1.1,
+        "edge_density": 1.0,
+        "color_uniformity": 0.9,
+        "saturation_mean": 1.3,
+        "freq_ratio": 1.0,
+        "temporal_consistency": 1.1,
+        "lexical_diversity": 1.1,
+        "perplexity_proxy": 1.0,
+    },
+    text_sensitivities={
+        "formal_language_penalty": 0.10,
+        "short_sentence_bonus": -0.08,
+        "repetition_penalty": 0.18,
+    },
+    cultural_context=(
+        "The South America agent emphasises narrative vibrancy and emotional "
+        "authenticity. Overly clinical or neutral prose is flagged as AI-generated. "
+        "Strong color saturation in images is accepted as natural."
+    ),
+)
+
+ANTARCTICA_PROFILE = RegionBiasProfile(
+    region="Antarctica",
+    agent_name="AntarcticaBiasAgent",
+    bias_intensity=0.55,
+    bias_direction=0.05,
+    feature_weights={
+        "laplacian_variance": 1.2,
+        "edge_density": 1.1,
+        "color_uniformity": 1.4,
+        "saturation_mean": 0.7,
+        "freq_ratio": 1.3,
+        "temporal_consistency": 1.2,
+        "lexical_diversity": 1.0,
+        "perplexity_proxy": 1.1,
+    },
+    text_sensitivities={
+        "formal_language_penalty": -0.05,
+        "short_sentence_bonus": 0.0,
+        "repetition_penalty": 0.12,
+    },
+    cultural_context=(
+        "The Antarctica agent is the mildest bias profile. It focuses on "
+        "environmental and scientific data integrity — flagging over-uniform "
+        "colour palettes and suspiciously precise data as AI markers."
+    ),
+)
+
+AUSTRALIA_PROFILE = RegionBiasProfile(
+    region="Australia",
+    agent_name="AustraliaBiasAgent",
     bias_intensity=0.60,
     bias_direction=0.08,
     feature_weights={
@@ -163,7 +219,7 @@ OCEANIA_PROFILE = RegionBiasProfile(
         "temporal_consistency": 1.1,
         "lexical_diversity": 1.1,
         "perplexity_proxy": 1.0,
-        "motion_smoothness": 1.3,    # extra weight on motion (video)
+        "motion_smoothness": 1.3,
     },
     text_sensitivities={
         "formal_language_penalty": 0.05,
@@ -171,9 +227,9 @@ OCEANIA_PROFILE = RegionBiasProfile(
         "repetition_penalty": 0.18,
     },
     cultural_context=(
-        "The Oceania agent is the mildest regional bias. It emphasises edge "
-        "detail and motion smoothness in video, and is relatively balanced "
-        "on text. Slight inflation on high-noise images."
+        "The Australia agent emphasises edge detail and motion smoothness "
+        "in video. Relatively balanced on text with slight inflation on "
+        "high-noise images. Cross-modal consistency is a key focus."
     ),
 )
 
@@ -182,8 +238,10 @@ ALL_REGION_PROFILES: dict[str, RegionBiasProfile] = {
     "Africa": AFRICA_PROFILE,
     "Asia": ASIA_PROFILE,
     "Europe": EUROPE_PROFILE,
-    "Americas": AMERICAS_PROFILE,
-    "Oceania": OCEANIA_PROFILE,
+    "North_America": NORTH_AMERICA_PROFILE,
+    "South_America": SOUTH_AMERICA_PROFILE,
+    "Antarctica": ANTARCTICA_PROFILE,
+    "Australia": AUSTRALIA_PROFILE,
 }
 
 

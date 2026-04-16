@@ -1,9 +1,7 @@
 """Asia regional bias agent.
 
 Role: Simulates a content-provenance evaluator with an Asian regional
-perspective. Biased toward flagging repetitive structure and frequency-domain
-anomalies as AI markers. More lenient on formal language but penalises
-repetition heavily. Focuses on fine detail and edges in images.
+perspective. Uses local dataset from AugmentedDoing/dataset/Asia/.
 """
 
 from .base_agent import AgentScoreResult, BaseAgent
@@ -12,6 +10,7 @@ from .base_agent import AgentScoreResult, BaseAgent
 class AsiaBiasAgent(BaseAgent):
     name = "AsiaBiasAgent"
     region = "Asia"
+    dataset_folder = "Asia"
 
     def score(self, content: str, content_type: str, *, mock: bool = True,
               ml_features: dict | None = None) -> AgentScoreResult:

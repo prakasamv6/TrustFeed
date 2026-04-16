@@ -1,12 +1,13 @@
-import { Component, inject } from '@angular/core';
-import { DecimalPipe, UpperCasePipe } from '@angular/common';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { DecimalPipe, UpperCasePipe, DatePipe } from '@angular/common';
 import { SurveyService } from '../../services/survey.service';
-import { Continent } from '../../models/survey.model';
+import { ApiService } from '../../services/api.service';
+import { Continent, SessionSummary } from '../../models/survey.model';
 
 @Component({
   selector: 'app-survey-results',
   standalone: true,
-  imports: [DecimalPipe, UpperCasePipe],
+  imports: [DecimalPipe, UpperCasePipe, DatePipe],
   template: `
     @let r = surveyService.results();
     @if (r) {
@@ -175,6 +176,56 @@ import { Continent } from '../../models/survey.model';
         </div>
       </div>
 
+      <!-- AI Indicator Effectiveness Dashboard -->
+      <div class="section ai-indicator-section">
+        <h2>🧠 AI Indicator Effectiveness</h2>
+        <p class="section-desc">How AI agent indicators helped users identify content authenticity</p>
+        <div class="indicator-grid">
+          <div class="indicator-card">
+            <span class="ind-icon">🎯</span>
+            <span class="ind-label">Human Accuracy</span>
+            <span class="ind-value" [class.good]="r.humanAccuracy >= 0.7" [class.bad]="r.humanAccuracy < 0.5">
+              {{ r.humanAccuracy * 100 | number:'1.1-1' }}%
+            </span>
+          </div>
+          <div class="indicator-card">
+            <span class="ind-icon">🤖</span>
+            <span class="ind-label">Best Agent Accuracy</span>
+            <span class="ind-value good">
+              {{ getBestAgentAccuracy(r) * 100 | number:'1.1-1' }}%
+            </span>
+          </div>
+          <div class="indicator-card">
+            <span class="ind-icon">📈</span>
+            <span class="ind-label">Avg Agent Accuracy</span>
+            <span class="ind-value">
+              {{ getAvgAgentAccuracy(r) * 100 | number:'1.1-1' }}%
+            </span>
+          </div>
+          <div class="indicator-card">
+            <span class="ind-icon">{{ r.humanAccuracy >= getAvgAgentAccuracy(r) ? '🏆' : '📉' }}</span>
+            <span class="ind-label">Human vs AI Gap</span>
+            <span class="ind-value" [class.good]="r.humanAccuracy >= getAvgAgentAccuracy(r)">
+              {{ ((r.humanAccuracy - getAvgAgentAccuracy(r)) * 100) | number:'1.1-1' }}%
+            </span>
+          </div>
+        </div>
+        <div class="indicator-summary">
+          <p>
+            @if (r.collabMode) {
+            In <strong>Human-AI Collaboration</strong> mode, AI indicators
+            {{ r.humanAccuracy >= getAvgAgentAccuracy(r) ? 'enhanced' : 'did not improve' }}
+            your detection accuracy compared to the average agent performance.
+            The best-performing agent achieved {{ getBestAgentAccuracy(r) * 100 | number:'1.0-0' }}% accuracy.
+            } @else {
+            In <strong>Solo</strong> mode without AI hints, you achieved
+            {{ r.humanAccuracy * 100 | number:'1.0-0' }}% accuracy.
+            Try <strong>Human-AI Collab</strong> mode to see how AI indicators affect your decisions.
+            }
+          </p>
+        </div>
+      </div>
+
       <!-- Per-Item Breakdown -->
       <div class="section breakdown-section">
         <h2>📝 Per-Item Breakdown</h2>
@@ -222,6 +273,172 @@ import { Continent } from '../../models/survey.model';
           <span>🤝</span> Try {{ r.collabMode ? 'Solo' : 'Collab' }} Mode
         </button>
       </div>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- SESSION HISTORY & CROSS-SESSION PERFORMANCE DASHBOARD      -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      @if (pastSessions().length > 0) {
+
+      <!-- Performance Persona -->
+      <div class="section persona-section">
+        <h2>🎭 Your Performance Persona</h2>
+        <div class="persona-card">
+          <span class="persona-icon">{{ getPersonaIcon() }}</span>
+          <div class="persona-info">
+            <h3 class="persona-title">{{ getPersonaTitle() }}</h3>
+            <p class="persona-desc">{{ getPersonaDescription() }}</p>
+          </div>
+          <div class="persona-stats">
+            <div class="ps-item">
+              <span class="ps-val">{{ pastSessions().length }}</span>
+              <span class="ps-label">Sessions</span>
+            </div>
+            <div class="ps-item">
+              <span class="ps-val">{{ getOverallAccuracy() * 100 | number:'1.0-0' }}%</span>
+              <span class="ps-label">Overall Accuracy</span>
+            </div>
+            <div class="ps-item">
+              <span class="ps-val">{{ getTotalItems() }}</span>
+              <span class="ps-label">Items Evaluated</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session History Comparison -->
+      <div class="section history-section">
+        <h2>📜 Session History — All Surveys</h2>
+        <p class="section-desc">Comparing your selections and accuracy across all completed sessions</p>
+        <div class="history-table">
+          <div class="ht-header">
+            <span class="ht-col ht-num">#</span>
+            <span class="ht-col ht-date">Date</span>
+            <span class="ht-col ht-mode">Mode</span>
+            <span class="ht-col ht-items">Items</span>
+            <span class="ht-col ht-acc">Your Accuracy</span>
+            <span class="ht-col ht-said-ai">Said AI</span>
+            <span class="ht-col ht-said-hum">Said Human</span>
+            <span class="ht-col ht-actual-ai">Actual AI</span>
+            <span class="ht-col ht-best-agent">Best Agent</span>
+          </div>
+          @for (s of pastSessions(); track s.sessionId; let i = $index) {
+          <div class="ht-row" [class.current-session]="s.sessionId === r.sessionId">
+            <span class="ht-col ht-num">{{ i + 1 }}</span>
+            <span class="ht-col ht-date">{{ s.completedAt | date:'MMM d, h:mm a' }}</span>
+            <span class="ht-col ht-mode">
+              <span class="mode-chip" [class.collab]="s.collabMode">{{ s.collabMode ? '🤝' : '👤' }}</span>
+            </span>
+            <span class="ht-col ht-items">{{ s.totalItems }}</span>
+            <span class="ht-col ht-acc"
+              [class.good]="s.humanAccuracy >= 0.7"
+              [class.bad]="s.humanAccuracy < 0.5">
+              {{ s.humanAccuracy * 100 | number:'1.0-0' }}%
+            </span>
+            <span class="ht-col ht-said-ai">{{ s.humanAiCount }}</span>
+            <span class="ht-col ht-said-hum">{{ s.humanHumanCount }}</span>
+            <span class="ht-col ht-actual-ai">{{ s.actualAiCount }}</span>
+            <span class="ht-col ht-best-agent">
+              {{ getBestAgentAccForSession(s) * 100 | number:'1.0-0' }}%
+            </span>
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- Selection Pattern Analysis -->
+      <div class="section pattern-section">
+        <h2>📊 Selection vs Ground Truth — Across All Sessions</h2>
+        <p class="section-desc">How your selections compare to actual content labels over time</p>
+        <div class="pattern-grid">
+          <div class="pattern-card">
+            <h4>Your AI Selections</h4>
+            <span class="pat-big">{{ getTotalSaidAi() }}</span>
+            <span class="pat-sub">out of {{ getTotalItems() }} items</span>
+            <div class="pat-bar-wrap">
+              <div class="pat-bar ai-bar" [style.width.%]="(getTotalSaidAi() / Math.max(getTotalItems(),1)) * 100"></div>
+            </div>
+          </div>
+          <div class="pattern-card">
+            <h4>Actual AI Content</h4>
+            <span class="pat-big">{{ getTotalActualAi() }}</span>
+            <span class="pat-sub">out of {{ getTotalItems() }} items</span>
+            <div class="pat-bar-wrap">
+              <div class="pat-bar truth-bar" [style.width.%]="(getTotalActualAi() / Math.max(getTotalItems(),1)) * 100"></div>
+            </div>
+          </div>
+          <div class="pattern-card">
+            <h4>Detection Bias</h4>
+            <span class="pat-big" [class.over]="getTotalSaidAi() > getTotalActualAi()" [class.under]="getTotalSaidAi() < getTotalActualAi()">
+              {{ getTotalSaidAi() > getTotalActualAi() ? 'Over-flags AI' : getTotalSaidAi() < getTotalActualAi() ? 'Under-flags AI' : 'Balanced' }}
+            </span>
+            <span class="pat-sub">
+              Δ {{ Math.abs(getTotalSaidAi() - getTotalActualAi()) }} items
+            </span>
+          </div>
+          <div class="pattern-card">
+            <h4>Total Correct</h4>
+            <span class="pat-big good">{{ getTotalCorrect() }}</span>
+            <span class="pat-sub">{{ getOverallAccuracy() * 100 | number:'1.1-1' }}% accuracy</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Indicator Effectiveness — Solo vs Collab comparison -->
+      @if (hasBothModes()) {
+      <div class="section collab-compare-section">
+        <h2>🧠 AI Indicator Impact — Solo vs Collab</h2>
+        <p class="section-desc">How AI agent hints affected your detection accuracy across sessions</p>
+        <div class="collab-compare-grid">
+          <div class="cc-card solo">
+            <span class="cc-icon">👤</span>
+            <h4>Solo Mode</h4>
+            <span class="cc-acc" [class.good]="getSoloAccuracy() >= 0.7">{{ getSoloAccuracy() * 100 | number:'1.0-0' }}%</span>
+            <span class="cc-sessions">{{ getSoloCount() }} sessions</span>
+          </div>
+          <div class="cc-card vs">
+            <span class="cc-vs-icon">⚡</span>
+            <span class="cc-delta" [class.positive]="getCollabAccuracy() > getSoloAccuracy()" [class.negative]="getCollabAccuracy() < getSoloAccuracy()">
+              {{ getCollabAccuracy() > getSoloAccuracy() ? '+' : '' }}{{ ((getCollabAccuracy() - getSoloAccuracy()) * 100) | number:'1.0-0' }}%
+            </span>
+            <span class="cc-vs-label">{{ getCollabAccuracy() > getSoloAccuracy() ? 'AI Helped' : getCollabAccuracy() < getSoloAccuracy() ? 'AI Hindered' : 'No Difference' }}</span>
+          </div>
+          <div class="cc-card collab">
+            <span class="cc-icon">🤝</span>
+            <h4>Collab Mode</h4>
+            <span class="cc-acc" [class.good]="getCollabAccuracy() >= 0.7">{{ getCollabAccuracy() * 100 | number:'1.0-0' }}%</span>
+            <span class="cc-sessions">{{ getCollabCount() }} sessions</span>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- Per-Agent Performance Across All Sessions -->
+      <div class="section agent-history-section">
+        <h2>🌍 Agent Performance — Across All Sessions</h2>
+        <p class="section-desc">Aggregate accuracy of each continental AI agent</p>
+        <div class="agent-history-grid">
+          @for (a of getAggregateAgentPerformance(); track a.region) {
+          <div class="ah-card">
+            <div class="ah-header">
+              <span class="ah-flag">{{ getRegionFlag(a.region) }}</span>
+              <span class="ah-name">{{ a.region }}</span>
+            </div>
+            <div class="ah-bar-wrap">
+              <div class="ah-bar" [style.width.%]="a.accuracy * 100"
+                [class.high]="a.accuracy >= 0.7"
+                [class.mid]="a.accuracy >= 0.5 && a.accuracy < 0.7"
+                [class.low]="a.accuracy < 0.5"></div>
+            </div>
+            <div class="ah-stats">
+              <span>{{ a.accuracy * 100 | number:'1.0-0' }}%</span>
+              <span class="ah-detail">{{ a.correct }}/{{ a.total }}</span>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+
+      }
     </div>
     }
   `,
@@ -351,10 +568,28 @@ import { Continent } from '../../models/survey.model';
       &.low { background: linear-gradient(90deg, var(--status-critical), var(--cat-e)); }
     }
     .ag-rate { font-size: 0.8rem; color: var(--text-primary); font-weight: 600; text-align: right; }
+    .indicator-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem;
+    }
+    .indicator-card {
+      text-align: center; padding: 1.25rem; border-radius: var(--radius-md);
+      background: var(--bg-glass); border: 1px solid var(--border-subtle);
+      display: flex; flex-direction: column; gap: 0.4rem; align-items: center;
+      .ind-icon { font-size: 1.5rem; }
+      .ind-label { font-size: 0.72rem; color: var(--text-muted); }
+      .ind-value { font-size: 1.4rem; font-weight: 700; color: var(--text-primary); }
+      .ind-value.good { color: var(--status-confirm); }
+      .ind-value.bad { color: var(--status-critical); }
+    }
+    .indicator-summary {
+      background: var(--bg-glass); border-radius: var(--radius-md); padding: 1rem 1.25rem;
+      border: 1px solid var(--border-subtle);
+      p { margin: 0; color: var(--text-muted); font-size: 0.85rem; line-height: 1.7; }
+    }
     .breakdown-table { overflow-x: auto; }
     .bt-header, .bt-row {
       display: grid;
-      grid-template-columns: 35px 1fr 55px 55px repeat(5, 45px);
+      grid-template-columns: 35px 1fr 55px 55px repeat(7, 40px);
       gap: 0.4rem; align-items: center; padding: 0.5rem 0;
     }
     .bt-header {
@@ -390,6 +625,108 @@ import { Continent } from '../../models/survey.model';
       background: linear-gradient(135deg, var(--accent-tertiary), var(--accent-primary)); color: var(--text-inverse);
       &:hover { box-shadow: var(--shadow-lg); }
     }
+
+    /* ════════════  PERSONA SECTION  ════════════ */
+    .persona-section h2 { color: var(--text-primary); }
+    .persona-card {
+      display: flex; align-items: center; gap: 1.5rem;
+      padding: 1.5rem 2rem; border-radius: 1rem;
+      background: linear-gradient(135deg, rgba(139,92,246,.12), rgba(59,130,246,.08));
+      border: 1px solid rgba(139,92,246,.25);
+    }
+    .persona-icon { font-size: 3rem; }
+    .persona-info { flex: 1; }
+    .persona-title { margin: 0 0 .25rem; font-size: 1.4rem; color: var(--text-primary); }
+    .persona-desc { margin: 0; font-size: .9rem; color: var(--text-secondary); line-height: 1.5; }
+    .persona-stats { display: flex; gap: 1.5rem; }
+    .ps-item { display: flex; flex-direction: column; align-items: center; }
+    .ps-val { font-size: 1.5rem; font-weight: 700; color: var(--accent-primary); }
+    .ps-label { font-size: .75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .05em; }
+
+    /* ════════════  HISTORY TABLE  ════════════ */
+    .history-section h2 { color: var(--text-primary); }
+    .section-desc { color: var(--text-secondary); font-size: .9rem; margin: -.5rem 0 1rem; }
+    .history-table { border-radius: .75rem; overflow: hidden; border: 1px solid var(--border-color); }
+    .ht-header, .ht-row {
+      display: grid;
+      grid-template-columns: 40px 1fr 60px 50px 90px 70px 80px 70px 90px;
+      padding: .6rem 1rem; gap: .5rem; align-items: center;
+    }
+    .ht-header {
+      background: rgba(59,130,246,.1); font-weight: 600; font-size: .75rem;
+      color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em;
+    }
+    .ht-row {
+      font-size: .85rem; color: var(--text-primary);
+      border-top: 1px solid var(--border-color);
+      transition: background .15s;
+      &:hover { background: rgba(255,255,255,.04); }
+    }
+    .ht-row.current-session { background: rgba(16,185,129,.08); border-left: 3px solid var(--accent-secondary); }
+    .ht-col.good { color: var(--accent-secondary); font-weight: 600; }
+    .ht-col.bad { color: var(--accent-danger); font-weight: 600; }
+    .mode-chip {
+      display: inline-block; padding: .1rem .4rem; border-radius: .3rem; font-size: .8rem;
+      background: rgba(99,102,241,.15);
+      &.collab { background: rgba(16,185,129,.15); }
+    }
+
+    /* ════════════  PATTERN CARDS  ════════════ */
+    .pattern-section h2 { color: var(--text-primary); }
+    .pattern-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .pattern-card {
+      padding: 1.2rem; border-radius: .75rem; text-align: center;
+      background: var(--bg-card); border: 1px solid var(--border-color);
+    }
+    .pattern-card h4 { margin: 0 0 .5rem; font-size: .8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
+    .pat-big { display: block; font-size: 2rem; font-weight: 700; color: var(--text-primary); }
+    .pat-big.good { color: var(--accent-secondary); }
+    .pat-big.over { color: #f59e0b; }
+    .pat-big.under { color: #8b5cf6; }
+    .pat-sub { display: block; font-size: .78rem; color: var(--text-secondary); margin-top: .25rem; }
+    .pat-bar-wrap { margin-top: .75rem; height: 6px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+    .pat-bar { height: 100%; border-radius: 3px; transition: width .4s ease; }
+    .ai-bar { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+    .truth-bar { background: linear-gradient(90deg, #10b981, #34d399); }
+
+    /* ════════════  COLLAB COMPARE  ════════════ */
+    .collab-compare-section h2 { color: var(--text-primary); }
+    .collab-compare-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1.5rem; align-items: center; }
+    .cc-card {
+      padding: 1.5rem; border-radius: .75rem; text-align: center;
+      background: var(--bg-card); border: 1px solid var(--border-color);
+    }
+    .cc-card.vs { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+    .cc-icon { font-size: 2rem; }
+    .cc-card h4 { margin: .5rem 0; font-size: .85rem; color: var(--text-secondary); }
+    .cc-acc { display: block; font-size: 2.5rem; font-weight: 700; color: var(--text-primary); }
+    .cc-acc.good { color: var(--accent-secondary); }
+    .cc-sessions { font-size: .78rem; color: var(--text-secondary); }
+    .cc-vs-icon { font-size: 2rem; }
+    .cc-delta { font-size: 1.8rem; font-weight: 700; }
+    .cc-delta.positive { color: var(--accent-secondary); }
+    .cc-delta.negative { color: var(--accent-danger); }
+    .cc-vs-label { font-size: .8rem; color: var(--text-secondary); }
+
+    /* ════════════  AGENT HISTORY  ════════════ */
+    .agent-history-section h2 { color: var(--text-primary); }
+    .agent-history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .ah-card {
+      padding: 1rem; border-radius: .75rem;
+      background: var(--bg-card); border: 1px solid var(--border-color);
+    }
+    .ah-header { display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem; }
+    .ah-flag { font-size: 1.2rem; }
+    .ah-name { font-weight: 600; font-size: .9rem; color: var(--text-primary); }
+    .ah-bar-wrap { height: 8px; background: rgba(255,255,255,.08); border-radius: 4px; overflow: hidden; }
+    .ah-bar { height: 100%; border-radius: 4px; transition: width .4s ease; }
+    .ah-bar.high { background: linear-gradient(90deg, #10b981, #34d399); }
+    .ah-bar.mid { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .ah-bar.low { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .ah-stats { display: flex; justify-content: space-between; margin-top: .4rem; font-size: .85rem; }
+    .ah-stats span:first-child { font-weight: 600; color: var(--text-primary); }
+    .ah-detail { color: var(--text-secondary); }
+
     @media (forced-colors: active) {
       .action-btn { border: 2px solid ButtonText; }
       .comp-bar, .ag-bar, .aoc-ai-fill, .aoc-human-fill { forced-color-adjust: none; }
@@ -399,17 +736,40 @@ import { Continent } from '../../models/survey.model';
       .agent-output-grid { grid-template-columns: 1fr; }
       .comp-row { grid-template-columns: 100px 1fr 45px 45px; }
       .truth-grid { grid-template-columns: 1fr; }
+      .persona-card { flex-direction: column; text-align: center; }
+      .persona-stats { flex-wrap: wrap; justify-content: center; }
+      .ht-header, .ht-row { grid-template-columns: 30px 1fr 50px 50px 70px; font-size: .75rem; }
+      .ht-col.ht-said-ai, .ht-col.ht-said-hum, .ht-col.ht-actual-ai, .ht-col.ht-best-agent { display: none; }
+      .pattern-grid { grid-template-columns: repeat(2, 1fr); }
+      .collab-compare-grid { grid-template-columns: 1fr; }
+      .cc-card.vs { flex-direction: row; gap: 1rem; }
     }
   `]
 })
-export class SurveyResultsComponent {
+export class SurveyResultsComponent implements OnInit {
   surveyService = inject(SurveyService);
+  private readonly api = inject(ApiService);
 
-  continents: Continent[] = ['Africa', 'Asia', 'Europe', 'Americas', 'Oceania'];
+  continents: Continent[] = ['Africa', 'Asia', 'Europe', 'North_America', 'South_America', 'Antarctica', 'Australia'];
+  pastSessions = signal<SessionSummary[]>([]);
+  Math = Math; // expose for template
 
   private regionFlags: Record<string, string> = {
-    'Africa': '🌍', 'Asia': '🌏', 'Europe': '🇪🇺', 'Americas': '🌎', 'Oceania': '🏝️',
+    'Africa': '🌍', 'Asia': '🌏', 'Europe': '🇪🇺', 'North_America': '🌎', 'South_America': '🌎', 'Antarctica': '🧊', 'Australia': '🦘',
   };
+
+  ngOnInit(): void {
+    this.loadSessions();
+  }
+
+  private loadSessions(): void {
+    this.api.getAllSessions().subscribe({
+      next: (res) => this.pastSessions.set(res.sessions ?? []),
+      error: () => this.pastSessions.set([]),
+    });
+  }
+
+  // ─── Existing helpers ───────────────────────────────────────────
 
   getRegionFlag(region: string): string {
     return this.regionFlags[region] ?? '🌐';
@@ -428,11 +788,135 @@ export class SurveyResultsComponent {
   }
 
   retake(): void {
-    this.surveyService.startSession(10, false);
+    this.surveyService.startSession(false);
   }
 
   retakeCollab(): void {
     const currentCollab = this.surveyService.results()?.collabMode ?? false;
-    this.surveyService.startSession(10, !currentCollab);
+    this.surveyService.startSession(!currentCollab);
+  }
+
+  getBestAgentAccuracy(r: { agentResults: { accuracy: number }[] }): number {
+    return Math.max(...r.agentResults.map(a => a.accuracy));
+  }
+
+  getAvgAgentAccuracy(r: { agentResults: { accuracy: number }[] }): number {
+    const sum = r.agentResults.reduce((s, a) => s + a.accuracy, 0);
+    return sum / r.agentResults.length;
+  }
+
+  // ─── Performance Persona ───────────────────────────────────────
+
+  getPersonaTitle(): string {
+    const acc = this.getOverallAccuracy();
+    const bias = this.getTotalSaidAi() - this.getTotalActualAi();
+    if (acc >= 0.8 && Math.abs(bias) <= 1) return 'Precision Analyst';
+    if (acc >= 0.7 && bias > 1) return 'AI Skeptic';
+    if (acc >= 0.7 && bias < -1) return 'Human Truster';
+    if (acc >= 0.5) return 'Balanced Detector';
+    return 'Developing Observer';
+  }
+
+  getPersonaIcon(): string {
+    const title = this.getPersonaTitle();
+    const icons: Record<string, string> = {
+      'Precision Analyst': '🎯', 'AI Skeptic': '🔬', 'Human Truster': '🤗',
+      'Balanced Detector': '⚖️', 'Developing Observer': '🔭',
+    };
+    return icons[title] ?? '🧩';
+  }
+
+  getPersonaDescription(): string {
+    const title = this.getPersonaTitle();
+    const descs: Record<string, string> = {
+      'Precision Analyst': 'Highly accurate with minimal bias — you identify AI and human content with near-equal precision.',
+      'AI Skeptic': 'You tend to flag content as AI-generated more often than average, but maintain solid accuracy.',
+      'Human Truster': 'You lean toward marking content as human-authored. You may underestimate AI prevalence.',
+      'Balanced Detector': 'Moderate accuracy with a balanced selection pattern. Room to sharpen detection skills.',
+      'Developing Observer': 'Still building your detection instincts — keep practising to improve!',
+    };
+    return descs[title] ?? '';
+  }
+
+  // ─── Aggregate stats across all sessions ────────────────────────
+
+  getOverallAccuracy(): number {
+    const s = this.pastSessions();
+    if (!s.length) return 0;
+    const totalCorrect = s.reduce((sum, x) => sum + x.humanCorrect, 0);
+    const totalItems = s.reduce((sum, x) => sum + x.totalItems, 0);
+    return totalItems ? totalCorrect / totalItems : 0;
+  }
+
+  getTotalItems(): number {
+    return this.pastSessions().reduce((sum, x) => sum + x.totalItems, 0);
+  }
+
+  getTotalCorrect(): number {
+    return this.pastSessions().reduce((sum, x) => sum + x.humanCorrect, 0);
+  }
+
+  getTotalSaidAi(): number {
+    return this.pastSessions().reduce((sum, x) => sum + x.humanAiCount, 0);
+  }
+
+  getTotalActualAi(): number {
+    return this.pastSessions().reduce((sum, x) => sum + x.actualAiCount, 0);
+  }
+
+  getBestAgentAccForSession(s: SessionSummary): number {
+    if (!s.agentResults?.length) return 0;
+    return Math.max(...s.agentResults.map(a => a.accuracy));
+  }
+
+  // ─── Solo vs Collab comparison ──────────────────────────────────
+
+  hasBothModes(): boolean {
+    const s = this.pastSessions();
+    return s.some(x => x.collabMode) && s.some(x => !x.collabMode);
+  }
+
+  getSoloAccuracy(): number {
+    const solo = this.pastSessions().filter(x => !x.collabMode);
+    if (!solo.length) return 0;
+    const c = solo.reduce((s, x) => s + x.humanCorrect, 0);
+    const t = solo.reduce((s, x) => s + x.totalItems, 0);
+    return t ? c / t : 0;
+  }
+
+  getCollabAccuracy(): number {
+    const collab = this.pastSessions().filter(x => x.collabMode);
+    if (!collab.length) return 0;
+    const c = collab.reduce((s, x) => s + x.humanCorrect, 0);
+    const t = collab.reduce((s, x) => s + x.totalItems, 0);
+    return t ? c / t : 0;
+  }
+
+  getSoloCount(): number {
+    return this.pastSessions().filter(x => !x.collabMode).length;
+  }
+
+  getCollabCount(): number {
+    return this.pastSessions().filter(x => x.collabMode).length;
+  }
+
+  // ─── Aggregate agent performance ───────────────────────────────
+
+  getAggregateAgentPerformance(): { region: string; correct: number; total: number; accuracy: number }[] {
+    const map = new Map<string, { correct: number; total: number }>();
+    for (const s of this.pastSessions()) {
+      for (const a of (s.agentResults ?? [])) {
+        const cur = map.get(a.region) ?? { correct: 0, total: 0 };
+        cur.correct += a.correct;
+        cur.total += s.totalItems;
+        map.set(a.region, cur);
+      }
+    }
+    return Array.from(map.entries()).map(([region, v]) => ({
+      region,
+      correct: v.correct,
+      total: v.total,
+      accuracy: v.total ? v.correct / v.total : 0,
+    }));
   }
 }

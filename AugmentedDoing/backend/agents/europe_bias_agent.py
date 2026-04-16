@@ -1,9 +1,7 @@
 """Europe regional bias agent.
 
 Role: Simulates a content-provenance evaluator with a European regional
-perspective. Emphasises lexical diversity and colour uniformity. Content
-with very uniform colour palettes or low vocabulary richness is flagged
-as AI-generated more aggressively. Strong on temporal coherence in video.
+perspective. Uses local dataset from AugmentedDoing/dataset/Europe/.
 """
 
 from .base_agent import AgentScoreResult, BaseAgent
@@ -12,6 +10,7 @@ from .base_agent import AgentScoreResult, BaseAgent
 class EuropeBiasAgent(BaseAgent):
     name = "EuropeBiasAgent"
     region = "Europe"
+    dataset_folder = "Europe"
 
     def score(self, content: str, content_type: str, *, mock: bool = True,
               ml_features: dict | None = None) -> AgentScoreResult:

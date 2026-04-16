@@ -1,6 +1,6 @@
 /** Survey system models — Human evaluates TrustFeed content, agents provide verdicts, results compared. */
 
-export type Continent = 'Africa' | 'Asia' | 'Europe' | 'Americas' | 'Oceania';
+export type Continent = 'Africa' | 'Asia' | 'Europe' | 'North_America' | 'South_America' | 'Antarctica' | 'Australia';
 
 export interface AgentVerdict {
   agentName: string;
@@ -90,4 +90,21 @@ export interface AgentResult {
   aiCount: number;    // how many agent said AI
   humanCount: number; // how many agent said Human
   avgConfidence: number;
+}
+
+/** Summary of a completed session — used for cross-session comparison dashboard */
+export interface SessionSummary {
+  sessionId: string;
+  startedAt: string;
+  completedAt: string;
+  collabMode: boolean;
+  totalItems: number;
+  humanCorrect: number;
+  humanAccuracy: number;
+  humanAiCount: number;
+  humanHumanCount: number;
+  actualAiCount: number;
+  actualHumanCount: number;
+  agentResults: AgentResult[];
+  agreementMatrix: { region: Continent; agreementRate: number }[];
 }

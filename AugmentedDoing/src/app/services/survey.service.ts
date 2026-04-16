@@ -12,7 +12,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class SurveyService {
 
-  private readonly CONTINENTS: Continent[] = ['Africa', 'Asia', 'Europe', 'Americas', 'Oceania'];
+  private readonly CONTINENTS: Continent[] = ['Africa', 'Asia', 'Europe', 'North_America', 'South_America', 'Antarctica', 'Australia'];
 
   private _session = signal<SurveySession | null>(null);
   session = this._session.asReadonly();
@@ -189,7 +189,7 @@ export class SurveyService {
         ],
       },
     },
-    'Americas': {
+    'North_America': {
       biasToward: 'neutral',
       strengthRange: [0.55, 0.88],
       focusAreas: ['narrative authenticity', 'emotional resonance', 'colloquial markers'],
@@ -202,28 +202,66 @@ export class SurveyService {
         ],
         human: [
           'Narrative authenticity markers are strong: genuine emotional investment, personal stakes, and the kind of specific detail that comes from actual experience rather than interpolation.',
-          'Colloquial analysis confirms natural speech patterns: contractions, sentence fragments, and emotional emphasis that follow authentic American/Latin American discourse norms.',
+          'Colloquial analysis confirms natural speech patterns: contractions, sentence fragments, and emotional emphasis that follow authentic North American discourse norms.',
           'The content demonstrates vulnerability and self-deprecating humor—emotional patterns that AI systems consistently struggle to produce without seeming performative.',
           'Strong first-person narrative authenticity. The specific, idiosyncratic details and emotional trajectory are consistent with genuine human recollection rather than synthetic generation.',
         ],
       },
     },
-    'Oceania': {
+    'South_America': {
+      biasToward: 'human',
+      strengthRange: [0.50, 0.82],
+      focusAreas: ['cultural nuance', 'emotional depth', 'regional idiom'],
+      reasoningTemplates: {
+        ai: [
+          'Cultural context analysis reveals generic framing lacking the layered socio-political awareness typical of South American authorship. Likely auto-generated content.',
+          'Emotional arc analysis shows programmatic sentiment progression without the passionate digressions characteristic of Latin American narrative traditions.',
+          'The content lacks region-specific literary devices — magical realism undertones, communal perspective, and historical consciousness that mark authentic regional writing.',
+          'Idiomatic analysis flags artificially neutral tone. Authentic South American discourse typically carries stronger ideological and emotional positioning.',
+        ],
+        human: [
+          'Deep cultural embedding detected: references to community dynamics, historical awareness, and emotional expressiveness consistent with genuine South American authorship.',
+          'Narrative voice carries authentic regional markers — passionate positioning, communal framing, and the interweaving of personal and collective experience.',
+          'The text exhibits genuine emotional depth with culturally appropriate rhetorical flourishes that AI systems typically flatten or over-formalize.',
+          'Idiomatic richness and contextual awareness confirm human authorship rooted in lived South American experience.',
+        ],
+      },
+    },
+    'Antarctica': {
       biasToward: 'ai',
       strengthRange: [0.52, 0.82],
-      focusAreas: ['environmental context', 'data integrity', 'cross-modal consistency'],
+      focusAreas: ['data integrity', 'scientific precision', 'environmental context'],
       reasoningTemplates: {
         ai: [
           'Data integrity analysis flags suspiciously precise statistical claims without appropriate uncertainty ranges. The content reads as a polished synthesis rather than original analysis.',
-          'Cross-referencing environmental context markers: the content lacks the localized knowledge and situated perspective that human experts typically embed in their analysis.',
+          'Cross-referencing environmental context markers: the content lacks the localized knowledge and situated perspective that field researchers typically embed in their analysis.',
           'Pattern recognition identifies systematic information organization that exceeds natural human cognitive structuring capabilities. Likely outline-driven generation.',
-          'The content demonstrates broad surface-level coverage without the deep, specialized insights that come from hands-on expertise. Consistent with retrieval-augmented generation.',
+          'The content demonstrates broad surface-level coverage without the deep, specialized insights that come from hands-on polar research expertise.',
         ],
         human: [
-          'Environmental context analysis confirms situated knowledge: the author demonstrates awareness of local conditions and practical constraints that pure data synthesis would miss.',
-          'Data presentation follows the natural human pattern of leading with experience and supporting with numbers, rather than the reverse pattern common in AI generation.',
-          'Cross-modal analysis detects genuine expertise markers: appropriate use of technical jargon mixed with practical observations that suggest hands-on experience.',
+          'Environmental context analysis confirms situated knowledge: the author demonstrates awareness of extreme conditions and practical constraints that pure data synthesis would miss.',
+          'Data presentation follows the natural human pattern of leading with field experience and supporting with numbers, rather than the reverse pattern common in AI generation.',
+          'Cross-modal analysis detects genuine expertise markers: appropriate use of technical jargon mixed with practical field observations suggesting hands-on polar experience.',
           'The content shows authentic engagement with uncertainty—acknowledging limitations and expressing professional judgment rather than algorithmic confidence.',
+        ],
+      },
+    },
+    'Australia': {
+      biasToward: 'neutral',
+      strengthRange: [0.53, 0.84],
+      focusAreas: ['environmental context', 'cross-modal consistency', 'pragmatic tone'],
+      reasoningTemplates: {
+        ai: [
+          'Pragmatic tone analysis reveals overly balanced framing lacking the casual directness characteristic of Australian communication styles. Suggests algorithmic composition.',
+          'Environmental context references appear generic rather than reflecting the deep ecological awareness typical of Australian-situated content creators.',
+          'Cross-modal consistency check shows suspiciously uniform quality across distinct content sections — human work typically varies in polish and depth.',
+          'The content demonstrates encyclopedic breadth without the opinionated specificity and informal asides that mark authentic Australian discourse.',
+        ],
+        human: [
+          'Communication style confirms authentic Australian pragmatism: direct assertions, understated expertise, and practical framing that AI systems tend to over-formalize.',
+          'Environmental awareness markers are genuine — situated knowledge of local ecosystems, weather patterns, and regional challenges that resist synthetic generation.',
+          'The text exhibits natural variation in formality and depth, with the dry humor and self-aware tone characteristic of genuine Australian authorship.',
+          'Cross-modal analysis detects authentic expertise: technical knowledge delivered with casual confidence and real-world grounding.',
         ],
       },
     },

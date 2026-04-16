@@ -6,6 +6,7 @@ import {
   DashboardSummary, DashboardAgentStats, DashboardTrends,
   AgentStat, TrendPoint, PostDrilldown, SurveyCompletionStats,
   AgentTrackingResponse, AnalyticsResponse,
+  DbSessionsResponse, DbSurveySession,
 } from '../models/dashboard.model';
 import { AgentName, BiasRegion } from '../models/analysis.model';
 
@@ -14,7 +15,7 @@ export class DashboardService {
   private http = inject(HttpClient);
   private apiBase = environment.apiBase;
   private mockMode = environment.mockMode;
-  private surveyUrl = environment.surveyApiUrl || 'https://trustfeed-survey-ealep.ondigitalocean.app';
+  private surveyUrl = environment.surveyApiUrl;
 
   // ── DB-Connected Methods (persistent MySQL data) ──────────────────────
 
@@ -41,6 +42,13 @@ export class DashboardService {
     );
   }
 
+  getDbSessions(): Observable<DbSurveySession[]> {
+    return this.http.get<DbSessionsResponse>(`${this.surveyUrl}/api/sessions`).pipe(
+      map(res => res.sessions || []),
+      catchError(() => of([]))
+    );
+  }
+
   // ── Core API Methods (with response-shape transformations) ────────────
 
   getSummary(): Observable<DashboardSummary> {
@@ -63,7 +71,8 @@ export class DashboardService {
     if (this.mockMode) return of(this.mockAgentStats()).pipe(delay(400));
     const regionMap: Record<string, string> = {
       AfricaBiasAgent: 'Africa', AsiaBiasAgent: 'Asia', EuropeBiasAgent: 'Europe',
-      AmericasBiasAgent: 'Americas', OceaniaBiasAgent: 'Oceania', NonBiasBaselineAgent: 'None',
+      NorthAmericaBiasAgent: 'North_America', SouthAmericaBiasAgent: 'South_America',
+      AntarcticaBiasAgent: 'Antarctica', AustraliaBiasAgent: 'Australia', NonBiasBaselineAgent: 'None',
     };
     return this.http.get<any>(`${this.apiBase}/dashboard/agent-stats`).pipe(
       map(raw => {
@@ -126,8 +135,10 @@ export class DashboardService {
       { agentName: 'AfricaBiasAgent', region: 'Africa', totalSelections: 18, averageScore: 0.68, favoritismRate: 0.44, averageBiasDelta: 0.19 },
       { agentName: 'AsiaBiasAgent', region: 'Asia', totalSelections: 22, averageScore: 0.72, favoritismRate: 0.52, averageBiasDelta: 0.23 },
       { agentName: 'EuropeBiasAgent', region: 'Europe', totalSelections: 20, averageScore: 0.65, favoritismRate: 0.38, averageBiasDelta: 0.16 },
-      { agentName: 'AmericasBiasAgent', region: 'Americas', totalSelections: 25, averageScore: 0.71, favoritismRate: 0.48, averageBiasDelta: 0.21 },
-      { agentName: 'OceaniaBiasAgent', region: 'Oceania', totalSelections: 15, averageScore: 0.63, favoritismRate: 0.35, averageBiasDelta: 0.14 },
+      { agentName: 'NorthAmericaBiasAgent', region: 'North_America', totalSelections: 25, averageScore: 0.71, favoritismRate: 0.48, averageBiasDelta: 0.21 },
+      { agentName: 'SouthAmericaBiasAgent', region: 'South_America', totalSelections: 19, averageScore: 0.67, favoritismRate: 0.41, averageBiasDelta: 0.17 },
+      { agentName: 'AntarcticaBiasAgent', region: 'Antarctica', totalSelections: 15, averageScore: 0.63, favoritismRate: 0.35, averageBiasDelta: 0.14 },
+      { agentName: 'AustraliaBiasAgent', region: 'Australia', totalSelections: 17, averageScore: 0.66, favoritismRate: 0.40, averageBiasDelta: 0.15 },
       { agentName: 'NonBiasBaselineAgent', region: 'None', totalSelections: 24, averageScore: 0.49, favoritismRate: 0, averageBiasDelta: 0 },
     ];
     return { agents };

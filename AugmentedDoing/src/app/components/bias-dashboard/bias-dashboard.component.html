@@ -313,6 +313,74 @@
     <!-- ╚══════════════════════════════════════════╝ -->
     @if (activeTab() === 'survey') {
 
+    <!-- Survey Session Results (DB + In-Memory merged) -->
+    @if (getAllSurveySessionsForTemplate().length > 0) {
+    <div class="report-section">
+      <h2 class="section-heading">Survey Session Results
+        @if (getDbSessionCount() > 0) { <span class="badge live">{{ getDbSessionCount() }} DB</span> }
+        @if (getMemSessionCount() > 0) { <span class="badge">{{ getMemSessionCount() }} In-Memory</span> }
+      </h2>
+      <p class="section-desc">{{ getSurveyTotalSessions() }} completed survey sessions — human vs 7 continental AI agents</p>
+
+      <div class="kpi-strip compact">
+        <div class="kpi" data-accent="primary"><span class="kpi-val">{{ getSurveyTotalSessions() }}</span><span class="kpi-lbl">Total Sessions</span></div>
+        <div class="kpi" data-accent="secondary"><span class="kpi-val">{{ getSurveyTotalItems() }}</span><span class="kpi-lbl">Items Evaluated</span></div>
+        <div class="kpi" data-accent="tertiary"><span class="kpi-val">{{ getSurveyOverallAccuracy() | percent:'1.0-1' }}</span><span class="kpi-lbl">Overall Accuracy</span></div>
+        <div class="kpi" data-accent="delta"><span class="kpi-val">{{ getDbSessionCount() }}</span><span class="kpi-lbl">From Database</span></div>
+      </div>
+
+      <!-- Session-by-Session Table -->
+      <div class="table-wrap">
+        <table class="pro-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Source</th><th>Mode</th><th>Items</th><th>Accuracy</th>
+              <th>Said AI</th><th>Said Human</th><th>Actual AI</th><th>Best Agent</th><th>Completed</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of getAllSurveySessionsForTemplate(); track s.sessionId; let i = $index) {
+            <tr>
+              <td>{{ i + 1 }}</td>
+              <td><span class="badge" [class.live]="s.source === 'db'">{{ s.source === 'db' ? 'DB' : 'Mem' }}</span></td>
+              <td>{{ s.collabMode ? '🤝 Collab' : '👤 Solo' }}</td>
+              <td class="cell-num">{{ s.totalItems }}</td>
+              <td class="cell-num" [style.color]="getAccuracyColor(s.humanAccuracy)">{{ s.humanAccuracy | percent:'1.0-0' }}</td>
+              <td class="cell-num">{{ s.humanAiCount }}</td>
+              <td class="cell-num">{{ s.humanHumanCount }}</td>
+              <td class="cell-num">{{ s.actualAiCount }}</td>
+              <td class="cell-num">{{ getSurveyBestAgentAcc(s.agentResults) | percent:'1.0-0' }}</td>
+              <td>{{ s.completedAt ? (s.completedAt | date:'short') : '—' }}</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Agent Performance Aggregate -->
+    @if (getSurveyAgentAggregate().length > 0) {
+    <div class="report-section">
+      <h2 class="section-heading">Continental Agent Accuracy
+        @if (getDbSessionCount() > 0) { <span class="badge live">Live DB</span> }
+      </h2>
+      <p class="section-desc">Aggregated accuracy across {{ getSurveyTotalSessions() }} sessions for each continental agent</p>
+      <div class="verdict-list">
+        @for (a of getSurveyAgentAggregate(); track a.region) {
+        <div class="verdict-row">
+          <span class="verdict-label">{{ getRegionEmoji(a.region) }} {{ a.region }}</span>
+          <div class="verdict-track">
+            <div class="verdict-fill" [style.width.%]="a.accuracy * 100" [style.background]="getAccuracyColor(a.accuracy)"></div>
+          </div>
+          <span class="verdict-pct" [style.color]="getAccuracyColor(a.accuracy)">{{ a.accuracy | percent:'1.0-1' }}</span>
+          <span class="verdict-ratio">{{ a.correct }}/{{ a.total }}</span>
+        </div>
+        }
+      </div>
+    </div>
+    }
+    }
+
     <!-- Survey Completion Report -->
     @if (sc) {
     <div class="report-section">

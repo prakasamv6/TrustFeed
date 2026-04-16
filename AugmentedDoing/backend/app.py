@@ -35,19 +35,23 @@ BIAS_WARN_THRESHOLD = float(os.getenv("BIAS_WARNING_THRESHOLD", CFG.get("bias_wa
 # ── Agents ───────────────────────────────────────────────────────────────────
 from agents import (  # noqa: E402
     AfricaBiasAgent,
-    AmericasBiasAgent,
+    NorthAmericaBiasAgent,
+    SouthAmericaBiasAgent,
     AsiaBiasAgent,
     EuropeBiasAgent,
+    AntarcticaBiasAgent,
+    AustraliaBiasAgent,
     NonBiasBaselineAgent,
-    OceaniaBiasAgent,
 )
 
 REGIONAL_AGENTS = [
     AfricaBiasAgent(),
     AsiaBiasAgent(),
     EuropeBiasAgent(),
-    AmericasBiasAgent(),
-    OceaniaBiasAgent(),
+    NorthAmericaBiasAgent(),
+    SouthAmericaBiasAgent(),
+    AntarcticaBiasAgent(),
+    AustraliaBiasAgent(),
 ]
 BASELINE_AGENT = NonBiasBaselineAgent()
 

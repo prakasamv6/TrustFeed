@@ -1,11 +1,13 @@
-export type BiasRegion = 'Africa' | 'Asia' | 'Europe' | 'Americas' | 'Oceania';
+export type BiasRegion = 'Africa' | 'Asia' | 'Europe' | 'North_America' | 'South_America' | 'Antarctica' | 'Australia';
 
 export type AgentName =
   | 'AfricaBiasAgent'
   | 'AsiaBiasAgent'
   | 'EuropeBiasAgent'
-  | 'AmericasBiasAgent'
-  | 'OceaniaBiasAgent'
+  | 'NorthAmericaBiasAgent'
+  | 'SouthAmericaBiasAgent'
+  | 'AntarcticaBiasAgent'
+  | 'AustraliaBiasAgent'
   | 'NonBiasBaselineAgent';
 
 export type AnalysisStatus = 'pending' | 'running' | 'completed' | 'failed';

@@ -11,7 +11,7 @@ const helmet = require('helmet');
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
-const { fetchUniqueContent } = require('./content-fetcher');
+const { fetchUniqueContent, DATASET_ROOT } = require('./content-fetcher');
 
 const app = express();
 
@@ -230,7 +230,7 @@ async function runMigrations() {
         id                INT AUTO_INCREMENT PRIMARY KEY,
         session_id        VARCHAR(64) NOT NULL,
         item_index        INT NOT NULL,
-        agent_region      ENUM('Africa','Asia','Europe','Americas','Oceania') NOT NULL,
+        agent_region      VARCHAR(32) NOT NULL,
         verdict           ENUM('ai','human') NOT NULL,
         confidence        DECIMAL(4,2) NOT NULL,
         reasoning         TEXT NOT NULL,
@@ -246,7 +246,7 @@ async function runMigrations() {
       CREATE TABLE IF NOT EXISTS agent_results (
         id                INT AUTO_INCREMENT PRIMARY KEY,
         session_id        VARCHAR(64) NOT NULL,
-        agent_region      ENUM('Africa','Asia','Europe','Americas','Oceania') NOT NULL,
+        agent_region      VARCHAR(32) NOT NULL,
         correct_count     INT NOT NULL,
         accuracy          DECIMAL(5,4) NOT NULL,
         ai_count          INT NOT NULL,
@@ -262,7 +262,7 @@ async function runMigrations() {
       CREATE TABLE IF NOT EXISTS agreement_matrix (
         id                INT AUTO_INCREMENT PRIMARY KEY,
         session_id        VARCHAR(64) NOT NULL,
-        agent_region      ENUM('Africa','Asia','Europe','Americas','Oceania') NOT NULL,
+        agent_region      VARCHAR(32) NOT NULL,
         agreement_rate    DECIMAL(5,4) NOT NULL,
         created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT fk_agreement_session FOREIGN KEY (session_id) REFERENCES survey_sessions(session_id) ON DELETE CASCADE,
@@ -392,11 +392,10 @@ app.get('/api/health', async (_req, res) => {
 
 app.get('/api/content/fetch', async (req, res) => {
   try {
-    const count = Math.min(Math.max(parseInt(req.query.count) || 10, 1), 30);
-    const pexelsKey = process.env.PEXELS_API_KEY || null;
+    const count = Math.min(Math.max(parseInt(req.query.count) || 6, 1), 30);
 
-    console.log(`Fetching ${count} unique content items from free sources...`);
-    const content = await fetchUniqueContent(count, pexelsKey);
+    console.log(`Loading ${count} content items from local dataset...`);
+    const content = await fetchUniqueContent(count);
 
     res.json({
       items: content,
@@ -407,6 +406,24 @@ app.get('/api/content/fetch', async (req, res) => {
     console.error('GET /api/content/fetch error:', err.message);
     res.status(500).json({ error: 'Failed to fetch content' });
   }
+});
+
+// ─── GET /api/dataset-file — Serve local dataset images/videos ───
+
+app.get('/api/dataset-file', (req, res) => {
+  const filePath = req.query.path;
+  if (!filePath || typeof filePath !== 'string') {
+    return res.status(400).json({ error: 'Missing path parameter' });
+  }
+  // Security: prevent directory traversal
+  const resolved = path.resolve(DATASET_ROOT, filePath);
+  if (!resolved.startsWith(path.resolve(DATASET_ROOT))) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  if (!fs.existsSync(resolved)) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+  res.sendFile(resolved);
 });
 
 // ─── POST /api/sessions — Start a new anonymous session ───
@@ -685,6 +702,10 @@ app.put('/api/sessions/:id/complete', async (req, res) => {
       session.completedAt = completedAt;
       session.humanCorrect = humanCorrect;
       session.humanAccuracy = humanAccuracy;
+      session.humanAiCount = humanAiCount;
+      session.humanHumanCount = humanHumanCount;
+      session.actualAiCount = actualAiCount;
+      session.actualHumanCount = actualHumanCount;
       memStore.sessions.set(sessionId, session);
       if (Array.isArray(agentResults)) memStore.agentResults.set(sessionId, agentResults);
       if (Array.isArray(agreementMatrix)) memStore.agreementMatrix.set(sessionId, agreementMatrix);
@@ -715,6 +736,76 @@ app.put('/api/sessions/:id/complete', async (req, res) => {
 });
 
 // ─── GET /api/sessions/:id — Retrieve a session ───
+
+app.get('/api/sessions', async (req, res) => {
+  try {
+    if (dbAvailable) {
+      const [sessions] = await pool.execute(
+        `SELECT s.session_id, s.started_at, s.completed_at, s.collab_mode,
+                s.item_count, s.human_correct, s.human_accuracy,
+                s.human_ai_count, s.human_human_count,
+                s.actual_ai_count, s.actual_human_count
+         FROM survey_sessions s
+         WHERE s.completed_at IS NOT NULL
+         ORDER BY s.completed_at DESC`
+      );
+      const results = [];
+      for (const s of sessions) {
+        const [agentRes] = await pool.execute('SELECT * FROM agent_results WHERE session_id = ?', [s.session_id]);
+        const [agreement] = await pool.execute('SELECT * FROM agreement_matrix WHERE session_id = ?', [s.session_id]);
+        results.push({
+          sessionId: s.session_id,
+          startedAt: s.started_at,
+          completedAt: s.completed_at,
+          collabMode: !!s.collab_mode,
+          totalItems: s.item_count,
+          humanCorrect: s.human_correct,
+          humanAccuracy: parseFloat(s.human_accuracy) || 0,
+          humanAiCount: s.human_ai_count,
+          humanHumanCount: s.human_human_count,
+          actualAiCount: s.actual_ai_count,
+          actualHumanCount: s.actual_human_count,
+          agentResults: agentRes.map(a => ({
+            region: a.agent_region,
+            correct: a.correct_count,
+            accuracy: parseFloat(a.accuracy) || 0,
+            aiCount: a.ai_count,
+            humanCount: a.human_count,
+            avgConfidence: parseFloat(a.avg_confidence) || 0,
+          })),
+          agreementMatrix: agreement.map(a => ({
+            region: a.agent_region,
+            agreementRate: parseFloat(a.agreement_rate) || 0,
+          })),
+        });
+      }
+      res.json({ sessions: results });
+    } else {
+      const allSessions = [...memStore.sessions.values()]
+        .filter(s => s.completedAt)
+        .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+      const results = allSessions.map(s => ({
+        sessionId: s.sessionId,
+        startedAt: s.startedAt,
+        completedAt: s.completedAt,
+        collabMode: !!s.collabMode,
+        totalItems: s.itemCount,
+        humanCorrect: s.humanCorrect || 0,
+        humanAccuracy: s.humanAccuracy || 0,
+        humanAiCount: s.humanAiCount || 0,
+        humanHumanCount: s.humanHumanCount || 0,
+        actualAiCount: s.actualAiCount || 0,
+        actualHumanCount: s.actualHumanCount || 0,
+        agentResults: memStore.agentResults.get(s.sessionId) || [],
+        agreementMatrix: memStore.agreementMatrix.get(s.sessionId) || [],
+      }));
+      res.json({ sessions: results });
+    }
+  } catch (err) {
+    console.error('GET /api/sessions error:', err.message);
+    res.status(500).json({ error: 'Server error', message: 'Could not retrieve sessions.' });
+  }
+});
 
 app.get('/api/sessions/:id', async (req, res) => {
   try {

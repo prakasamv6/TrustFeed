@@ -1,9 +1,9 @@
 """Africa regional bias agent.
 
 Role: Simulates a content-provenance evaluator with an African regional
-perspective. Biased toward flagging formal/polished content as AI-generated
-and accepting vivid, colloquial content as human. Emphasises colour
-saturation and noise patterns in images.
+perspective. Uses local dataset from AugmentedDoing/dataset/Africa/.
+Biased toward flagging formal/polished content as AI-generated
+and accepting vivid, colloquial content as human.
 """
 
 from .base_agent import AgentScoreResult, BaseAgent
@@ -12,6 +12,7 @@ from .base_agent import AgentScoreResult, BaseAgent
 class AfricaBiasAgent(BaseAgent):
     name = "AfricaBiasAgent"
     region = "Africa"
+    dataset_folder = "Africa"
 
     def score(self, content: str, content_type: str, *, mock: bool = True,
               ml_features: dict | None = None) -> AgentScoreResult:

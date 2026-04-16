@@ -6,7 +6,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout, retry, catchError, of } from 'rxjs';
-import { SurveyItem, SurveyResults, FetchedContentItem } from '../models/survey.model';
+import { SurveyItem, SurveyResults, FetchedContentItem, SessionSummary } from '../models/survey.model';
 import { ErrorNotificationService } from './error-notification.service';
 
 @Injectable({ providedIn: 'root' })
@@ -111,7 +111,18 @@ export class ApiService {
     );
   }
 
-  /** Fetch unique content from free internet sources via the backend. */
+  /** Fetch all completed sessions for cross-session comparison. */
+  getAllSessions() {
+    return this.http.get<{ sessions: SessionSummary[] }>(`${this.baseUrl}/sessions`).pipe(
+      timeout(15000),
+      catchError((err) => {
+        console.error('Failed to fetch sessions:', err);
+        return of({ sessions: [] as SessionSummary[] });
+      }),
+    );
+  }
+
+  /** Fetch unique content from local dataset via the backend. */
   async fetchContent(count: number): Promise<FetchedContentItem[]> {
     try {
       const res = await firstValueFrom(

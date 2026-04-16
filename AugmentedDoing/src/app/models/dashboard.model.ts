@@ -133,3 +133,34 @@ export interface AnalyticsResponse {
   agentAccuracy: { agent_region: string; total: number; correct: number; accuracy: number; avg_confidence: number }[];
   accuracyByCategory: { item_category: string; total: number; correct: number; accuracy: number }[];
 }
+
+// ── DB Survey Sessions ──────────────────────────────────────────────────
+
+export interface DbAgentResult {
+  region: string;
+  correct: number;
+  accuracy: number;
+  aiCount: number;
+  humanCount: number;
+  avgConfidence: number;
+}
+
+export interface DbSurveySession {
+  sessionId: string;
+  startedAt: string;
+  completedAt: string;
+  collabMode: boolean;
+  totalItems: number;
+  humanCorrect: number;
+  humanAccuracy: number;
+  humanAiCount: number;
+  humanHumanCount: number;
+  actualAiCount: number;
+  actualHumanCount: number;
+  agentResults: DbAgentResult[];
+  agreementMatrix: { region: string; agreementRate: number }[];
+}
+
+export interface DbSessionsResponse {
+  sessions: DbSurveySession[];
+}

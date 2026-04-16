@@ -16,7 +16,7 @@ export class SurveyService {
 
   private readonly api = inject(ApiService);
   private readonly errorService = inject(ErrorNotificationService);
-  private readonly CONTINENTS: Continent[] = ['Africa', 'Asia', 'Europe', 'Americas', 'Oceania'];
+  private readonly CONTINENTS: Continent[] = ['Africa', 'Asia', 'Europe', 'North_America', 'South_America', 'Antarctica', 'Australia'];
 
   private _session = signal<SurveySession | null>(null);
   session = this._session.asReadonly();
@@ -220,7 +220,7 @@ export class SurveyService {
         ],
       },
     },
-    'Americas': {
+    'North_America': {
       biasToward: 'neutral',
       strengthRange: [0.55, 0.88],
       focusAreas: ['narrative authenticity', 'emotional resonance', 'colloquial markers'],
@@ -233,13 +233,51 @@ export class SurveyService {
         ],
         human: [
           'Narrative authenticity markers are strong: genuine emotional investment, personal stakes, and the kind of specific detail that comes from actual experience rather than interpolation.',
-          'Colloquial analysis confirms natural speech patterns: contractions, sentence fragments, and emotional emphasis that follow authentic American/Latin American discourse norms.',
+          'Colloquial analysis confirms natural speech patterns: contractions, sentence fragments, and emotional emphasis that follow authentic North American discourse norms.',
           'The content demonstrates vulnerability and self-deprecating humor—emotional patterns that AI systems consistently struggle to produce without seeming performative.',
           'Strong first-person narrative authenticity. The specific, idiosyncratic details and emotional trajectory are consistent with genuine human recollection rather than synthetic generation.',
         ],
       },
     },
-    'Oceania': {
+    'South_America': {
+      biasToward: 'human',
+      strengthRange: [0.50, 0.84],
+      focusAreas: ['cultural vibrancy', 'emotional depth', 'community voice'],
+      reasoningTemplates: {
+        ai: [
+          'The content lacks the passionate cadence and cultural specificity characteristic of authentic South American expression. Emotional peaks feel manufactured rather than organic.',
+          'Structural analysis reveals template-driven composition. Authentic voices from this region typically weave personal anecdote with broader social commentary in less predictable patterns.',
+          'The narrative fails to capture the communal storytelling tradition—missing the layered, multi-generational perspectives that define authentic regional discourse.',
+          'Cross-cultural analysis flags uniform paragraph density and lack of code-switching or bilingual markers common in authentic South American writing.',
+        ],
+        human: [
+          'Strong cultural authenticity indicators: passionate voice, community-embedded references, and the emotional intensity that characterizes genuine South American expression.',
+          'The content displays authentic lived-experience markers—personal stakes, cultural pride, and spontaneous emotional shifts that resist algorithmic generation.',
+          'Narrative patterns align with regional storytelling traditions: weaving personal experience with broader social themes in an organic, non-formulaic structure.',
+          'The author demonstrates deep cultural knowledge through implicit references and community-specific idioms that current AI systems struggle to authentically reproduce.',
+        ],
+      },
+    },
+    'Antarctica': {
+      biasToward: 'ai',
+      strengthRange: [0.52, 0.78],
+      focusAreas: ['scientific rigor', 'data precision', 'environmental accuracy'],
+      reasoningTemplates: {
+        ai: [
+          'The scientific precision and uniform data density suggest algorithmic generation. Authentic field research reports typically include more uncertainty qualifiers and contextual observations.',
+          'Pattern analysis reveals systematic information organization exceeding natural human cognitive structuring. The content reads like a well-optimized synthesis rather than original field notes.',
+          'Environmental context markers lack the situated, experiential quality typical of researchers who have actually worked in extreme polar conditions.',
+          'Statistical claims are presented with suspiciously narrow confidence intervals. Authentic Antarctic research acknowledges the inherent measurement challenges of polar environments.',
+        ],
+        human: [
+          'The content exhibits genuine field-research markers: awareness of harsh conditions, practical measurement limitations, and the experiential insights that come from polar fieldwork.',
+          'Scientific discourse shows authentic expert engagement: appropriate uncertainty, methodological self-awareness, and the kind of nuanced observation that AI synthesis typically flattens.',
+          'Environmental observations include the granular, condition-specific details that distinguish genuine Antarctic field experience from desk-based compilation.',
+          'The author demonstrates hands-on knowledge through practical asides and environmental commentary that go beyond what data synthesis alone would produce.',
+        ],
+      },
+    },
+    'Australia': {
       biasToward: 'ai',
       strengthRange: [0.52, 0.82],
       focusAreas: ['environmental context', 'data integrity', 'cross-modal consistency'],
@@ -262,9 +300,10 @@ export class SurveyService {
 
   // ─── Public Methods ───
 
-  /** Start a new survey session — fetches unique content from internet, falls back to local pool. */
-  async startSession(itemCount: number = 10, collabMode: boolean = false): Promise<void> {
+  /** Start a new survey session — fetches unique content from dataset, falls back to local pool. */
+  async startSession(collabMode: boolean = false): Promise<void> {
     this._loading.set(true);
+    const itemCount = 6;
 
     let rawItems: Omit<SurveyItem, 'id' | 'agentVerdicts'>[];
     let usingFallback = false;
@@ -389,72 +428,65 @@ export class SurveyService {
   private readonly regionMedia: Record<Continent, { images: string[]; videos: { url: string; poster: string }[] }> = {
     'Africa': {
       images: [
-        'https://picsum.photos/seed/africa-savanna/400/300',
-        'https://picsum.photos/seed/africa-market/400/300',
-        'https://picsum.photos/seed/africa-wildlife/400/300',
-        'https://picsum.photos/seed/africa-city/400/300',
-        'https://picsum.photos/seed/africa1/400/300',
-        'https://picsum.photos/seed/africa2/400/300',
+        '/api/dataset-file?path=Africa/Images/AI/africa_ai_1.jpg',
+        '/api/dataset-file?path=Africa/Images/NonAI/africa_nonai_1.jpg',
       ],
       videos: [
-        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', poster: 'https://picsum.photos/seed/afvid1/400/300' },
-        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4', poster: 'https://picsum.photos/seed/afvid2/400/300' },
+        { url: '/api/dataset-file?path=Africa/Videos/AI/africa_ai_1.mp4', poster: '/api/dataset-file?path=Africa/Images/AI/africa_ai_1.jpg' },
       ],
     },
     'Asia': {
       images: [
-        'https://picsum.photos/seed/asia-garden/400/300',
-        'https://picsum.photos/seed/asia-market/400/300',
-        'https://picsum.photos/seed/asia-temple/400/300',
-        'https://picsum.photos/seed/asia-city/400/300',
-        'https://picsum.photos/seed/asia1/400/300',
-        'https://picsum.photos/seed/asia2/400/300',
+        '/api/dataset-file?path=Asia/Images/AI/asia_ai_1.jpg',
+        '/api/dataset-file?path=Asia/Images/NonAI/asia_nonai_1.jpg',
       ],
       videos: [
-        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', poster: 'https://picsum.photos/seed/asvid1/400/300' },
-        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', poster: 'https://picsum.photos/seed/asvid2/400/300' },
+        { url: '/api/dataset-file?path=Asia/Videos/AI/asia_ai_1.mp4', poster: '/api/dataset-file?path=Asia/Images/AI/asia_ai_1.jpg' },
       ],
     },
     'Europe': {
       images: [
-        'https://picsum.photos/seed/europe-cafe/400/300',
-        'https://picsum.photos/seed/europe-castle/400/300',
-        'https://picsum.photos/seed/europe-fjord/400/300',
-        'https://picsum.photos/seed/europe-museum/400/300',
-        'https://picsum.photos/seed/europe1/400/300',
-        'https://picsum.photos/seed/europe2/400/300',
+        '/api/dataset-file?path=Europe/Images/AI/europe_ai_1.jpg',
+        '/api/dataset-file?path=Europe/Images/NonAI/europe_nonai_1.jpg',
       ],
       videos: [
-        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4', poster: 'https://picsum.photos/seed/euvid1/400/300' },
-        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4', poster: 'https://picsum.photos/seed/euvid2/400/300' },
+        { url: '/api/dataset-file?path=Europe/Videos/AI/europe_ai_1.mp4', poster: '/api/dataset-file?path=Europe/Images/AI/europe_ai_1.jpg' },
       ],
     },
-    'Americas': {
+    'North_America': {
       images: [
-        'https://picsum.photos/seed/americas-nyc/400/300',
-        'https://picsum.photos/seed/americas-amazon/400/300',
-        'https://picsum.photos/seed/americas-canyon/400/300',
-        'https://picsum.photos/seed/americas-carnival/400/300',
-        'https://picsum.photos/seed/americas1/400/300',
-        'https://picsum.photos/seed/americas2/400/300',
+        '/api/dataset-file?path=North_America/Images/AI/north_america_ai_1.jpg',
+        '/api/dataset-file?path=North_America/Images/NonAI/north_america_nonai_1.jpg',
       ],
       videos: [
-        { url: 'https://www.w3schools.com/html/mov_bbb.mp4', poster: 'https://picsum.photos/seed/amvid1/400/300' },
-        { url: 'https://www.w3schools.com/html/movie.mp4', poster: 'https://picsum.photos/seed/amvid2/400/300' },
+        { url: '/api/dataset-file?path=North_America/Videos/AI/north_america_ai_1.mp4', poster: '/api/dataset-file?path=North_America/Images/AI/north_america_ai_1.jpg' },
       ],
     },
-    'Oceania': {
+    'South_America': {
       images: [
-        'https://picsum.photos/seed/oceania-reef/400/300',
-        'https://picsum.photos/seed/oceania-outback/400/300',
-        'https://picsum.photos/seed/oceania-nz/400/300',
-        'https://picsum.photos/seed/oceania-beach/400/300',
-        'https://picsum.photos/seed/oceania1/400/300',
-        'https://picsum.photos/seed/oceania2/400/300',
+        '/api/dataset-file?path=South_America/Images/AI/south_america_ai_1.jpg',
+        '/api/dataset-file?path=South_America/Images/NonAI/south_america_nonai_1.jpg',
       ],
       videos: [
-        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', poster: 'https://picsum.photos/seed/ocvid1/400/300' },
-        { url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', poster: 'https://picsum.photos/seed/ocvid2/400/300' },
+        { url: '/api/dataset-file?path=South_America/Videos/AI/south_america_ai_1.mp4', poster: '/api/dataset-file?path=South_America/Images/AI/south_america_ai_1.jpg' },
+      ],
+    },
+    'Antarctica': {
+      images: [
+        '/api/dataset-file?path=Antarctica/Images/AI/antarctica_ai_1.jpg',
+        '/api/dataset-file?path=Antarctica/Images/NonAI/antarctica_nonai_1.jpg',
+      ],
+      videos: [
+        { url: '/api/dataset-file?path=Antarctica/Videos/AI/antarctica_ai_1.mp4', poster: '/api/dataset-file?path=Antarctica/Images/AI/antarctica_ai_1.jpg' },
+      ],
+    },
+    'Australia': {
+      images: [
+        '/api/dataset-file?path=Australia/Images/AI/australia_ai_1.jpg',
+        '/api/dataset-file?path=Australia/Images/NonAI/australia_nonai_1.jpg',
+      ],
+      videos: [
+        { url: '/api/dataset-file?path=Australia/Videos/AI/australia_ai_1.mp4', poster: '/api/dataset-file?path=Australia/Images/AI/australia_ai_1.jpg' },
       ],
     },
   };

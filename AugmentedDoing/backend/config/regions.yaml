@@ -1,30 +1,47 @@
-# Region definitions for the 5 bias agents
+# Region definitions for the 7 continent bias agents
 
 regions:
   - name: Africa
     agent: AfricaBiasAgent
-    bias_weight: 0.20
-    description: "Simulates provenance bias favoring African origin content"
+    bias_weight: 0.143
+    dataset_folder: Africa
+    description: "Simulates provenance bias from African continental perspective"
 
   - name: Asia
     agent: AsiaBiasAgent
-    bias_weight: 0.20
-    description: "Simulates provenance bias favoring Asian origin content"
+    bias_weight: 0.143
+    dataset_folder: Asia
+    description: "Simulates provenance bias from Asian continental perspective"
 
   - name: Europe
     agent: EuropeBiasAgent
-    bias_weight: 0.20
-    description: "Simulates provenance bias favoring European origin content"
+    bias_weight: 0.143
+    dataset_folder: Europe
+    description: "Simulates provenance bias from European continental perspective"
 
-  - name: Americas
-    agent: AmericasBiasAgent
-    bias_weight: 0.20
-    description: "Simulates provenance bias favoring Americas origin content"
+  - name: North_America
+    agent: NorthAmericaBiasAgent
+    bias_weight: 0.143
+    dataset_folder: North_America
+    description: "Simulates provenance bias from North American continental perspective"
 
-  - name: Oceania
-    agent: OceaniaBiasAgent
-    bias_weight: 0.20
-    description: "Simulates provenance bias favoring Oceanian origin content"
+  - name: South_America
+    agent: SouthAmericaBiasAgent
+    bias_weight: 0.143
+    dataset_folder: South_America
+    description: "Simulates provenance bias from South American continental perspective"
+
+  - name: Antarctica
+    agent: AntarcticaBiasAgent
+    bias_weight: 0.143
+    dataset_folder: Antarctica
+    description: "Simulates provenance bias from Antarctic research perspective"
+
+  - name: Australia
+    agent: AustraliaBiasAgent
+    bias_weight: 0.143
+    dataset_folder: Australia
+    description: "Simulates provenance bias from Australian continental perspective"
 
 baseline:
   name: NonBiasBaseline

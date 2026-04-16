@@ -40,8 +40,8 @@ import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
             </div>
             <div class="info-card">
               <span class="ic-icon">🌍</span>
-              <h4>5 AI Agents</h4>
-              <p>Africa, Asia, Europe, Americas & Oceania agents each give unique verdicts</p>
+              <h4>7 AI Agents</h4>
+              <p>Africa, Asia, Europe, N. America, S. America, Antarctica & Australia agents each give unique verdicts</p>
             </div>
             <div class="info-card">
               <span class="ic-icon">🤝</span>
@@ -57,7 +57,7 @@ import { ImgFallbackDirective } from '../../utils/img-fallback.directive';
         </div>
 
         <div class="survey-config">
-          <h3>Configure Your Session</h3>
+          <h3>Start Your Session</h3>
           <div class="config-row">
             <label>Number of Items</label>
             <div class="config-options">
@@ -585,7 +585,7 @@ export class SurveyComponent {
   pendingReasoning = '';
 
   private regionFlags: Record<string, string> = {
-    'Africa': '🌍', 'Asia': '🌏', 'Europe': '🇪🇺', 'Americas': '🌎', 'Oceania': '🏝️',
+    'Africa': '🌍', 'Asia': '🌏', 'Europe': '🇪🇺', 'North_America': '🌎', 'South_America': '🌎', 'Antarctica': '🧊', 'Australia': '🦘',
   };
 
   startSurvey(): void {
