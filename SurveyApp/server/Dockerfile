@@ -2,14 +2,10 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-COPY SurveyApp/server/package*.json ./
+COPY package*.json ./
 RUN npm ci --omit=dev --legacy-peer-deps
 
-COPY SurveyApp/server/index.js SurveyApp/server/content-fetcher.js ./
-COPY SurveyApp/server/ca-certificate.crt ./
-
-# Copy dataset for content serving
-COPY AugmentedDoing/dataset ./dataset
+COPY index.js content-fetcher.js ca-certificate.crt ./
 
 EXPOSE 3000
 
