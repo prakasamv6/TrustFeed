@@ -5,7 +5,9 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "watch": "ng build --watch --configuration development"
+    "watch": "ng build --watch --configuration development",
+    "smoke": "npm --prefix server run smoke",
+    "smoke:json": "npm --prefix server run smoke:json"
   },
   "overrides": {
     "vite": "7.3.2",

@@ -12,7 +12,7 @@ export interface BrokenMediaEntry {
 
 /** Fallback video — public domain Big Buck Bunny clip (reliable CDN). */
 const FALLBACK_VIDEO = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-const FALLBACK_POSTER = 'https://picsum.photos/seed/video-fallback/600/400';
+const FALLBACK_POSTER = '/assets/logo.svg';
 
 @Injectable({ providedIn: 'root' })
 export class MediaGuardrailService {
@@ -74,8 +74,7 @@ export class MediaGuardrailService {
     const existing = this._replacements.get(brokenUrl);
     if (existing) return existing;
 
-    const seed = this.hashUrl(brokenUrl);
-    const replacement = `https://picsum.photos/seed/${seed}/600/400`;
+    const replacement = FALLBACK_POSTER;
     this.recordBroken(brokenUrl, replacement, context, agentRegion, 'auto-replaced');
     return replacement;
   }

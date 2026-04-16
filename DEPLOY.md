@@ -198,6 +198,34 @@ Digital Ocean will automatically rebuild and redeploy.
 
 ---
 
+## CI Gate Before Merge (Recommended)
+
+To keep production-safe changes on `main`, require the SurveyApp smoke workflow to pass before merge.
+
+1. In GitHub, go to repository settings and add a branch protection rule for `main`.
+2. Enable pull request requirement before merge.
+3. Require at least one approval.
+4. Enable required status checks.
+5. Select `SurveyApp Smoke Check / smoke` as a required check.
+6. Require branches to be up to date before merge.
+7. Enable required review from Code Owners.
+
+Code owner configuration:
+- `.github/CODEOWNERS` currently assigns all paths to `@prakasamv6`.
+- This keeps review ownership and merge accountability with a single maintainer.
+
+The workflow is defined in `.github/workflows/survey-smoke.yml` and validates:
+- API test suite pass
+- Dataset readiness contract (`/api/dataset-health`)
+- Content contract (`/api/content/fetch?count=14`)
+
+This ensures deployment-triggering pushes to `main` are blocked unless smoke checks pass.
+
+Pre-release runbook:
+- Use RELEASE_CHECKLIST.md before deploying changes to production.
+
+---
+
 ## Troubleshooting
 
 - **DB connection fails**: Ensure `DB_SSL=true` is set; DO managed MySQL requires SSL.

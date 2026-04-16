@@ -10,12 +10,29 @@ import {
 } from '../models/dashboard.model';
 import { AgentName, BiasRegion } from '../models/analysis.model';
 
+interface SurveyHealthResponse {
+  status?: string;
+  database?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
   private http = inject(HttpClient);
   private apiBase = environment.apiBase;
   private mockMode = environment.mockMode;
   private surveyUrl = environment.surveyApiUrl;
+
+  private asNumber(value: unknown, fallback = 0): number {
+    if (value === null || value === undefined || value === '') return fallback;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  getSurveyHealth(): Observable<SurveyHealthResponse> {
+    return this.http.get<SurveyHealthResponse>(`${this.surveyUrl}/api/health`).pipe(
+      catchError(() => of({ status: 'error', database: 'disconnected' }))
+    );
+  }
 
   // ── DB-Connected Methods (persistent MySQL data) ──────────────────────
 
@@ -55,8 +72,26 @@ export class DashboardService {
     return this.http.get<DbSessionsResponse>(`${this.surveyUrl}/api/sessions`).pipe(
       map(res => (res.sessions || []).map(s => ({
         ...s,
-        agentResults: s.agentResults ?? [],
-        agreementMatrix: s.agreementMatrix ?? [],
+        collabMode: !!s.collabMode,
+        totalItems: this.asNumber(s.totalItems),
+        humanCorrect: this.asNumber(s.humanCorrect),
+        humanAccuracy: this.asNumber(s.humanAccuracy),
+        humanAiCount: this.asNumber(s.humanAiCount),
+        humanHumanCount: this.asNumber(s.humanHumanCount),
+        actualAiCount: this.asNumber(s.actualAiCount),
+        actualHumanCount: this.asNumber(s.actualHumanCount),
+        agentResults: (s.agentResults ?? []).map(a => ({
+          ...a,
+          correct: this.asNumber(a.correct),
+          accuracy: this.asNumber(a.accuracy),
+          aiCount: this.asNumber(a.aiCount),
+          humanCount: this.asNumber(a.humanCount),
+          avgConfidence: this.asNumber(a.avgConfidence),
+        })),
+        agreementMatrix: (s.agreementMatrix ?? []).map(a => ({
+          ...a,
+          agreementRate: this.asNumber(a.agreementRate),
+        })),
       }))),
       catchError(() => of([]))
     );
@@ -124,11 +159,45 @@ export class DashboardService {
   }
 
   getSurveyCompletionStats(): Observable<SurveyCompletionStats> {
-    return this.http.get<SurveyCompletionStats>(`${this.surveyUrl}/api/survey-stats`).pipe(
-      catchError(() => this.http.get<SurveyCompletionStats>(`${this.apiBase}/survey-stats`).pipe(
+    return this.http.get<any>(`${this.surveyUrl}/api/survey-stats`).pipe(
+      map(raw => this.normalizeSurveyCompletionStats(raw)),
+      catchError(() => this.http.get<any>(`${this.apiBase}/survey-stats`).pipe(
+        map(raw => this.normalizeSurveyCompletionStats(raw)),
         catchError(() => of(this.mockSurveyCompletionStats()))
       ))
     );
+  }
+
+  private normalizeSurveyCompletionStats(raw: any): SurveyCompletionStats {
+    return {
+      totalSessions: this.asNumber(raw?.totalSessions),
+      completedSessions: this.asNumber(raw?.completedSessions),
+      inProgressSessions: this.asNumber(raw?.inProgressSessions),
+      completionRate: this.asNumber(raw?.completionRate),
+      avgAccuracy: this.asNumber(raw?.avgAccuracy),
+      avgItemsPerSession: this.asNumber(raw?.avgItemsPerSession),
+      byMode: Array.isArray(raw?.byMode)
+        ? raw.byMode.map((m: any) => ({
+            mode: String(m?.mode ?? 'Unknown'),
+            sessions: this.asNumber(m?.sessions),
+            avgAccuracy: this.asNumber(m?.avgAccuracy),
+          }))
+        : [],
+      byDifficulty: Array.isArray(raw?.byDifficulty)
+        ? raw.byDifficulty.map((d: any) => ({
+            difficulty: String(d?.difficulty ?? 'Unknown'),
+            total: this.asNumber(d?.total),
+            correct: this.asNumber(d?.correct),
+            accuracy: this.asNumber(d?.accuracy),
+          }))
+        : [],
+      recentCompletions: Array.isArray(raw?.recentCompletions)
+        ? raw.recentCompletions.map((r: any) => ({
+            date: String(r?.date ?? ''),
+            completedCount: this.asNumber(r?.completedCount),
+          }))
+        : [],
+    };
   }
 
   private mockSummary(): DashboardSummary {

@@ -101,6 +101,10 @@ export class BiasDashboardComponent implements OnInit {
     let loadCount = 0;
     const checkLoaded = () => { if (++loadCount >= 3) this.loading.set(false); };
 
+    this.dashboardService.getSurveyHealth().subscribe(health => {
+      this.dbConnected.set(health.status === 'ok' && health.database === 'connected');
+    });
+
     this.dashboardService.getSummary().subscribe(s => this.summary.set(s));
     this.dashboardService.getAgentStats().subscribe(s => this.agentStats.set(s));
     this.dashboardService.getTrends().subscribe(t => this.trends.set(t));
@@ -109,7 +113,6 @@ export class BiasDashboardComponent implements OnInit {
 
     this.dashboardService.getAgentTracking().subscribe(t => {
       this.agentTracking.set(t);
-      this.dbConnected.set(t.totalFeedAnalyses > 0 || t.totalSurveyVerdicts > 0);
       checkLoaded();
     });
     this.dashboardService.getAnalytics().subscribe(a => { this.analytics.set(a); checkLoaded(); });
@@ -288,7 +291,8 @@ export class BiasDashboardComponent implements OnInit {
 
     // Merge in-memory sessions that aren't already in DB (by sessionId)
     const dbIds = new Set(dbSess.map(s => s.sessionId));
-    const memSess = this.surveySessions()
+    const memSource = Array.isArray(this.surveySessions()) ? this.surveySessions() : [];
+    const memSess = memSource
       .filter(s => !dbIds.has(s.sessionId))
       .map(s => ({
         sessionId: s.sessionId,

@@ -1,0 +1,70 @@
+name: Release Preparation
+description: Track release readiness before deploying to main
+title: "release: <date or version>"
+labels:
+  - release
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this issue to track release readiness.
+        Follow the runbook in RELEASE_CHECKLIST.md.
+
+  - type: input
+    id: release-target
+    attributes:
+      label: Release target
+      description: Environment or deployment target
+      placeholder: production
+    validations:
+      required: true
+
+  - type: input
+    id: commit-sha
+    attributes:
+      label: Candidate commit SHA
+      description: Commit planned for release
+      placeholder: abc1234
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: validation
+    attributes:
+      label: Validation checks
+      options:
+        - label: Ran npm --prefix SurveyApp run smoke
+          required: true
+        - label: Ran npm --prefix SurveyApp run smoke:json when CI parsing behavior changed
+          required: false
+        - label: Confirmed CI check SurveyApp Smoke Check / smoke is green
+          required: true
+        - label: Confirmed Code Owner review requirements are satisfied
+          required: true
+
+  - type: checkboxes
+    id: dataset-contract
+    attributes:
+      label: Dataset contract checks
+      options:
+        - label: Dataset health indicates ready true
+          required: true
+        - label: Content fetch contract returns 14 items for count 14
+          required: true
+        - label: Continent metadata and dataset source labels are present
+          required: true
+
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback plan
+      description: How to recover if deployment fails
+      placeholder: Describe rollback actions and owners
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Extra context, known risks, and follow-up actions

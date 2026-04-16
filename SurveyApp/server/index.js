@@ -11,7 +11,7 @@ const helmet = require('helmet');
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
-const { fetchUniqueContent, DATASET_ROOT } = require('./content-fetcher');
+const { fetchUniqueContent, validateDatasetReadiness, DATASET_ROOT } = require('./content-fetcher');
 
 const app = express();
 
@@ -155,6 +155,13 @@ function inputGuard(req, res, next) {
 }
 
 app.use(inputGuard);
+
+// Serve local dataset assets directly so survey media does not depend on API file proxying.
+app.use('/dataset', express.static(DATASET_ROOT, {
+  fallthrough: false,
+  index: false,
+  redirect: false,
+}));
 
 // ─── MySQL Connection Pool ───
 
@@ -393,15 +400,22 @@ setInterval(checkDb, 30000);
 // ─── Health Check ───
 
 app.get('/api/health', async (_req, res) => {
+  const dataset = validateDatasetReadiness();
+
   try {
     await pool.query('SELECT 1');
-    res.json({ status: 'ok', database: 'connected' });
+    res.json({ status: 'ok', database: 'connected', dataset });
   } catch (err) {
-    res.json({ status: 'ok', database: 'disconnected', message: 'API running, DB not yet configured' });
+    res.json({ status: 'ok', database: 'disconnected', dataset, message: 'API running, DB not yet configured' });
   }
 });
 
-// ─── GET /api/content/fetch — Fetch unique content from free internet sources ───
+app.get('/api/dataset-health', (_req, res) => {
+  const dataset = validateDatasetReadiness();
+  res.json({ status: dataset.ready ? 'ok' : 'warning', dataset });
+});
+
+// ─── GET /api/content/fetch — Fetch balanced content from local dataset ───
 
 app.get('/api/content/fetch', async (req, res) => {
   try {
@@ -421,7 +435,7 @@ app.get('/api/content/fetch', async (req, res) => {
   }
 });
 
-// ─── GET /api/dataset-file — Serve local dataset images/videos ───
+// ─── GET /api/dataset-file — Legacy dataset file proxy (kept for compatibility) ───
 
 app.get('/api/dataset-file', (req, res) => {
   const filePath = req.query.path;
@@ -1007,10 +1021,7 @@ app.post('/api/report-broken-media', (req, res) => {
     return res.json({ status: 'already-fixed', brokenUrl, replacementUrl: urlReplacements.get(brokenUrl) });
   }
 
-  // Generate deterministic replacement via hash seed
-  const crypto = require('crypto');
-  const seed = crypto.createHash('md5').update(brokenUrl).digest('hex').slice(0, 12);
-  const replacementUrl = `https://picsum.photos/seed/${seed}/600/400`;
+  const replacementUrl = '/assets/logo.svg';
 
   urlReplacements.set(brokenUrl, replacementUrl);
   brokenMediaStore.push({

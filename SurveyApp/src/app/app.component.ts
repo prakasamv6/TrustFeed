@@ -1,6 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ErrorToastComponent } from './components/error-toast/error-toast.component';
+import { ApiService } from './services/api.service';
 
 @Component({
   selector: 'app-root',
@@ -34,6 +35,19 @@ import { ErrorToastComponent } from './components/error-toast/error-toast.compon
           <span class="nav-badge live-badge">
             <span class="live-dot"></span>
             LIVE
+          </span>
+          <button class="nav-badge dataset-badge"
+            type="button"
+            [class.ready]="datasetBadgeState() === 'ready'"
+            [class.warning]="datasetBadgeState() === 'warning'"
+            [class.checking]="datasetBadgeState() === 'checking'"
+            [disabled]="datasetBadgeChecking()"
+            (click)="refreshDatasetBadge(true)"
+            [attr.title]="datasetBadgeTooltip()">
+            {{ datasetBadgeState() === 'ready' ? '✅ Dataset Ready' : (datasetBadgeState() === 'warning' ? '⚠️ Dataset Warning' : '⏳ Dataset Check') }}
+          </button>
+          <span class="dataset-meta-inline" aria-live="polite">
+            {{ datasetMetaInlineText() }}
           </span>
         </nav>
       </div>
@@ -103,6 +117,13 @@ import { ErrorToastComponent } from './components/error-toast/error-toast.compon
       }
     }
     .header-nav { display: flex; gap: 0.5rem; align-items: center; }
+    .dataset-meta-inline {
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      padding-left: 0.1rem;
+    }
     .nav-badge {
       font-size: 0.72rem; font-weight: 600; padding: 0.3rem 0.8rem;
       border-radius: var(--radius-full);
@@ -118,6 +139,33 @@ import { ErrorToastComponent } from './components/error-toast/error-toast.compon
         background: var(--status-confirm-bg); color: var(--status-confirm);
         border: 1px solid var(--status-confirm); font-size: 0.65rem; font-weight: 700;
         letter-spacing: 0.5px;
+      }
+      &.dataset-badge {
+        appearance: none;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+        &:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+        }
+        &.ready {
+          background: var(--status-confirm-bg);
+          color: var(--status-confirm);
+          border: 1px solid var(--status-confirm);
+        }
+        &.warning {
+          background: var(--status-notice-bg);
+          color: var(--status-notice);
+          border: 1px solid var(--status-notice);
+        }
+        &.checking {
+          background: var(--bg-elevated);
+          color: var(--text-muted);
+          border: 1px solid var(--border-default);
+        }
       }
     }
     .live-dot {
@@ -137,12 +185,86 @@ import { ErrorToastComponent } from './components/error-toast/error-toast.compon
       .ai-influence-text { font-size: 0.68rem; }
       .header-inner { padding: 0 0.5rem; }
       .nav-badge { font-size: 0.6rem; padding: 0.2rem 0.5rem; }
+      .dataset-meta-inline { display: none; }
     }
   `],
 })
-export class AppComponent {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'SurveyApp';
   showAiNotice = signal(true);
+  private api = inject(ApiService);
+
+  datasetBadgeChecking = signal(false);
+  datasetBadgeState = signal<'checking' | 'ready' | 'warning'>('checking');
+  datasetBadgeMessage = signal('Checking dataset readiness...');
+  datasetBadgeLastChecked = signal('');
+
+  private badgeRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  private badgeFailureStreak = 0;
+  private badgeRetryUntil = 0;
+
+  ngOnInit(): void {
+    void this.refreshDatasetBadge(true);
+    this.badgeRefreshTimer = setInterval(() => {
+      void this.refreshDatasetBadge();
+    }, 60000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.badgeRefreshTimer) {
+      clearInterval(this.badgeRefreshTimer);
+      this.badgeRefreshTimer = null;
+    }
+  }
+
+  async refreshDatasetBadge(force = false): Promise<void> {
+    if (this.datasetBadgeChecking()) return;
+    if (!force && Date.now() < this.badgeRetryUntil) return;
+
+    this.datasetBadgeChecking.set(true);
+    this.datasetBadgeState.set('checking');
+    this.datasetBadgeMessage.set('Checking dataset readiness...');
+
+    const health = await this.api.getDatasetHealth();
+    this.datasetBadgeLastChecked.set(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    if (!health) {
+      this.badgeFailureStreak += 1;
+      const backoffMs = Math.min(300000, 15000 * Math.pow(2, this.badgeFailureStreak - 1));
+      this.badgeRetryUntil = Date.now() + backoffMs;
+      this.datasetBadgeState.set('warning');
+      this.datasetBadgeMessage.set(`Dataset health endpoint unavailable. Retrying in ${Math.ceil(backoffMs / 1000)}s.`);
+      this.datasetBadgeChecking.set(false);
+      return;
+    }
+
+    this.badgeFailureStreak = 0;
+    this.badgeRetryUntil = 0;
+
+    if (health.dataset.ready) {
+      this.datasetBadgeState.set('ready');
+      this.datasetBadgeMessage.set(`Dataset ready: ${health.dataset.totalItems} total items.`);
+      this.datasetBadgeChecking.set(false);
+      return;
+    }
+
+    const issuePreview = (health.dataset.issues || []).slice(0, 2).join(' | ');
+    this.datasetBadgeState.set('warning');
+    this.datasetBadgeMessage.set(issuePreview || 'Dataset contract validation failed.');
+    this.datasetBadgeChecking.set(false);
+  }
+
+  datasetBadgeTooltip(): string {
+    const checked = this.datasetBadgeLastChecked();
+    return checked ? `${this.datasetBadgeMessage()} Last checked at ${checked}. Click to refresh.` : `${this.datasetBadgeMessage()} Click to refresh.`;
+  }
+
+  datasetMetaInlineText(): string {
+    const checked = this.datasetBadgeLastChecked();
+    if (!checked) {
+      return 'Dataset status: checking...';
+    }
+    return `Last check ${checked}`;
+  }
 
   dismissNotice(): void {
     this.showAiNotice.set(false);

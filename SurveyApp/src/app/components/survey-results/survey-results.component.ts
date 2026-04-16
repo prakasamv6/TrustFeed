@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { DecimalPipe, UpperCasePipe, DatePipe } from '@angular/common';
 import { SurveyService } from '../../services/survey.service';
 import { ApiService } from '../../services/api.service';
-import { Continent, SessionSummary } from '../../models/survey.model';
+import { Continent, SessionSummary, SurveyItem } from '../../models/survey.model';
 
 @Component({
   selector: 'app-survey-results',
@@ -40,6 +40,56 @@ import { Continent, SessionSummary } from '../../models/survey.model';
           </div>
         </div>
       </div>
+
+      @let session = surveyService.session();
+      @if (session) {
+      <div class="section composition-section">
+        <h2>🧭 Session Composition</h2>
+        <p class="section-desc">Distribution of dataset items used in this completed survey session</p>
+        @let validation = getSessionValidation(session.items);
+        <div class="validation-banner" [class.valid]="validation.isBalanced" [class.invalid]="!validation.isBalanced">
+          <div class="validation-summary">
+            <span class="validation-icon">{{ validation.isBalanced ? '✅' : '⚠️' }}</span>
+            <span class="validation-text">{{ validation.message }}</span>
+          </div>
+          <div class="validation-chips">
+            <span class="validation-chip">{{ session.items.length }} items</span>
+            <span class="validation-chip">{{ r.actualAiCount }} AI / {{ r.actualHumanCount }} human</span>
+            <span class="validation-chip">{{ getSatisfiedContinentCount(session.items) }}/{{ continents.length }} continents balanced</span>
+          </div>
+        </div>
+        <div class="composition-grid">
+          <div class="composition-card">
+            <h3>By Continent</h3>
+            <div class="composition-list">
+              @for (entry of getSessionContinentMix(session.items); track entry.label) {
+              <div class="composition-row">
+                <span class="composition-label">{{ entry.icon }} {{ entry.label }}</span>
+                <div class="composition-bar-wrap">
+                  <div class="composition-bar continent-bar" [style.width.%]="(entry.count / session.items.length) * 100"></div>
+                </div>
+                <span class="composition-count">{{ entry.count }}</span>
+              </div>
+              }
+            </div>
+          </div>
+          <div class="composition-card">
+            <h3>By Media Type</h3>
+            <div class="composition-list">
+              @for (entry of getSessionMediaMix(session.items); track entry.label) {
+              <div class="composition-row">
+                <span class="composition-label">{{ entry.icon }} {{ entry.label }}</span>
+                <div class="composition-bar-wrap">
+                  <div class="composition-bar media-bar" [style.width.%]="(entry.count / session.items.length) * 100"></div>
+                </div>
+                <span class="composition-count">{{ entry.count }}</span>
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+      }
 
       <!-- Human vs All Agents Summary -->
       <div class="section comparison-section">
@@ -239,12 +289,17 @@ import { Continent, SessionSummary } from '../../models/survey.model';
             <span class="bt-col bt-agents">{{ getRegionFlag(c) }}</span>
             }
           </div>
-          @let session = surveyService.session();
           @if (session) {
           @for (item of session.items; track $index) {
           <div class="bt-row">
             <span class="bt-col bt-num">{{ $index + 1 }}</span>
-            <span class="bt-col bt-title" [title]="item.title">{{ item.title }}</span>
+            <span class="bt-col bt-title" [title]="item.title">
+              <span class="bt-title-main">{{ item.title }}</span>
+              <span class="bt-meta">
+                <span class="bt-meta-chip continent">{{ getItemContinentLabel(item.continent) }}</span>
+                <span class="bt-meta-chip source">{{ getItemSourceLabel(item.source) }}</span>
+              </span>
+            </span>
             <span class="bt-col bt-truth" [class]="'label-' + item.groundTruth">{{ item.groundTruth | uppercase }}</span>
             <span class="bt-col bt-human"
               [class.cell-correct]="item.humanVerdict === item.groundTruth"
@@ -477,6 +532,67 @@ import { Continent, SessionSummary } from '../../models/survey.model';
       &.ai .tc-value { color: var(--label-ai); }
       &.human .tc-value { color: var(--label-human); }
     }
+    .composition-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;
+    }
+    .validation-banner {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      padding: 0.9rem 1rem; margin-bottom: 1rem; border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle); background: var(--bg-glass);
+      &.valid {
+        border-color: var(--status-confirm); background: var(--status-confirm-bg);
+      }
+      &.invalid {
+        border-color: var(--status-notice); background: var(--status-notice-bg);
+      }
+    }
+    .validation-summary {
+      display: flex; align-items: center; gap: 0.65rem;
+    }
+    .validation-icon {
+      font-size: 1rem;
+    }
+    .validation-text {
+      font-size: 0.82rem; font-weight: 600; color: var(--text-primary);
+    }
+    .validation-chips {
+      display: flex; gap: 0.45rem; flex-wrap: wrap; justify-content: flex-end;
+    }
+    .validation-chip {
+      display: inline-flex; align-items: center;
+      padding: 0.22rem 0.55rem; border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.08);
+      font-size: 0.68rem; color: var(--text-secondary); font-weight: 600;
+    }
+    .composition-card {
+      padding: 1.1rem; border-radius: var(--radius-md);
+      background: var(--bg-glass); border: 1px solid var(--border-subtle);
+      h3 { margin: 0 0 0.9rem; color: var(--text-primary); font-size: 0.9rem; }
+    }
+    .composition-list {
+      display: flex; flex-direction: column; gap: 0.65rem;
+    }
+    .composition-row {
+      display: grid; grid-template-columns: 120px 1fr 28px; gap: 0.65rem; align-items: center;
+    }
+    .composition-label {
+      font-size: 0.76rem; color: var(--text-secondary); font-weight: 500;
+    }
+    .composition-bar-wrap {
+      height: 10px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden;
+    }
+    .composition-bar {
+      height: 100%; border-radius: 999px;
+    }
+    .composition-bar.continent-bar {
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    }
+    .composition-bar.media-bar {
+      background: linear-gradient(90deg, var(--accent-tertiary), var(--accent-primary));
+    }
+    .composition-count {
+      font-size: 0.78rem; font-weight: 700; color: var(--text-primary); text-align: right;
+    }
     .comparison-chart { display: flex; flex-direction: column; gap: 0.75rem; }
     .comp-row {
       display: grid; grid-template-columns: 140px 1fr 55px 55px; gap: 0.75rem; align-items: center;
@@ -602,7 +718,30 @@ import { Continent, SessionSummary } from '../../models/survey.model';
     }
     .bt-col { font-size: 0.72rem; color: var(--text-secondary); }
     .bt-num { text-align: center; color: var(--text-muted); }
-    .bt-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bt-title {
+      display: flex; flex-direction: column; gap: 0.3rem;
+      overflow: hidden;
+    }
+    .bt-title-main {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .bt-meta {
+      display: flex; gap: 0.35rem; flex-wrap: wrap;
+    }
+    .bt-meta-chip {
+      display: inline-flex; align-items: center;
+      max-width: 100%; padding: 0.12rem 0.45rem; border-radius: var(--radius-full);
+      font-size: 0.56rem; font-weight: 600; line-height: 1.2;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-glass); color: var(--text-muted);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .bt-meta-chip.continent {
+      border-color: var(--accent-primary); color: var(--accent-primary); background: var(--cat-a-bg);
+    }
+    .bt-meta-chip.source {
+      border-color: var(--accent-secondary); color: var(--accent-secondary); background: var(--cat-b-bg);
+    }
     .label-ai { color: var(--label-ai); font-weight: 600; }
     .label-human { color: var(--label-human); font-weight: 600; }
     .cell-correct { color: var(--label-human); font-weight: 600; }
@@ -736,6 +875,9 @@ import { Continent, SessionSummary } from '../../models/survey.model';
       .agent-output-grid { grid-template-columns: 1fr; }
       .comp-row { grid-template-columns: 100px 1fr 45px 45px; }
       .truth-grid { grid-template-columns: 1fr; }
+      .validation-banner { flex-direction: column; align-items: flex-start; }
+      .validation-chips { justify-content: flex-start; }
+      .composition-grid { grid-template-columns: 1fr; }
       .persona-card { flex-direction: column; text-align: center; }
       .persona-stats { flex-wrap: wrap; justify-content: center; }
       .ht-header, .ht-row { grid-template-columns: 30px 1fr 50px 50px 70px; font-size: .75rem; }
@@ -785,6 +927,74 @@ export class SurveyResultsComponent implements OnInit {
 
   getAgentVerdict(item: { agentVerdicts: { region: string; verdict: string }[] }, region: Continent): string {
     return item.agentVerdicts.find(v => v.region === region)?.verdict ?? '?';
+  }
+
+  getItemContinentLabel(continent?: string): string {
+    if (!continent) return 'Unknown';
+    return continent.replace(/_/g, ' ');
+  }
+
+  getItemSourceLabel(source?: string): string {
+    if (!source) return 'Dataset';
+    return source.replace(/^dataset-/, '').replace(/_/g, ' ');
+  }
+
+  getSessionContinentMix(items: SurveyItem[]): { label: string; count: number; icon: string }[] {
+    return this.continents.map(continent => ({
+      label: continent.replace(/_/g, ' '),
+      count: items.filter(item => item.continent === continent).length,
+      icon: this.getRegionFlag(continent),
+    }));
+  }
+
+  getSessionMediaMix(items: SurveyItem[]): { label: string; count: number; icon: string }[] {
+    const mediaConfig: Array<{ label: string; type: SurveyItem['contentType']; icon: string }> = [
+      { label: 'Text', type: 'text', icon: '📝' },
+      { label: 'Image', type: 'image', icon: '🖼️' },
+      { label: 'Video', type: 'video', icon: '🎬' },
+    ];
+
+    return mediaConfig.map(entry => ({
+      label: entry.label,
+      icon: entry.icon,
+      count: items.filter(item => item.contentType === entry.type).length,
+    }));
+  }
+
+  getSatisfiedContinentCount(items: SurveyItem[]): number {
+    return this.continents.filter(continent => {
+      const continentItems = items.filter(item => item.continent === continent);
+      const aiCount = continentItems.filter(item => item.groundTruth === 'ai').length;
+      const humanCount = continentItems.filter(item => item.groundTruth === 'human').length;
+      return continentItems.length === 2 && aiCount === 1 && humanCount === 1;
+    }).length;
+  }
+
+  getSessionValidation(items: SurveyItem[]): { isBalanced: boolean; message: string } {
+    const totalItemsOk = items.length === this.continents.length * 2;
+    const allContinentsBalanced = this.getSatisfiedContinentCount(items) === this.continents.length;
+    const hasBalancedTruth = items.filter(item => item.groundTruth === 'ai').length === items.filter(item => item.groundTruth === 'human').length;
+    const mediaMix = this.getSessionMediaMix(items);
+    const hasAllMediaTypes = mediaMix.every(entry => entry.count > 0);
+
+    if (totalItemsOk && allContinentsBalanced && hasBalancedTruth && hasAllMediaTypes) {
+      return {
+        isBalanced: true,
+        message: 'Validated balanced session: 14 items, every continent represented with 1 AI and 1 human item, and all media types included.',
+      };
+    }
+
+    const issues = [
+      totalItemsOk ? null : 'unexpected item count',
+      allContinentsBalanced ? null : 'continent balance mismatch',
+      hasBalancedTruth ? null : 'AI/human mix mismatch',
+      hasAllMediaTypes ? null : 'missing media type coverage',
+    ].filter(Boolean);
+
+    return {
+      isBalanced: false,
+      message: `Session needs review: ${issues.join(', ')}.`,
+    };
   }
 
   retake(): void {

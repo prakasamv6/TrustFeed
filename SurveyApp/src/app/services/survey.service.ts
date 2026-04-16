@@ -81,7 +81,6 @@ export class SurveyService {
     {
       title: 'AI Art: Ethereal Landscape',
       content: 'This stunning digital artwork depicts a floating island above crystalline waters, with bioluminescent flora casting gentle light across impossible geological formations. The piece explores themes of nature reimagined through algorithmic creativity.',
-      imageUrl: 'https://picsum.photos/seed/survey1/600/400',
       contentType: 'image', groundTruth: 'ai', category: 'Art', difficulty: 'easy',
     },
     {
@@ -300,13 +299,12 @@ export class SurveyService {
 
   // ─── Public Methods ───
 
-  /** Start a new survey session — fetches unique content from dataset, falls back to local pool. */
+  /** Start a new survey session using only curated dataset content. */
   async startSession(collabMode: boolean = false): Promise<void> {
     this._loading.set(true);
-    const itemCount = 6;
+    const itemCount = this.CONTINENTS.length * 2;
 
     let rawItems: Omit<SurveyItem, 'id' | 'agentVerdicts'>[];
-    let usingFallback = false;
 
     // Set a timeout warning if content fetch takes too long
     const timeoutId = setTimeout(() => {
@@ -315,32 +313,43 @@ export class SurveyService {
       }
     }, 15000);
 
-    // Try fetching unique content from the backend (Wikipedia, Picsum, Pollinations, Pexels)
     try {
+      const datasetHealth = await this.api.getDatasetHealth();
+      if (!datasetHealth) {
+        throw new Error('Dataset health check unavailable');
+      }
+      if (!datasetHealth.dataset.ready) {
+        const issues = datasetHealth.dataset.issues.slice(0, 3).join('; ');
+        throw new Error(issues || 'Dataset does not satisfy the balanced session contract');
+      }
+
       const fetched = await this.api.fetchContent(itemCount);
-      if (fetched && fetched.length > 0) {
-        rawItems = fetched.map(f => ({
-          title: f.title,
-          content: f.content,
-          imageUrl: f.imageUrl || undefined,
-          videoUrl: f.videoUrl || undefined,
-          contentType: f.contentType,
-          groundTruth: f.groundTruth,
-          category: f.category,
-          difficulty: f.difficulty,
-          source: f.source,
-        }));
-        console.log(`Fetched ${rawItems.length} unique items from: ${[...new Set(fetched.map(f => f.source))].join(', ')}`);
-      } else {
+      if (!fetched || fetched.length === 0) {
         throw new Error('Empty response from content API');
       }
+
+      rawItems = fetched.map(f => ({
+        title: f.title,
+        content: f.content,
+        imageUrl: f.imageUrl || undefined,
+        videoUrl: f.videoUrl || undefined,
+        contentType: f.contentType,
+        groundTruth: f.groundTruth,
+        category: f.category,
+        difficulty: f.difficulty,
+        source: f.source,
+        continent: f.continent,
+      }));
+      console.log(`Loaded ${rawItems.length} dataset items from: ${[...new Set(fetched.map(f => f.source))].join(', ')}`);
     } catch (err) {
-      // Fallback to local content pool — notify user with friendly message
-      console.warn('Content fetch failed, using fallback pool:', err);
-      usingFallback = true;
-      this.errorService.contentFetchFallback();
-      const shuffled = this.shuffleArray([...this.contentPool]);
-      rawItems = shuffled.slice(0, Math.min(itemCount, shuffled.length));
+      console.error('Dataset content fetch failed:', err);
+      const detail = err instanceof Error ? err.message : undefined;
+      this.errorService.contentLoadFailed(detail ? `Dataset readiness check failed: ${detail}.` : undefined);
+      this._session.set(null);
+      this._results.set(null);
+      this._loading.set(false);
+      clearTimeout(timeoutId);
+      return;
     } finally {
       clearTimeout(timeoutId);
     }
@@ -348,21 +357,8 @@ export class SurveyService {
     const items: SurveyItem[] = rawItems.map((raw, i) => ({
       ...raw,
       id: `survey-${Date.now()}-${i}`,
-      agentVerdicts: this.generateUniqueAgentVerdicts(raw.groundTruth, raw.difficulty, raw.category),
+      agentVerdicts: this.generateUniqueAgentVerdicts(raw),
     }));
-
-    // ─── Inject Attention Check Question (for sessions with 8+ items) ───
-    if (items.length >= 8) {
-      const checkItem = this.attentionCheckItems[Math.floor(Math.random() * this.attentionCheckItems.length)];
-      const attentionSurveyItem: SurveyItem = {
-        ...checkItem,
-        id: `survey-${Date.now()}-attn`,
-        agentVerdicts: this.generateUniqueAgentVerdicts(checkItem.groundTruth, checkItem.difficulty, checkItem.category),
-      };
-      // Insert at a random position in the middle third
-      const insertAt = Math.floor(items.length / 3) + Math.floor(Math.random() * Math.ceil(items.length / 3));
-      items.splice(insertAt, 0, attentionSurveyItem);
-    }
 
     const session: SurveySession = {
       id: `session-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
@@ -423,110 +419,55 @@ export class SurveyService {
     this._session.set({ ...s, currentIndex: index });
   }
 
-  // ─── Region-Specific Media for Agent Analysis ───
-
-  private readonly regionMedia: Record<Continent, { images: string[]; videos: { url: string; poster: string }[] }> = {
-    'Africa': {
-      images: [
-        '/api/dataset-file?path=Africa/Images/AI/africa_ai_1.jpg',
-        '/api/dataset-file?path=Africa/Images/NonAI/africa_nonai_1.jpg',
-      ],
-      videos: [
-        { url: '/api/dataset-file?path=Africa/Videos/AI/africa_ai_1.mp4', poster: '/api/dataset-file?path=Africa/Images/AI/africa_ai_1.jpg' },
-      ],
-    },
-    'Asia': {
-      images: [
-        '/api/dataset-file?path=Asia/Images/AI/asia_ai_1.jpg',
-        '/api/dataset-file?path=Asia/Images/NonAI/asia_nonai_1.jpg',
-      ],
-      videos: [
-        { url: '/api/dataset-file?path=Asia/Videos/AI/asia_ai_1.mp4', poster: '/api/dataset-file?path=Asia/Images/AI/asia_ai_1.jpg' },
-      ],
-    },
-    'Europe': {
-      images: [
-        '/api/dataset-file?path=Europe/Images/AI/europe_ai_1.jpg',
-        '/api/dataset-file?path=Europe/Images/NonAI/europe_nonai_1.jpg',
-      ],
-      videos: [
-        { url: '/api/dataset-file?path=Europe/Videos/AI/europe_ai_1.mp4', poster: '/api/dataset-file?path=Europe/Images/AI/europe_ai_1.jpg' },
-      ],
-    },
-    'North_America': {
-      images: [
-        '/api/dataset-file?path=North_America/Images/AI/north_america_ai_1.jpg',
-        '/api/dataset-file?path=North_America/Images/NonAI/north_america_nonai_1.jpg',
-      ],
-      videos: [
-        { url: '/api/dataset-file?path=North_America/Videos/AI/north_america_ai_1.mp4', poster: '/api/dataset-file?path=North_America/Images/AI/north_america_ai_1.jpg' },
-      ],
-    },
-    'South_America': {
-      images: [
-        '/api/dataset-file?path=South_America/Images/AI/south_america_ai_1.jpg',
-        '/api/dataset-file?path=South_America/Images/NonAI/south_america_nonai_1.jpg',
-      ],
-      videos: [
-        { url: '/api/dataset-file?path=South_America/Videos/AI/south_america_ai_1.mp4', poster: '/api/dataset-file?path=South_America/Images/AI/south_america_ai_1.jpg' },
-      ],
-    },
-    'Antarctica': {
-      images: [
-        '/api/dataset-file?path=Antarctica/Images/AI/antarctica_ai_1.jpg',
-        '/api/dataset-file?path=Antarctica/Images/NonAI/antarctica_nonai_1.jpg',
-      ],
-      videos: [
-        { url: '/api/dataset-file?path=Antarctica/Videos/AI/antarctica_ai_1.mp4', poster: '/api/dataset-file?path=Antarctica/Images/AI/antarctica_ai_1.jpg' },
-      ],
-    },
-    'Australia': {
-      images: [
-        '/api/dataset-file?path=Australia/Images/AI/australia_ai_1.jpg',
-        '/api/dataset-file?path=Australia/Images/NonAI/australia_nonai_1.jpg',
-      ],
-      videos: [
-        { url: '/api/dataset-file?path=Australia/Videos/AI/australia_ai_1.mp4', poster: '/api/dataset-file?path=Australia/Images/AI/australia_ai_1.jpg' },
-      ],
-    },
-  };
-
-  private getRegionMedia(region: Continent): { analysisImageUrl: string; analysisVideoUrl?: string; analysisMediaType: 'image' | 'video' } {
-    const media = this.regionMedia[region];
-    // ~30% chance of video, ~70% image
-    if (Math.random() < 0.3 && media.videos.length > 0) {
-      const vid = media.videos[Math.floor(Math.random() * media.videos.length)];
-      return { analysisImageUrl: vid.poster, analysisVideoUrl: vid.url, analysisMediaType: 'video' };
-    }
-    const img = media.images[Math.floor(Math.random() * media.images.length)];
-    return { analysisImageUrl: img, analysisMediaType: 'image' };
-  }
-
   // ─── Private Methods ───
 
-  private generateUniqueAgentVerdicts(
-    groundTruth: 'ai' | 'human',
-    difficulty: 'easy' | 'medium' | 'hard',
-    _category: string
-  ): AgentVerdict[] {
+  private buildAgentAnalysisMedia(item: Pick<SurveyItem, 'contentType' | 'imageUrl' | 'videoUrl'>): Pick<AgentVerdict, 'analysisImageUrl' | 'analysisVideoUrl' | 'analysisMediaType'> {
+    if (item.contentType === 'video') {
+      if (item.videoUrl) {
+        return {
+          analysisImageUrl: item.imageUrl,
+          analysisVideoUrl: item.videoUrl,
+          analysisMediaType: 'video',
+        };
+      }
+      if (item.imageUrl) {
+        return {
+          analysisImageUrl: item.imageUrl,
+          analysisMediaType: 'image',
+        };
+      }
+      return {};
+    }
+
+    if (item.contentType === 'image' && item.imageUrl) {
+      return {
+        analysisImageUrl: item.imageUrl,
+        analysisMediaType: 'image',
+      };
+    }
+
+    return {};
+  }
+
+  private generateUniqueAgentVerdicts(item: Omit<SurveyItem, 'id' | 'agentVerdicts'>): AgentVerdict[] {
+    const media = this.buildAgentAnalysisMedia(item);
+
     return this.CONTINENTS.map(region => {
       const personality = this.agentPersonalities[region];
 
       // Determine this agent's verdict based on bias + difficulty + randomness
-      const correctProbability = this.getCorrectProbability(personality.biasToward, groundTruth, difficulty);
+      const correctProbability = this.getCorrectProbability(personality.biasToward, item.groundTruth, item.difficulty);
       const isCorrect = Math.random() < correctProbability;
-      const verdict: 'ai' | 'human' = isCorrect ? groundTruth : (groundTruth === 'ai' ? 'human' : 'ai');
+      const verdict: 'ai' | 'human' = isCorrect ? item.groundTruth : (item.groundTruth === 'ai' ? 'human' : 'ai');
 
       // Confidence varies by difficulty and agent strength
       const [minStr, maxStr] = personality.strengthRange;
-      const difficultyPenalty = difficulty === 'hard' ? 0.15 : difficulty === 'medium' ? 0.07 : 0;
+      const difficultyPenalty = item.difficulty === 'hard' ? 0.15 : item.difficulty === 'medium' ? 0.07 : 0;
       const confidence = Math.max(0.3, Math.min(1, minStr + Math.random() * (maxStr - minStr) - difficultyPenalty));
 
       // Pick a unique reasoning template
       const templates = personality.reasoningTemplates[verdict];
       const reasoning = templates[Math.floor(Math.random() * templates.length)];
-
-      const media = this.getRegionMedia(region);
 
       return {
         agentName: `${region} Bias Agent`,
@@ -534,9 +475,7 @@ export class SurveyService {
         verdict,
         confidence: Math.round(confidence * 100) / 100,
         reasoning,
-        analysisImageUrl: media.analysisImageUrl,
-        analysisVideoUrl: media.analysisVideoUrl,
-        analysisMediaType: media.analysisMediaType,
+        ...media,
       };
     });
   }

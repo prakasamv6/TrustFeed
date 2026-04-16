@@ -84,6 +84,19 @@ export class ErrorNotificationService {
     );
   }
 
+  /** Dataset-backed survey content could not be loaded. */
+  contentLoadFailed(detail?: string): void {
+    this.notify('error',
+      'Dataset unavailable',
+      detail || 'We couldn\'t load the curated survey dataset for this session.',
+      {
+        suggestion: 'Please try again in a moment. The survey will start once the dataset service responds.',
+        context: 'content-fetch',
+        recoverable: true,
+      }
+    );
+  }
+
   /** Network appears to be offline. */
   networkOffline(): void {
     this.notify('error',

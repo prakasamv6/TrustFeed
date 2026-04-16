@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, delay } from 'rxjs';
+import { Observable, of, delay, map, catchError } from 'rxjs';
 import { environment } from './environment';
 import {
   FairnessSurveyRequest,
@@ -30,14 +30,59 @@ export class FairnessSurveyService {
     if (this.mockMode) {
       return of(this.mockSurveyResults(postId)).pipe(delay(400));
     }
-    return this.http.get<FairnessSurveyResult>(`${this.apiBase}/fairness-survey/${postId}`);
+    return this.http.get<any>(`${this.apiBase}/fairness-survey/${postId}`).pipe(
+      map(raw => {
+        const responses = Array.isArray(raw?.responses) ? raw.responses : [];
+        const fallbackSummary = {
+          avgOriginalFairness: 0,
+          avgNonbiasedFairness: 0,
+          avgExplanationClarity: 0,
+          avgTrustImpact: 0,
+          avgPerceivedBias: 0,
+          responseCount: responses.length,
+        };
+        return {
+          postId: String(raw?.postId ?? postId),
+          responses,
+          summary: raw?.summary ? { ...fallbackSummary, ...raw.summary } : fallbackSummary,
+        } as FairnessSurveyResult;
+      }),
+      catchError(() => of({
+        postId,
+        responses: [],
+        summary: {
+          avgOriginalFairness: 0,
+          avgNonbiasedFairness: 0,
+          avgExplanationClarity: 0,
+          avgTrustImpact: 0,
+          avgPerceivedBias: 0,
+          responseCount: 0,
+        },
+      }))
+    );
   }
 
   getFairnessTrends(): Observable<FairnessTrends> {
     if (this.mockMode) {
       return of(this.mockFairnessTrends()).pipe(delay(400));
     }
-    return this.http.get<FairnessTrends>(`${this.apiBase}/dashboard/fairness-trends`);
+    return this.http.get<any>(`${this.apiBase}/dashboard/fairness-trends`).pipe(
+      map(raw => {
+        const points = Array.isArray(raw) ? raw : (Array.isArray(raw?.points) ? raw.points : []);
+        return {
+          points: points.map((p: any) => ({
+            date: String(p?.date ?? ''),
+            avgOriginalFairness: Number(p?.avgOriginalFairness ?? 0),
+            avgNonbiasedFairness: Number(p?.avgNonbiasedFairness ?? 0),
+            avgExplanationClarity: Number(p?.avgExplanationClarity ?? 0),
+            avgTrustImpact: Number(p?.avgTrustImpact ?? 0),
+            avgPerceivedBias: Number(p?.avgPerceivedBias ?? 0),
+            responseCount: Number(p?.responseCount ?? 0),
+          })),
+        } as FairnessTrends;
+      }),
+      catchError(() => of({ points: [] }))
+    );
   }
 
   /** Generate a mock factor attribution for demo/mock mode. */

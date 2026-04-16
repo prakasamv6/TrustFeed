@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Release runbook
+    url: https://github.com/prakasamv6/TrustFeed/blob/main/RELEASE_CHECKLIST.md
+    about: Use the release checklist before deployment.

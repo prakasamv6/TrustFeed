@@ -1,0 +1,62 @@
+name: SurveyApp Smoke Check
+
+on:
+  pull_request:
+    paths:
+      - 'SurveyApp/**'
+      - '.github/workflows/survey-smoke.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'SurveyApp/**'
+      - '.github/workflows/survey-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.0'
+          cache: 'npm'
+          cache-dependency-path: |
+            SurveyApp/server/package-lock.json
+
+      - name: Install Survey API dependencies
+        run: npm --prefix SurveyApp/server ci
+
+      - name: Run smoke check in JSON mode
+        id: smoke
+        run: |
+          set -euo pipefail
+          npm --prefix SurveyApp run smoke:json | tee smoke.log
+          RESULT_LINE=$(grep 'SMOKE_RESULT_JSON:' smoke.log | tail -1 || true)
+          if [ -z "$RESULT_LINE" ]; then
+            echo 'Smoke output did not include SMOKE_RESULT_JSON marker.'
+            exit 1
+          fi
+          RESULT_JSON="${RESULT_LINE#SMOKE_RESULT_JSON:}"
+          {
+            echo 'result_json<<EOF'
+            echo "$RESULT_JSON"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate smoke JSON result
+        env:
+          RESULT_JSON: ${{ steps.smoke.outputs.result_json }}
+        run: |
+          node -e "const result = JSON.parse(process.env.RESULT_JSON); if (!result.ok) { console.error('Smoke check reported failure:', result); process.exit(1); } console.log('Smoke check passed:', { apiPort: result.apiPort, steps: result.steps });"
+
+      - name: Upload smoke log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: survey-smoke-log
+          path: smoke.log

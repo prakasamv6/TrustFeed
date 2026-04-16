@@ -1,0 +1,7 @@
+# Repository-wide ownership: only one code owner
+* @prakasamv6
+
+# Keep explicit entries for critical governance files
+.github/workflows/* @prakasamv6
+.github/pull_request_template.md @prakasamv6
+.github/CODEOWNERS @prakasamv6

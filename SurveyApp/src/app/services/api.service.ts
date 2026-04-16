@@ -6,7 +6,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout, retry, catchError, of } from 'rxjs';
-import { SurveyItem, SurveyResults, FetchedContentItem, SessionSummary } from '../models/survey.model';
+import { SurveyItem, SurveyResults, FetchedContentItem, SessionSummary, DatasetHealthResponse } from '../models/survey.model';
 import { ErrorNotificationService } from './error-notification.service';
 
 @Injectable({ providedIn: 'root' })
@@ -137,6 +137,18 @@ export class ApiService {
     } catch (err) {
       console.error('Failed to fetch content from API:', err);
       return [];
+    }
+  }
+
+  /** Fetch dataset readiness and balance status from backend. */
+  async getDatasetHealth(): Promise<DatasetHealthResponse | null> {
+    try {
+      return await firstValueFrom(
+        this.http.get<DatasetHealthResponse>(`${this.baseUrl}/dataset-health`).pipe(timeout(10000))
+      );
+    } catch (err) {
+      console.error('Failed to fetch dataset health:', err);
+      return null;
     }
   }
 }

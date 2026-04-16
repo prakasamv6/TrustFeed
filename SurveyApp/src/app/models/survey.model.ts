@@ -38,6 +38,8 @@ export interface SurveyItem {
   difficulty: 'easy' | 'medium' | 'hard';
   /** Source API the content was fetched from */
   source?: string;
+  /** Dataset continent the content was loaded from */
+  continent?: Continent;
 }
 
 /** Raw content item fetched from the API (before agent verdicts are added) */
@@ -52,6 +54,30 @@ export interface FetchedContentItem {
   category: string;
   difficulty: 'easy' | 'medium' | 'hard';
   source: string;
+  continent?: Continent;
+}
+
+export interface DatasetContinentHealth {
+  continent: Continent;
+  total: number;
+  ai: number;
+  human: number;
+  media: Partial<Record<'text' | 'image' | 'video', number>>;
+}
+
+export interface DatasetHealth {
+  ready: boolean;
+  requiredSessionSize: number;
+  totalItems: number;
+  truthCounts: { ai: number; human: number };
+  mediaCounts: { text: number; image: number; video: number };
+  continents: DatasetContinentHealth[];
+  issues: string[];
+}
+
+export interface DatasetHealthResponse {
+  status: 'ok' | 'warning';
+  dataset: DatasetHealth;
 }
 
 export interface SurveySession {
