@@ -24,12 +24,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.19.0'
-          cache: 'npm'
-          cache-dependency-path: |
-            SurveyApp/server/package-lock.json
 
       - name: Install Survey API dependencies
-        run: npm --prefix SurveyApp/server ci
+        run: npm --prefix SurveyApp/server install
 
       - name: Run smoke check in JSON mode
         id: smoke
