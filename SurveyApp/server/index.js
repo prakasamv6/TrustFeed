@@ -230,7 +230,7 @@ async function runMigrations() {
         id                INT AUTO_INCREMENT PRIMARY KEY,
         session_id        VARCHAR(64) NOT NULL,
         item_index        INT NOT NULL,
-        agent_region      VARCHAR(32) NOT NULL,
+        agent_region      VARCHAR(64) NOT NULL,
         verdict           ENUM('ai','human') NOT NULL,
         confidence        DECIMAL(4,2) NOT NULL,
         reasoning         TEXT NOT NULL,
@@ -246,7 +246,7 @@ async function runMigrations() {
       CREATE TABLE IF NOT EXISTS agent_results (
         id                INT AUTO_INCREMENT PRIMARY KEY,
         session_id        VARCHAR(64) NOT NULL,
-        agent_region      VARCHAR(32) NOT NULL,
+        agent_region      VARCHAR(64) NOT NULL,
         correct_count     INT NOT NULL,
         accuracy          DECIMAL(5,4) NOT NULL,
         ai_count          INT NOT NULL,
@@ -276,7 +276,7 @@ async function runMigrations() {
         post_id           VARCHAR(128) NOT NULL,
         content_type      VARCHAR(16) NOT NULL DEFAULT 'text',
         agent_name        VARCHAR(64) NOT NULL,
-        agent_region      VARCHAR(32) DEFAULT NULL,
+        agent_region      VARCHAR(64) DEFAULT NULL,
         score             DECIMAL(6,4) NOT NULL,
         confidence        DECIMAL(6,4) NOT NULL,
         bias_direction    VARCHAR(16) DEFAULT NULL,
@@ -292,6 +292,19 @@ async function runMigrations() {
         INDEX idx_created (created_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
+
+    // ─── Alter existing tables to fix column sizes (if they already exist) ───
+    try {
+      await pool.query(`ALTER TABLE agent_verdicts MODIFY COLUMN agent_region VARCHAR(64) NOT NULL`);
+      await pool.query(`ALTER TABLE agent_results MODIFY COLUMN agent_region VARCHAR(64) NOT NULL`);
+      await pool.query(`ALTER TABLE agreement_matrix MODIFY COLUMN agent_region VARCHAR(64) DEFAULT NULL`);
+      await pool.query(`ALTER TABLE feed_analysis_log MODIFY COLUMN agent_region VARCHAR(64) DEFAULT NULL`);
+    } catch (altErr) {
+      // ALTER might fail if columns are already correct or table doesn't exist yet
+      if (!altErr.message.includes('Duplicate column name') && !altErr.message.includes('check') && !altErr.message.includes('exists')) {
+        console.warn('ALTER TABLE (optional):', altErr.message);
+      }
+    }
 
     console.log('Auto-migration complete — all tables ready.');
   } catch (err) {
@@ -604,7 +617,7 @@ app.post('/api/sessions/:id/responses', async (req, res) => {
               reasoning = VALUES(reasoning)`,
             [
               sessionId, parsedIndex,
-              sanitizeString(av.region, 50),
+              sanitizeString(av.region, 32),
               isValidVerdict(av.verdict) ? av.verdict : 'human',
               typeof av.confidence === 'number' ? Math.min(Math.max(av.confidence, 0), 1) : 0.5,
               sanitizeString(av.reasoning, 500),

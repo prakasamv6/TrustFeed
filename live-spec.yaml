@@ -1,0 +1,73 @@
+ingress:
+  rules:
+  - component:
+      name: survey-frontend
+    match:
+      path:
+        prefix: /
+  - component:
+      name: survey-api
+      preserve_path_prefix: true
+    match:
+      path:
+        prefix: /api
+name: trustfeed-survey
+region: nyc
+services:
+- dockerfile_path: SurveyApp/Dockerfile
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: prakasamv6/TrustFeed
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 10
+    period_seconds: 30
+  http_port: 80
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  name: survey-frontend
+  source_dir: SurveyApp
+- dockerfile_path: SurveyApp/server/Dockerfile
+  envs:
+  - key: DB_HOST
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:CvxiJGxZnNarZeJJA5J1UeFNgM658sBv:qF6TGIbMmfXCvsEbFYTGAm3cN6Gr3AYzk1kxyQVqlDrNBrjRdwv+WF9Tw/kE+Vw9idb0aBt1OYGUev/OIlCki41/i5EDPFJA01V17mg8]
+  - key: DB_PORT
+    scope: RUN_AND_BUILD_TIME
+    value: "25060"
+  - key: DB_USER
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:549SMoxDabj/hSOhHO+tJlmB0fFKGSz+:l1Gd/5Vyiuq3Yhh2pFnIgl0PcrBoV08=]
+  - key: DB_PASSWORD
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:tQdiSAQ0gwdgVnB+IqVbmA7JUuUjujZp:sazuaXEALm1a8J1FyqQJoXhQRrpu5Zl3pkyQmrE6RnMTLBJrQTB8SA==]
+  - key: DB_NAME
+    scope: RUN_AND_BUILD_TIME
+    value: defaultdb
+  - key: DB_SSL
+    scope: RUN_AND_BUILD_TIME
+    value: "true"
+  - key: API_PORT
+    scope: RUN_AND_BUILD_TIME
+    value: "3000"
+  - key: PEXELS_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:LvB2lwHYhmCjG03biT2zFMZ87R4d1AIl:CGHnNiKQV0agFj1uBlV2DJmFEbWipnaxRmxuD11zR4IZppvM5w==]
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: prakasamv6/TrustFeed
+  health_check:
+    http_path: /api/health
+    initial_delay_seconds: 15
+    period_seconds: 30
+  http_port: 3000
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  name: survey-api
+  source_dir: /
