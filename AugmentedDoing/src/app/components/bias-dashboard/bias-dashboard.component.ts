@@ -120,7 +120,7 @@ export class BiasDashboardComponent implements OnInit {
     this.dashboardService.getDbSessions().subscribe(sessions => this.dbSessions.set(sessions));
 
     const flagged = this.getFlaggedPosts();
-    if (flagged.length > 0) this.selectPost(flagged[0]);
+    if (flagged?.length > 0) this.selectPost(flagged[0]);
   }
 
   setTab(tab: ReportTab): void { this.activeTab.set(tab); }
@@ -131,7 +131,7 @@ export class BiasDashboardComponent implements OnInit {
     this.surveyRatings.set({ originalFairness: 0, nonbiasedFairness: 0, explanationClarity: 0, trustImpact: 0, perceivedBiasSeverity: 0 });
     this.surveyComment.set('');
     this.factorAttribution.set(this.fairnessService.generateMockAttribution(post.id));
-    this.fairnessService.getSurveyResults(post.id).subscribe(result => this.fairnessSummary.set(result.summary));
+    this.fairnessService.getSurveyResults(post.id).subscribe(result => this.fairnessSummary.set(result?.summary ?? null));
   }
 
   getConfidenceDelta(): number {
@@ -155,7 +155,7 @@ export class BiasDashboardComponent implements OnInit {
       perceivedBiasSeverity: r['perceivedBiasSeverity'], comment: this.surveyComment(),
     }).subscribe(() => {
       this.surveySubmitted.set(true);
-      this.fairnessService.getSurveyResults(post.id).subscribe(result => this.fairnessSummary.set(result.summary));
+      this.fairnessService.getSurveyResults(post.id).subscribe(result => this.fairnessSummary.set(result?.summary ?? null));
     });
   }
 
@@ -312,10 +312,11 @@ export class BiasDashboardComponent implements OnInit {
     return [...dbSess, ...memSess];
   }
 
-  getDbSessionCount(): number { return this.dbSessions().length; }
+  getDbSessionCount(): number { return (this.dbSessions() ?? []).length; }
   getMemSessionCount(): number {
-    const dbIds = new Set(this.dbSessions().map(s => s.sessionId));
-    return this.surveySessions().filter(s => !dbIds.has(s.sessionId)).length;
+    const dbIds = new Set((this.dbSessions() ?? []).map(s => s.sessionId));
+    const sessions = this.surveySessions() ?? [];
+    return Array.isArray(sessions) ? sessions.filter(s => !dbIds.has(s.sessionId)).length : 0;
   }
 
   getSurveyOverallAccuracy(): number {

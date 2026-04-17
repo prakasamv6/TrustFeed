@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, delay, map, catchError } from 'rxjs';
+import { Observable, of, delay, map, catchError, timeout, retry } from 'rxjs';
 import { environment } from './environment';
 import {
   FairnessSurveyRequest,
@@ -31,6 +31,8 @@ export class FairnessSurveyService {
       return of(this.mockSurveyResults(postId)).pipe(delay(400));
     }
     return this.http.get<any>(`${this.apiBase}/fairness-survey/${postId}`).pipe(
+      timeout(10000),
+      retry(1),
       map(raw => {
         const responses = Array.isArray(raw?.responses) ? raw.responses : [];
         const fallbackSummary = {
@@ -67,6 +69,8 @@ export class FairnessSurveyService {
       return of(this.mockFairnessTrends()).pipe(delay(400));
     }
     return this.http.get<any>(`${this.apiBase}/dashboard/fairness-trends`).pipe(
+      timeout(10000),
+      retry(1),
       map(raw => {
         const points = Array.isArray(raw) ? raw : (Array.isArray(raw?.points) ? raw.points : []);
         return {

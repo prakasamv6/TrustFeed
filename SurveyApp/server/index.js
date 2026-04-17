@@ -783,36 +783,59 @@ app.get('/api/sessions', async (req, res) => {
          WHERE s.completed_at IS NOT NULL
          ORDER BY s.completed_at DESC`
       );
-      const results = [];
-      for (const s of sessions) {
-        const [agentRes] = await pool.execute('SELECT * FROM agent_results WHERE session_id = ?', [s.session_id]);
-        const [agreement] = await pool.execute('SELECT * FROM agreement_matrix WHERE session_id = ?', [s.session_id]);
-        results.push({
-          sessionId: s.session_id,
-          startedAt: s.started_at,
-          completedAt: s.completed_at,
-          collabMode: !!s.collab_mode,
-          totalItems: s.item_count,
-          humanCorrect: s.human_correct,
-          humanAccuracy: parseFloat(s.human_accuracy) || 0,
-          humanAiCount: s.human_ai_count,
-          humanHumanCount: s.human_human_count,
-          actualAiCount: s.actual_ai_count,
-          actualHumanCount: s.actual_human_count,
-          agentResults: agentRes.map(a => ({
-            region: a.agent_region,
-            correct: a.correct_count,
-            accuracy: parseFloat(a.accuracy) || 0,
-            aiCount: a.ai_count,
-            humanCount: a.human_count,
-            avgConfidence: parseFloat(a.avg_confidence) || 0,
-          })),
-          agreementMatrix: agreement.map(a => ({
-            region: a.agent_region,
-            agreementRate: parseFloat(a.agreement_rate) || 0,
-          })),
-        });
+
+      // Batch-fetch all agent results and agreement matrix rows in 2 queries
+      // instead of 2 queries per session (N+1 → 3 total queries)
+      const sessionIds = sessions.map(s => s.session_id);
+      let allAgentRes = [];
+      let allAgreement = [];
+      if (sessionIds.length > 0) {
+        const placeholders = sessionIds.map(() => '?').join(',');
+        [allAgentRes] = await pool.execute(
+          `SELECT * FROM agent_results WHERE session_id IN (${placeholders})`, sessionIds
+        );
+        [allAgreement] = await pool.execute(
+          `SELECT * FROM agreement_matrix WHERE session_id IN (${placeholders})`, sessionIds
+        );
       }
+
+      // Index by session_id for fast lookup
+      const agentBySession = new Map();
+      const agreementBySession = new Map();
+      for (const a of allAgentRes) {
+        if (!agentBySession.has(a.session_id)) agentBySession.set(a.session_id, []);
+        agentBySession.get(a.session_id).push(a);
+      }
+      for (const a of allAgreement) {
+        if (!agreementBySession.has(a.session_id)) agreementBySession.set(a.session_id, []);
+        agreementBySession.get(a.session_id).push(a);
+      }
+
+      const results = sessions.map(s => ({
+        sessionId: s.session_id,
+        startedAt: s.started_at,
+        completedAt: s.completed_at,
+        collabMode: !!s.collab_mode,
+        totalItems: s.item_count,
+        humanCorrect: s.human_correct,
+        humanAccuracy: parseFloat(s.human_accuracy) || 0,
+        humanAiCount: s.human_ai_count,
+        humanHumanCount: s.human_human_count,
+        actualAiCount: s.actual_ai_count,
+        actualHumanCount: s.actual_human_count,
+        agentResults: (agentBySession.get(s.session_id) || []).map(a => ({
+          region: a.agent_region,
+          correct: a.correct_count,
+          accuracy: parseFloat(a.accuracy) || 0,
+          aiCount: a.ai_count,
+          humanCount: a.human_count,
+          avgConfidence: parseFloat(a.avg_confidence) || 0,
+        })),
+        agreementMatrix: (agreementBySession.get(s.session_id) || []).map(a => ({
+          region: a.agent_region,
+          agreementRate: parseFloat(a.agreement_rate) || 0,
+        })),
+      }));
       res.json({ sessions: results });
     } else {
       const allSessions = [...memStore.sessions.values()]

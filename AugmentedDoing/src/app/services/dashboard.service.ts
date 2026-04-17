@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, delay, catchError, map } from 'rxjs';
+import { Observable, of, delay, catchError, map, timeout, retry } from 'rxjs';
 import { environment } from './environment';
 import {
   DashboardSummary, DashboardAgentStats, DashboardTrends,
@@ -38,14 +38,16 @@ export class DashboardService {
 
   getAgentTracking(): Observable<AgentTrackingResponse> {
     return this.http.get<AgentTrackingResponse>(`${this.surveyUrl}/api/agent-tracking`).pipe(
+      timeout(15000),
+      retry(1),
       map(res => ({
         feedAnalysis: {
-          agentStats: res.feedAnalysis?.agentStats ?? [],
-          recentLogs: res.feedAnalysis?.recentLogs ?? [],
+          agentStats: Array.isArray(res?.feedAnalysis?.agentStats) ? res.feedAnalysis.agentStats : [],
+          recentLogs: Array.isArray(res?.feedAnalysis?.recentLogs) ? res.feedAnalysis.recentLogs : [],
         },
-        surveyVerdicts: res.surveyVerdicts ?? [],
-        totalFeedAnalyses: res.totalFeedAnalyses ?? 0,
-        totalSurveyVerdicts: res.totalSurveyVerdicts ?? 0,
+        surveyVerdicts: Array.isArray(res?.surveyVerdicts) ? res.surveyVerdicts : [],
+        totalFeedAnalyses: res?.totalFeedAnalyses ?? 0,
+        totalSurveyVerdicts: res?.totalSurveyVerdicts ?? 0,
       })),
       catchError(() => of({
         feedAnalysis: { agentStats: [], recentLogs: [] },
@@ -57,7 +59,16 @@ export class DashboardService {
   }
 
   getAnalytics(): Observable<AnalyticsResponse> {
-    return this.http.get<AnalyticsResponse>(`${this.surveyUrl}/api/analytics`).pipe(
+    return this.http.get<any>(`${this.surveyUrl}/api/analytics`).pipe(
+      timeout(15000),
+      retry(1),
+      map(raw => ({
+        totalCompletedSessions: this.asNumber(raw?.totalCompletedSessions),
+        accuracyByMode: Array.isArray(raw?.accuracyByMode) ? raw.accuracyByMode : [],
+        accuracyByDifficulty: Array.isArray(raw?.accuracyByDifficulty) ? raw.accuracyByDifficulty : [],
+        agentAccuracy: Array.isArray(raw?.agentAccuracy) ? raw.agentAccuracy : [],
+        accuracyByCategory: Array.isArray(raw?.accuracyByCategory) ? raw.accuracyByCategory : [],
+      })),
       catchError(() => of({
         totalCompletedSessions: 0,
         accuracyByMode: [],
@@ -70,7 +81,9 @@ export class DashboardService {
 
   getDbSessions(): Observable<DbSurveySession[]> {
     return this.http.get<DbSessionsResponse>(`${this.surveyUrl}/api/sessions`).pipe(
-      map(res => (res.sessions || []).map(s => ({
+      timeout(15000),
+      retry(1),
+      map(res => (res?.sessions || []).map(s => ({
         ...s,
         collabMode: !!s.collabMode,
         totalItems: this.asNumber(s.totalItems),
@@ -160,6 +173,8 @@ export class DashboardService {
 
   getSurveyCompletionStats(): Observable<SurveyCompletionStats> {
     return this.http.get<any>(`${this.surveyUrl}/api/survey-stats`).pipe(
+      timeout(15000),
+      retry(1),
       map(raw => this.normalizeSurveyCompletionStats(raw)),
       catchError(() => this.http.get<any>(`${this.apiBase}/survey-stats`).pipe(
         map(raw => this.normalizeSurveyCompletionStats(raw)),

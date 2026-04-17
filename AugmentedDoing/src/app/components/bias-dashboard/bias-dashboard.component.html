@@ -75,7 +75,7 @@
         <span class="kpi-src">Live DB</span>
       </div>
       <div class="kpi" data-accent="tertiary">
-        <span class="kpi-val">{{ at.feedAnalysis.agentStats.length }}</span>
+        <span class="kpi-val">{{ at.feedAnalysis?.agentStats?.length ?? 0 }}</span>
         <span class="kpi-lbl">Active Agents</span>
         <span class="kpi-src">Live DB</span>
       </div>
@@ -147,12 +147,12 @@
     }
 
     <!-- Agent Score Distribution Chart -->
-    @if (at && at.feedAnalysis.agentStats.length > 0) {
+    @if (at && (at.feedAnalysis?.agentStats?.length ?? 0) > 0) {
     <div class="report-section">
       <h2 class="section-heading">Agent Score Distribution</h2>
       <p class="section-desc">Average scores per agent from persistent feed analysis data</p>
       <div class="bar-chart">
-        @for (ag of at.feedAnalysis.agentStats; track ag.agent_name) {
+        @for (ag of (at.feedAnalysis?.agentStats ?? []); track ag.agent_name) {
         <div class="bar-row">
           <span class="bar-label">{{ getRegionEmoji(ag.agent_region) }} {{ ag.agent_region }}</span>
           <div class="bar-track">
@@ -178,7 +178,7 @@
         <div class="dg-header">
           <span>Date</span><span>Analyzed</span><span>Flagged</span><span>Avg Δ</span><span>Avg Debiased</span>
         </div>
-        @for (pt of t.points; track pt.date) {
+        @for (pt of (t.points ?? []); track pt.date) {
         <div class="dg-row">
           <span>{{ pt.date }}</span>
           <span>{{ pt.totalAnalyzed }}</span>
@@ -199,7 +199,7 @@
     @if (activeTab() === 'agents') {
 
     <!-- Agent Performance Table (DB) -->
-    @if (at && at.feedAnalysis.agentStats.length > 0) {
+    @if (at && (at.feedAnalysis?.agentStats?.length ?? 0) > 0) {
     <div class="report-section">
       <h2 class="section-heading">Agent Performance Report <span class="badge live">Live DB</span></h2>
       <p class="section-desc">Per-agent statistics from {{ at.totalFeedAnalyses }} persistent feed analyses</p>
@@ -212,7 +212,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (ag of at.feedAnalysis.agentStats; track ag.agent_name) {
+            @for (ag of (at.feedAnalysis?.agentStats ?? []); track ag.agent_name) {
             <tr>
               <td class="cell-agent">{{ getRegionEmoji(ag.agent_region) }} {{ ag.agent_name.replace('BiasAgent','') }}</td>
               <td>{{ ag.agent_region }}</td>
@@ -232,12 +232,12 @@
     }
 
     <!-- Survey Verdict Accuracy -->
-    @if (at && at.surveyVerdicts.length > 0) {
+    @if (at && (at.surveyVerdicts?.length ?? 0) > 0) {
     <div class="report-section">
       <h2 class="section-heading">Survey Verdict Accuracy</h2>
       <p class="section-desc">Per-region accuracy from {{ at.totalSurveyVerdicts }} agent verdicts</p>
       <div class="verdict-list">
-        @for (sv of at.surveyVerdicts; track sv.agent_region) {
+        @for (sv of (at.surveyVerdicts ?? []); track sv.agent_region) {
         <div class="verdict-row">
           <span class="verdict-label">{{ getRegionEmoji(sv.agent_region) }} {{ sv.agent_region }}</span>
           <div class="verdict-track">
@@ -278,7 +278,7 @@
               <tr><th>Agent</th><th>Region</th><th>Avg Score</th><th>Favoritism</th><th>Avg Δ</th></tr>
             </thead>
             <tbody>
-              @for (agent of agStats.agents; track agent.agentName) {
+              @for (agent of (agStats.agents ?? []); track agent.agentName) {
               <tr [class.baseline-row]="agent.region === 'None'">
                 <td class="cell-agent">{{ agent.agentName }}</td>
                 <td>{{ agent.region }}</td>
@@ -300,7 +300,7 @@
     <div class="report-section">
       <h2 class="section-heading">Raw Biased vs Debiased Scores</h2>
       <div class="bar-chart">
-        @for (agent of chartStats.agents; track agent.agentName) {
+        @for (agent of (chartStats.agents ?? []); track agent.agentName) {
         <div class="bar-row">
           <span class="bar-label">{{ agent.agentName.replace('BiasAgent','').replace('NonBiasBaseline','Baseline') }}</span>
           <div class="bar-track">
@@ -419,7 +419,7 @@
       <div class="two-col">
         <div class="sub-card">
           <h3>By Mode</h3>
-          @for (m of sc.byMode; track m.mode) {
+          @for (m of (sc.byMode ?? []); track m.mode) {
           <div class="detail-row">
             <span class="detail-label">{{ m.mode }}</span>
             <span class="detail-stat">{{ m.sessions }} sessions</span>
@@ -429,7 +429,7 @@
         </div>
         <div class="sub-card">
           <h3>By Difficulty</h3>
-          @for (d of sc.byDifficulty; track d.difficulty) {
+          @for (d of (sc.byDifficulty ?? []); track d.difficulty) {
           <div class="detail-row">
             <span class="detail-label">{{ d.difficulty }}</span>
             <div class="detail-track"><div class="detail-fill" [style.width.%]="d.accuracy * 100"></div></div>
@@ -442,7 +442,7 @@
       <div class="sub-card wide">
         <h3>Daily Completions</h3>
         <div class="column-chart">
-          @for (rc of sc.recentCompletions; track rc.date) {
+          @for (rc of (sc.recentCompletions ?? []); track rc.date) {
           <div class="col-item">
             <div class="col-bar" [style.height.px]="rc.completedCount * 16 + 4"></div>
             <span class="col-val">{{ rc.completedCount }}</span>
@@ -460,7 +460,7 @@
       <div class="report-section">
         <h2 class="section-heading">Accuracy by Difficulty <span class="badge live">DB</span></h2>
         <div class="verdict-list">
-          @for (d of an.accuracyByDifficulty; track d.item_difficulty) {
+          @for (d of (an.accuracyByDifficulty ?? []); track d.item_difficulty) {
           <div class="verdict-row">
             <span class="verdict-label">{{ d.item_difficulty | titlecase }}</span>
             <div class="verdict-track">
@@ -475,7 +475,7 @@
       <div class="report-section">
         <h2 class="section-heading">Accuracy by Category <span class="badge live">DB</span></h2>
         <div class="verdict-list">
-          @for (c of an.accuracyByCategory; track c.item_category) {
+          @for (c of (an.accuracyByCategory ?? []); track c.item_category) {
           <div class="verdict-row">
             <span class="verdict-label">{{ c.item_category | titlecase }}</span>
             <div class="verdict-track">
@@ -516,14 +516,14 @@
     }
 
     <!-- Fairness Perception Trends -->
-    @if (ftr && ftr.points.length > 0) {
+    @if (ftr && (ftr.points?.length ?? 0) > 0) {
     <div class="report-section">
       <h2 class="section-heading">Fairness Perception Trends</h2>
       <div class="data-grid wide-grid">
         <div class="dg-header">
           <span>Date</span><span>Responses</span><span>Orig Fair</span><span>NonBias</span><span>Clarity</span><span>Trust</span><span>Severity</span>
         </div>
-        @for (ft of ftr.points; track ft.date) {
+        @for (ft of (ftr.points ?? []); track ft.date) {
         <div class="dg-row">
           <span>{{ ft.date }}</span>
           <span>{{ ft.responseCount }}</span>
@@ -586,27 +586,27 @@
         <div class="meta-group">
           <span class="meta-lbl">Top Factors</span>
           <div class="tag-row">
-            @for (f of fa.globalTopFactors; track f) { <span class="tag">{{ f }}</span> }
+            @for (f of (fa.globalTopFactors ?? []); track f) { <span class="tag">{{ f }}</span> }
           </div>
         </div>
-        @if (fa.proxyRiskIndicators.length > 0) {
+        @if ((fa.proxyRiskIndicators?.length ?? 0) > 0) {
         <div class="meta-group risk">
           <span class="meta-lbl">Proxy Risk</span>
           <div class="tag-row">
-            @for (pr of fa.proxyRiskIndicators; track pr) { <span class="tag risk">{{ pr }}</span> }
+            @for (pr of (fa.proxyRiskIndicators ?? []); track pr) { <span class="tag risk">{{ pr }}</span> }
           </div>
         </div>
         }
       </div>
 
-      @for (attr of fa.agentAttributions; track attr.agentName) {
+      @for (attr of (fa.agentAttributions ?? []); track attr.agentName) {
       <div class="attr-block">
         <div class="attr-head">
           <span class="attr-name">{{ attr.agentName }}</span>
           @if (attr.region) { <span class="attr-region">{{ attr.region }}</span> }
           <span class="attr-delta" [class.positive]="attr.totalDelta > 0" [class.negative]="attr.totalDelta < 0">Δ {{ attr.totalDelta | number:'1.4-4' }}</span>
         </div>
-        @for (fc of attr.factors.slice(0, 5); track fc.factorName) {
+        @for (fc of (attr.factors ?? []).slice(0, 5); track fc.factorName) {
         <div class="factor-row">
           <span class="factor-name">{{ fc.factorName }}</span>
           <div class="factor-track">
@@ -723,7 +723,7 @@
     </section>
 
     <!-- ── Agent Performance Summary ── -->
-    @if (at && at.feedAnalysis.agentStats.length > 0) {
+    @if (at && (at.feedAnalysis?.agentStats?.length ?? 0) > 0) {
     <div class="report-section">
       <h3 class="section-heading">Agent Performance Summary</h3>
       <p class="section-desc">Aggregated metrics per bias agent from the feed_analysis_log table.</p>
@@ -742,7 +742,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (a of at.feedAnalysis.agentStats; track a.agent_region) {
+            @for (a of (at.feedAnalysis?.agentStats ?? []); track a.agent_region) {
             <tr>
               <td>{{ getRegionEmoji(a.agent_region) }} {{ a.agent_region }}</td>
               <td class="cell-agent">{{ a.agent_name }}</td>
@@ -763,7 +763,7 @@
     }
 
     <!-- ── Survey Verdict Accuracy by Agent ── -->
-    @if (at && at.surveyVerdicts.length > 0) {
+    @if (at && (at.surveyVerdicts?.length ?? 0) > 0) {
     <div class="report-section">
       <h3 class="section-heading">Survey Verdict Accuracy by Agent</h3>
       <p class="section-desc">How accurately each regional agent identified AI vs. human-generated content in survey sessions.</p>
@@ -780,7 +780,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (v of at.surveyVerdicts; track v.agent_region) {
+            @for (v of (at.surveyVerdicts ?? []); track v.agent_region) {
             <tr>
               <td>{{ getRegionEmoji(v.agent_region) }} {{ v.agent_region }}</td>
               <td class="cell-num">{{ v.total_verdicts }}</td>
@@ -859,12 +859,12 @@
     }
 
     <!-- ── Feed Analysis Log ── -->
-    @if (at && at.feedAnalysis.recentLogs.length > 0) {
+    @if (at && (at.feedAnalysis?.recentLogs?.length ?? 0) > 0) {
     <div class="report-section">
       <div class="audit-log-header">
         <div>
           <h3 class="section-heading">Feed Analysis Log <span class="badge live">Live DB</span></h3>
-          <p class="section-desc">Latest {{ getFilteredLogs().length }} of {{ at.feedAnalysis.recentLogs.length }} entries. Filter by region below.</p>
+          <p class="section-desc">Latest {{ getFilteredLogs().length }} of {{ at.feedAnalysis?.recentLogs?.length ?? 0 }} entries. Filter by region below.</p>
         </div>
         <div class="audit-filter-row">
           <label class="audit-filter-label" for="audit-region-filter">Region</label>
@@ -927,7 +927,7 @@
     }
 
     <!-- ── Empty state when no DB data ── -->
-    @if (!at || (at.feedAnalysis.recentLogs.length === 0 && at.surveyVerdicts.length === 0)) {
+    @if (!at || ((at.feedAnalysis?.recentLogs?.length ?? 0) === 0 && (at.surveyVerdicts?.length ?? 0) === 0)) {
     <div class="empty-state">
       <div class="empty-state-icon">🗄</div>
       <h3 class="empty-state-title">No Audit Records</h3>
