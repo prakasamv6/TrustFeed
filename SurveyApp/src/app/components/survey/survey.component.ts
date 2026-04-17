@@ -78,25 +78,7 @@ import { VideoFallbackDirective } from '../../utils/video-fallback.directive';
             This measures how AI assistance affects human judgment accuracy.
           </p>
           }
-          <div class="dataset-status" [class.ready]="datasetReady() === true" [class.warning]="datasetReady() === false">
-            <div class="dataset-headline">
-              <span class="dataset-icon">{{ datasetChecking() ? '⏳' : (datasetReady() ? '✅' : '⚠️') }}</span>
-              <span class="dataset-title">{{ datasetChecking() ? 'Checking dataset readiness...' : (datasetReady() ? 'Dataset ready for balanced session' : 'Dataset readiness warning') }}</span>
-            </div>
-            <p class="dataset-message">{{ datasetStatusMessage() }}</p>
-            @if (datasetLastChecked()) {
-            <p class="dataset-meta">Last checked: {{ datasetLastChecked() }} (auto-refresh every 60s)</p>
-            }
-            @if (datasetIssues().length > 0) {
-            <ul class="dataset-issues">
-              @for (issue of datasetIssues(); track issue) {
-              <li>{{ issue }}</li>
-              }
-            </ul>
-            }
-            <button class="dataset-refresh-btn" type="button" [disabled]="datasetChecking()" (click)="refreshDatasetStatus(true)">{{ datasetChecking() ? 'Checking...' : 'Recheck Dataset' }}</button>
-          </div>
-          <button class="start-btn" [disabled]="datasetReady() !== true || datasetChecking()" (click)="startSurvey()">
+          <button class="start-btn" (click)="startSurvey()">
             <span>🚀</span> Begin Research Survey
           </button>
         </div>
