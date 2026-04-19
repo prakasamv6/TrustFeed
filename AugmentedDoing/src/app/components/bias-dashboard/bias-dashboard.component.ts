@@ -125,6 +125,30 @@ export class BiasDashboardComponent implements OnInit {
 
   setTab(tab: ReportTab): void { this.activeTab.set(tab); }
 
+  /** WCAG 2.1.1: Arrow-key navigation for tabs (WAI-ARIA Tabs pattern) */
+  onTabKeydown(event: KeyboardEvent): void {
+    const tabIds = this.tabs.map(t => t.id);
+    const idx = tabIds.indexOf(this.activeTab());
+    let newIdx = idx;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      newIdx = (idx + 1) % tabIds.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      newIdx = (idx - 1 + tabIds.length) % tabIds.length;
+    } else if (event.key === 'Home') {
+      newIdx = 0;
+    } else if (event.key === 'End') {
+      newIdx = tabIds.length - 1;
+    } else {
+      return; // Don't prevent default for other keys
+    }
+
+    event.preventDefault();
+    this.setTab(tabIds[newIdx]);
+    const el = document.getElementById('tab-' + tabIds[newIdx]);
+    el?.focus();
+  }
+
   selectPost(post: Post): void {
     this.selectedPost.set(post);
     this.surveySubmitted.set(false);

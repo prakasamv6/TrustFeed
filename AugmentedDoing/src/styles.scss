@@ -145,6 +145,9 @@
   /* Touch targets (WCAG 2.5.5 AAA) */
   --min-touch-target: 44px;
 
+  /* WCAG 2.4.7 / 2.4.13: Focus ring */
+  --focus-ring: #58a6ff;
+
   /* Transitions — respect reduced-motion via JS override */
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
@@ -189,6 +192,8 @@
   --border-default: rgba(0, 0, 0, 0.12);
   --border-subtle: rgba(0, 0, 0, 0.06);
   --border-focus: #0969da;
+
+  --focus-ring: #0969da;
 
   --text-primary: #1f2328;       /* 14.7:1 on #f6f8fa */
   --text-secondary: #424a53;     /* 8.5:1 */
