@@ -28,7 +28,7 @@ export class AccessibilityService implements OnDestroy {
   readonly prefersHighContrast = signal(false);
 
   /* User preference signals */
-  readonly theme = signal<ThemeMode>('system');
+  readonly theme = signal<ThemeMode>('dark');
   readonly fontSize = signal<FontSize>('medium');
   readonly animationLevel = signal<AnimationLevel>('full');
   readonly density = signal<LayoutDensity>('comfortable');
@@ -155,7 +155,7 @@ export class AccessibilityService implements OnDestroy {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const prefs: A11yPreferences = JSON.parse(stored);
-        this.theme.set(prefs.theme ?? 'system');
+        this.theme.set('dark');
         this.fontSize.set(prefs.fontSize ?? 'medium');
         this.animationLevel.set(prefs.animationLevel ?? 'full');
         this.density.set(prefs.density ?? 'comfortable');
